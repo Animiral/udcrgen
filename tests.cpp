@@ -21,13 +21,13 @@ void expect(bool result, const std::string& message)
  */
 void test_Caterpillar_fromText()
 {
-	const std::string input = "3 2 1\n";
+	const std::string input = "3 4 1\n";
 	std::istringstream stream{ input };
 	const auto result = Caterpillar::fromText(stream);
 	expect(3 == result.leaves().size(), "Caterpillar has 3 spine vertices");
-	expect(3 == result.leaves().at(0), "Caterpillar has 3 leaves at [0]");
+	expect(2 == result.leaves().at(0), "Caterpillar has 2 leaves at [0]");
 	expect(2 == result.leaves().at(1), "Caterpillar has 2 leaves at [1]");
-	expect(1 == result.leaves().at(2), "Caterpillar has 1 leaf at [2]");
+	expect(0 == result.leaves().at(2), "Caterpillar has no leaf at [2]");
 }
 
 void test_all()

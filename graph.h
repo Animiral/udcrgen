@@ -24,6 +24,16 @@ public:
 	void extend(int leaves);
 
 	/**
+	 * Count the total number of vertices (spine + leaves).
+	 */
+	int countVertices() const noexcept;
+
+	/**
+	 * Get the number of vertices in the spine.
+	 */
+	int countSpine() const noexcept;
+
+	/**
 	 * Get the list of leaf counts.
 	 */
 	const std::vector<int>& leaves() const noexcept;
@@ -51,7 +61,7 @@ private:
 struct UdcrVertex
 {
 	int id; //!< unique vertex number [0..n]
-	int parent; //!< parent vertex number, must be part of the spine in caterpillar
+	int parent; //!< parent vertex number, must be spine vertex or -1
 	int rank; //!< child number relative to the parent, >= 0
 	float x, y; //!< embedding coordinates
 };
@@ -92,6 +102,20 @@ public:
 	 * Get the immutable vertex data.
 	 */
 	const std::vector<UdcrVertex>& vertices() const noexcept;
+
+	/**
+	 * Get the vertex with the given unique number.
+	 *
+	 * Throw an exception if the vertex does not exist.
+	 */
+	const UdcrVertex& findVertex(int id) const;
+
+	/**
+	 * Create an instance based on the given basic caterpillar representation.
+	 *
+	 * The embedding coordinates of the resulting vertices are unspecified.
+	 */
+	static UdcrGraph fromCaterpillar(const Caterpillar& caterpillar);
 
 private:
 

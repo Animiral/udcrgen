@@ -36,15 +36,29 @@ int main(int argc, const char* argv[])
 	}
 
 	try {
-		// run embedding algorithm
-		auto output = wudcrgen(input);
+		{
+			// run strong embedding algorithm (not actually strong yet)
+			auto output = udcrgen(input);
 
-		// write output to predefined file
-		constexpr auto outfilename = "wudcrgen.txt";
-		constexpr auto outsvgname = "wudcrgen.svg";
-		std::ofstream stream{ outfilename };
-		write_output(output, stream);
-		write_svg(output, outsvgname);
+			// write output to predefined file
+			constexpr auto outfilename = "udcrgen.txt";
+			constexpr auto outsvgname = "udcrgen.svg";
+			std::ofstream stream{ outfilename };
+			write_output(output, stream);
+			write_svg(output, outsvgname);
+		}
+
+		{
+			// run weak embedding algorithm
+			auto output = wudcrgen(input);
+
+			// write output to predefined file
+			constexpr auto outfilename = "wudcrgen.txt";
+			constexpr auto outsvgname = "wudcrgen.svg";
+			std::ofstream stream{ outfilename };
+			write_output(output, stream);
+			write_svg(output, outsvgname);
+		}
 	}
 	catch (const std::exception& e) {
 		std::cerr << "Failed to determine graph embedding: " << e.what() << "\n";

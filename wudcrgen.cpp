@@ -1,9 +1,10 @@
 ﻿#include "wudcrgen.h"
 #include "graph.h"
 #include <cmath>
+#include <cstdlib>
 #include <cassert>
 
-constexpr auto PI = 3.14159265358979323846;
+constexpr float PI = 3.14159265358979323846f;
 
 /**
  * Used to represent points and directions.
@@ -15,6 +16,22 @@ struct Vec2
 };
 
 /**
+ * Get the vector from left to right.
+ */
+constexpr Vec2 operator-(Vec2 left, Vec2 right)
+{
+	return Vec2{ left.x - right.x, left.y - right.y };
+}
+
+/**
+ * Get the vector scaled by a factor.
+ */
+constexpr Vec2 operator*(Vec2 vec, float scale)
+{
+	return Vec2{ vec.x * scale, vec.y * scale };
+}
+
+/**
  * Apply the given translation to the left-side vector.
  */
 constexpr Vec2& operator+=(Vec2& vec, Vec2 translate)
@@ -22,6 +39,33 @@ constexpr Vec2& operator+=(Vec2& vec, Vec2 translate)
 	vec.x += translate.x;
 	vec.y += translate.y;
 	return vec;
+}
+
+/**
+ * Return the translated vector.
+ */
+Vec2 operator+(Vec2 vec, Vec2 translate)
+{
+	vec.x += translate.x;
+	vec.y += translate.y;
+	return vec;
+}
+
+/**
+ * Return the straight-line distance between the two points.
+ */
+float distance(Vec2 p0, Vec2 p1)
+{
+	return std::hypot(p1.x - p0.x, p1.y - p0.y);
+}
+
+/**
+ * Scale the given vector to unit length.
+ */
+Vec2 unit(Vec2 vec)
+{
+	const float d = std::hypot(vec.x, vec.y);
+	return Vec2{ vec.x / d, vec.y / d };
 }
 
 /**
@@ -63,20 +107,94 @@ constexpr Mat2 operator*(Mat2 left, Mat2 right)
 	};
 }
 
-UdcrGraph udcrgen(const Caterpillar& caterpillar)
+/**
+ * Determine the location of a new point from two known points and their distance.
+ *
+ * If the two starting points are too far apart, the result will be between the
+ * two, at distance0 from point0.
+ *
+ * This implementation uses an iteratively converging approach.
+ *
+ * @param point0: first known point
+ * @param distance0: distance from point0 to the target
+ * @param point1: second known point
+ * @param distance1: distance from point1 to the target
+ * @param hint: general preferred direction to discriminate between two solutions
+ * @param epsilon: maximum error of result vs solution
+ */
+Vec2 triangulate(Vec2 point0, float distance0, Vec2 point1, float distance1, Vec2 hint, float epsilon)
 {
-	constexpr float sixtyDegrees = PI / 3.f;
+	Vec2 result; // storage for result
 
+	// if the distance is too far for a matching result, early exit based on point0
+	{
+		const float totalDistance = distance(point0, point1);
+		if (totalDistance >= distance0 + distance1) {
+			const Vec2 from0 = (point1 - point0) * (distance0 / totalDistance);
+			result = point0 + from0;
+			return result;
+		}
+	}
+
+	// init result to somewhere that is closer to the hinted-at solution.
+	result = (point0 + point1) * .5 + hint;
+
+	// distance temporary
+	float d = distance(result, point0);
+
+	do {
+		const Vec2 from0 = (result - point0) * (distance0 / d);
+		result = point0 + from0;
+
+		d = distance(result, point1);
+		const Vec2 from1 = (result - point1) * (distance1 / d);
+		result = point1 + from1;
+
+		d = distance(result, point0);
+	} while (std::abs(d - distance0) > epsilon);
+
+	return result;
+}
+
+/**
+ * Based on a leaf placed previously, find the position for the next one
+ * respecting the necessary gap.
+ */
+Vec2 nextLeafPosition(Vec2 lastLeaf, Vec2 spine, Vec2 lastSpine, Vec2 forward, float gap)
+{
+	Vec2 leafPosition = triangulate(spine, 1, lastLeaf, 1 + gap, forward, gap * 0.01f);
+
+	if (distance(lastSpine, leafPosition) < 1 + gap) {
+		const Vec2 hint = leafPosition - lastSpine;
+		leafPosition = triangulate(spine, 1, lastSpine, 1 + gap, hint, gap * 0.01f);
+	}
+
+	return leafPosition;
+}
+
+UdcrGraph udcrgen(const Caterpillar& caterpillar, float gap)
+{
 	Vec2 position{ 0, 0 }; // embedding position for the current spine piece
-	Vec2 forward = Mat2::rotation(sixtyDegrees/4) * Vec2{ 1.f, 0 }; // general direction for next spine
-	float slotUp = 2 * sixtyDegrees; // rotation to place leaf up
-	float slotDown = -3 * sixtyDegrees; // rotation to place leaf down
+	Vec2 forward = Mat2::rotation(PI / 12) * Vec2{ 1.f, 0 }; // general direction for next spine
+	Vec2 lastUp = { -10, 1 }; // placement of previous up leaf
+	Vec2 lastDown = { -10, -1 }; // placement of previous down leaf
+	Vec2 lastSpine = { -1, 0 }; // placement of previous spine
 	bool leafUp = false; // where to place the next leaf (alternate)
 
 	auto udcrg = UdcrGraph::fromCaterpillar(caterpillar);
 
 	// iterate through all leaves
 	int leafIndex = udcrg.spine(); // by convention, leaves start after spine
+
+	// there is a special slot available only to the first leaf on the first spine
+	if (leafIndex < udcrg.vertices().size()) {
+		auto& leaf0 = udcrg.vertices()[leafIndex];
+		if (0 == leaf0.parent) {
+			leaf0.x = -1;
+			leaf0.y = 0;
+			leafIndex++;
+		}
+	}
 
 	for (int spineIndex = 0; spineIndex < udcrg.spine(); spineIndex++) {
 		// place next spine segment
@@ -91,34 +209,32 @@ UdcrGraph udcrgen(const Caterpillar& caterpillar)
 			if (leaf.parent != spineVertex.id) // need new spine segment
 				break;
 
-			auto leafPosition = position;
-
-			if (leafUp) {
-				leafPosition += Mat2::rotation(slotUp) * forward;
-				slotUp -= sixtyDegrees;
-			}
-			else {
-				leafPosition += Mat2::rotation(slotDown) * forward;
-				slotDown += sixtyDegrees;
+			auto& lastLeaf = leafUp ? lastUp : lastDown;
+			const auto leafPosition = nextLeafPosition(lastLeaf, position, lastSpine, forward, gap);
+			if (distance(leafPosition, lastLeaf) < 1 + gap) {
+				// TODO: raise error - too many leaves to fit
 			}
 			leaf.x = leafPosition.x;
 			leaf.y = leafPosition.y;
 
 			leafUp = !leafUp; // alternate placement
 			leafIndex++;
+			lastLeaf = leafPosition;
 		}
 
 		// determine the bisector of the free space ahead as new "forward"
-		const auto forwardDirection = (slotUp + slotDown) / 2;
-		forward = Mat2::rotation(forwardDirection) * forward;
-
-		// determine the tightest possible placement slots for upcoming leaves
-		// due to unit circles, the total angle is the same, but split evenly
-		slotUp = std::min((slotUp - slotDown) / 2 + sixtyDegrees, 2 * sixtyDegrees);
-		slotDown = -slotUp;
+		const auto hypotheticalUp = nextLeafPosition(lastUp, position, lastSpine, forward, gap);
+		const auto hypotheticalDown = nextLeafPosition(lastDown, position, lastSpine, forward, gap);
+		const auto forward1 = unit(hypotheticalUp + hypotheticalDown - position - position);
+		const auto forward2 = forward1 * -1;
+		forward = distance(forward, forward1) < distance(forward, forward2) ? forward1 : forward2;
 
 		// move forward
+		lastSpine = position;
 		position += forward;
+		if (distance(position, lastUp) < 1 + gap) {
+			// TODO: raise error - not enough room for the next spine disk
+		}
 	}
 
 	return udcrg;

@@ -8,6 +8,8 @@
 extern void test_all();
 void write_output(const UdcrGraph& udcrg, std::ostream& stream);
 
+constexpr float GAP = .1f;
+
 int main(int argc, const char* argv[])
 {
 	std::cout << "Run tests...\n";
@@ -38,7 +40,7 @@ int main(int argc, const char* argv[])
 	try {
 		{
 			// run strong embedding algorithm (not actually strong yet)
-			auto output = udcrgen(input);
+			auto output = udcrgen(input, GAP);
 
 			// write output to predefined file
 			constexpr auto outfilename = "udcrgen.txt";

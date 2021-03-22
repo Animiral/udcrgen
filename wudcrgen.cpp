@@ -4,6 +4,11 @@
 #include <cassert>
 
 /**
+ * Cosmetic positioning for vertices which cannot be placed by the algorithm.
+ */
+const float Y_FAIL = 2.2f;
+
+/**
  * Based on a leaf placed previously, find the position for the next one
  * respecting the necessary gap.
  */
@@ -49,6 +54,11 @@ UdcrGraph udcrgen(const Caterpillar& caterpillar, float gap)
 		spineVertex.x = position.x;
 		spineVertex.y = position.y;
 
+		// not enough room for the spine (leave it at position anyway)
+		if (distance(position, lastUp) < 1 + gap) {
+			spineVertex.failure = true;
+		}
+
 		// place all leaves for this spine segment
 		while (leafIndex < udcrg.vertices().size()) {
 			auto& leaf = udcrg.vertices()[leafIndex];
@@ -58,9 +68,16 @@ UdcrGraph udcrgen(const Caterpillar& caterpillar, float gap)
 
 			auto& lastLeaf = leafUp ? lastUp : lastDown;
 			const auto leafPosition = nextLeafPosition(lastLeaf, position, lastSpine, forward, gap);
-			if (distance(leafPosition, lastLeaf) < 1 + gap) {
-				// TODO: raise error - too many leaves to fit
+
+			// leaf wrap-around collision due to too many leaves
+			if (distance(leafPosition, leafUp ? lastDown : lastUp) < 1 + gap) {
+				leaf.failure = true;
+				leaf.x = position.x;
+				leaf.y = position.y + Y_FAIL;
+				leafIndex++;
+				continue;
 			}
+
 			leaf.x = leafPosition.x;
 			leaf.y = leafPosition.y;
 
@@ -79,9 +96,6 @@ UdcrGraph udcrgen(const Caterpillar& caterpillar, float gap)
 		// move forward
 		lastSpine = position;
 		position += forward;
-		if (distance(position, lastUp) < 1 + gap) {
-			// TODO: raise error - not enough room for the next spine disk
-		}
 	}
 
 	return udcrg;
@@ -90,7 +104,7 @@ UdcrGraph udcrgen(const Caterpillar& caterpillar, float gap)
 /**
  * Position names relative to current spine vertex in the weak algorithm.
  */
-enum class Slot { BEHIND, UP, DOWN, FWD_UP, FWD_DOWN, FRONT };
+enum class Slot { BEHIND, UP, DOWN, FWD_UP, FWD_DOWN, FRONT, FAIL };
 
 /**
  * Neighbors are placed in-between in the rows above and below.
@@ -106,7 +120,8 @@ const Vec2 relativeSlots[] = {
 	Vec2{ -.5, -Y_HIGH },  // DOWN
 	Vec2{ .5, Y_HIGH },    // FWD_UP
 	Vec2{ .5, -Y_HIGH },   // FWD_DOWN
-	Vec2{ 1, 0 }           // FRONT
+	Vec2{ 1, 0 },          // FRONT
+	Vec2{ 0, Y_FAIL }      // FAIL
 };
 
 /**
@@ -120,10 +135,12 @@ Vec2 offset(Slot slot) noexcept
 /**
  * Return the next slot to place a leaf.
  */
-Slot next(Slot slot)
+Slot next(Slot slot) noexcept
 {
-	assert(slot != Slot::FRONT);
-	return static_cast<Slot>(static_cast<int>(slot) + 1);
+	if (Slot::FAIL == slot)
+		return Slot::FAIL;
+	else
+		return static_cast<Slot>(static_cast<int>(slot) + 1);
 }
 
 /**
@@ -164,11 +181,12 @@ UdcrGraph wudcrgen(const Caterpillar& caterpillar)
 			if (leaf.parent != spineVertex.id) // need new spine segment
 				break;
 
-			if (Slot::FRONT == slot && spineIndex < udcrg.spine() - 1) {
-				// not enough room for this vertex
-				// TODO: raise error
-				break;
-			}
+			// fail all leaves for which there is no slot
+			if (Slot::FRONT == slot && (spineIndex < udcrg.spine() - 1))
+				slot = Slot::FAIL;
+
+			if (Slot::FAIL == slot)
+				leaf.failure = true;
 
 			auto leafPosition = Vec2{ spineVertex.x, spineVertex.y };
 			leafPosition += offset(slot);

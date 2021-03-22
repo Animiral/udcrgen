@@ -64,6 +64,7 @@ struct UdcrVertex
 	int parent; //!< parent vertex number, must be spine vertex or -1
 	int rank; //!< child number relative to the parent, >= 0
 	float x, y; //!< embedding coordinates
+	bool failure; //!< whether the algorithm failed to place this vertex in UDCR
 };
 
 /**

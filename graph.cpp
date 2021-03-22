@@ -97,6 +97,7 @@ UdcrGraph UdcrGraph::fromCaterpillar(const Caterpillar& caterpillar)
 		v.id = id;
 		v.parent = id - 1;
 		v.rank = 0;
+		v.failure = false;
 	}
 
 	int spineId = 0; // attach the number of leaves to this spine vertex
@@ -107,6 +108,7 @@ UdcrGraph UdcrGraph::fromCaterpillar(const Caterpillar& caterpillar)
 			v.id = id + leaf;
 			v.parent = spineId;
 			v.rank = leaf;
+			v.failure = false;
 		}
 
 		id += leaves;

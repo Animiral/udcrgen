@@ -2,8 +2,13 @@
 #include <fstream>
 #include <algorithm>
 
+/**
+ * Describes how the vertex should be presented to the user.
+ */
+enum class Appearance { SPINE, LEAF, FAIL };
+
 void write_circle(float x, float y, float scale, float offsetX, float offsetY,
-	int id, bool isSpine, std::ostream& stream);
+	int id, Appearance appearance, std::ostream& stream);
 
 void write_line(float x1, float y1, float x2, float y2, float scale, float offsetX, float offsetY,
 	std::ostream& stream);
@@ -26,8 +31,11 @@ void write_svg(const UdcrGraph& udcrg, const char* filename)
 		"<g text-anchor=\"middle\">\n";
 
 	for (const auto& vertex : udcrg.vertices()) {
+		const Appearance appearance = vertex.failure ? Appearance::FAIL
+			: vertex.id < udcrg.spine() ? Appearance::SPINE : Appearance::LEAF;
+
 		write_circle(vertex.x, vertex.y, scale, offsetX, offsetY,
-			vertex.id, vertex.id < udcrg.spine(), stream);
+			vertex.id, appearance, stream);
 
 		if (vertex.parent >= 0) {
 			const auto& parent = udcrg.findVertex(vertex.parent);
@@ -45,11 +53,24 @@ void write_svg(const UdcrGraph& udcrg, const char* filename)
 }
 
 void write_circle(float x, float y, float scale, float offsetX, float offsetY,
-	int id, bool isSpine, std::ostream& stream)
+	int id, Appearance appearance, std::ostream& stream)
 {
 	int cx = x * scale + offsetX;
 	int cy = y * scale + offsetY;
-	const char* fill = isSpine ? "beige" : "white";
+
+	const char* fill;
+	switch (appearance) {
+	case Appearance::SPINE:
+		fill = "beige";
+		break;
+	case Appearance::LEAF:
+		fill = "white";
+		break;
+	case Appearance::FAIL:
+	default:
+		fill = "crimson";
+	}
+
 	stream << "\t<circle cx=\"" << cx << "\" cy=\"" << cy << "\" "
 		<< "r=\"" << scale / 2 << "\" stroke=\"black\" stroke-width=\"3\" "
 		<< "fill=\"" << fill << "\" /> "

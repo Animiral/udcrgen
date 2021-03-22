@@ -79,6 +79,11 @@ void write_output(const UdcrGraph& udcrg, std::ostream& stream)
 	stream << std::setprecision(2);
 
 	for (const auto& v : udcrg.vertices()) {
-		stream << v.id << " -> " << v.parent << "  (" << v.x << ", " << v.y << ")\n";
+		if (v.failure) {
+			stream << "FAILED to place vertex " << v.id << " -> " << v.parent << ".\n";
+		}
+		else {
+			stream << v.id << " -> " << v.parent << "  (" << v.x << ", " << v.y << ")\n";
+		}
 	}
 }

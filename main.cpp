@@ -1,6 +1,7 @@
 #include "wudcrgen.h"
 #include "graph.h"
 #include "svg.h"
+#include "config.h"
 #include <iostream>
 #include <fstream>
 #include <iomanip>
@@ -8,39 +9,47 @@
 extern void test_all();
 void write_output(const UdcrGraph& udcrg, std::ostream& stream);
 
-constexpr float GAP = .1f;
-
 int main(int argc, const char* argv[])
 {
 	std::cout << "Run tests...\n";
 	test_all();
 	std::cout << "Tests Done.\n";
 
-	// read input from file arg
-	auto infilename = argv[1];
+	Configuration configuration;
 
-	if (argc < 2) {
-		std::cout << "No input file. Usage: " << argv[0] << " [file]\n";
-		// return 1;
-		infilename = "example.txt"; // just for show
+	try {
+		configuration.readArgv(argc, argv);
+	}
+	catch (const std::exception& e) {
+		std::cerr << "Failed to read configuration from command line: " << e.what() << "\n";
+		return 1;
+	}
+
+	configuration.dump(std::cout);
+
+	// DEBUG: in the current stage of development, config is partially hardcoded.
+	if (configuration.inputFile.empty())
+	{
+		configuration.inputFile = "example.txt";
 	}
 
 	Caterpillar input;
 
 	try {
-		std::cout << "Process input file " << infilename << "...\n";
-		std::ifstream stream{ infilename };
+		std::cout << "Process input file " << configuration.inputFile << "...\n";
+		std::ifstream stream{ configuration.inputFile };
 		input = Caterpillar::fromText(stream);
 	}
 	catch (const std::exception& e) {
-		std::cerr << "Failed to read input file \"" << argv[1] << "\": " << e.what() << "\n";
+		std::cerr << "Failed to read input file \"" << configuration.inputFile << "\": " << e.what() << "\n";
 		return 1;
 	}
 
 	try {
+		// DEBUG: in the current stage of development, we always produce two outputs (hardcoded).
 		{
 			// run strong embedding algorithm (not actually strong yet)
-			auto output = udcrgen(input, GAP);
+			auto output = udcrgen(input, configuration.gap);
 
 			// write output to predefined file
 			constexpr auto outfilename = "udcrgen.txt";

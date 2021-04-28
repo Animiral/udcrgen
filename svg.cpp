@@ -15,13 +15,14 @@ void write_line(float x1, float y1, float x2, float y2, float scale, float offse
 
 void write_svg(const UdcrGraph& udcrg, const char* filename)
 {
+	const float padding = 10.f; // width of whitespace around the image
 	const float scale = 100.f; // size of a unit disk in output
 
 	// determine offset to move all circles on screen
 	const float offsetX = -std::min_element(udcrg.vertices().begin(), udcrg.vertices().end(),
-		[](UdcrVertex a, UdcrVertex b) { return a.x < b.x; })->x * scale + scale / 2;
+		[](UdcrVertex a, UdcrVertex b) { return a.x < b.x; })->x * scale + scale / 2 + padding;
 	const float offsetY = -std::min_element(udcrg.vertices().begin(), udcrg.vertices().end(),
-		[](UdcrVertex a, UdcrVertex b) { return a.y < b.y; })->y * scale + scale / 2;
+		[](UdcrVertex a, UdcrVertex b) { return a.y < b.y; })->y * scale + scale / 2 + padding;
 
 	std::ofstream stream{ filename };
 

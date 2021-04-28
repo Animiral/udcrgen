@@ -197,8 +197,6 @@ void Configuration::readArgv(int argc, const char* argv[])
 
         token = parser.next();
     }
-
-    validateInputFiles();
 }
 
 void Configuration::dump(std::ostream& stream) const

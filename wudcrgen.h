@@ -1,6 +1,28 @@
 #pragma once
 
+#include <utility>
 #include "graph.h"
+
+/**
+ * The graph classes that the algorithms in this reportoire can differentiate.
+ */
+enum class GraphClass { CATERPILLAR, LOBSTER, OTHER };
+
+/**
+ * Take the raw input graph in the form of an edge list and prepare it for processing by the
+ * embedding algorithm.
+ *
+ * The most important aspect is that we recognize which of the vertices constitute the
+ * spine of the graph.
+ *
+ * Reorder all graph vertices with spines in front.
+ * Then place branches in the order of
+ * the spine vertex that is their parent.
+ * Place leaves on a branch immediately following the branch vertex.
+ *
+ * @return the prepared graph and a type classification.
+ */
+std::pair<DiskGraph, GraphClass> classify(const EdgeList& input);
 
 /**
  * Generate a unit disk contact graph by computing the

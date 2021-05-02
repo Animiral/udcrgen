@@ -53,7 +53,7 @@ Caterpillar Caterpillar::fromText(std::istream& stream)
 	return caterpillar;
 }
 
-std::vector<Edge> edgesFromText(std::istream& stream)
+EdgeList edgesFromText(std::istream& stream)
 {
 	std::vector<Edge> edges;
 

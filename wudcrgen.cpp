@@ -1,7 +1,136 @@
 ﻿#include "wudcrgen.h"
 #include "graph.h"
 #include "geometry.h"
+#include <algorithm>
 #include <cassert>
+
+/**
+ * Remove all leaf vertices (vertices with only one edge).
+ */
+EdgeList removeLeaves(const EdgeList& edges)
+{
+	EdgeList result = edges;
+
+	std::vector<int> vertices(edges.size() * 2);
+
+	for (std::size_t i = 0; i < edges.size(); i++) {
+		vertices[i * 2] = edges[i].from;
+		vertices[i * 2 + 1] = edges[i].to;
+	}
+
+	std::sort(vertices.begin(), vertices.end());
+
+	auto end = result.end(); // track removed edges
+
+	const auto n = vertices.size();
+	for (std::size_t i = 0; i + 1 < n; ) {
+		if (vertices[i] == vertices[i + 1]) {
+			// vertex id not unique - skip all occurrences
+			do i++; while (vertices[i - 1] == vertices[i] && i + 1 < n);
+		}
+		else {
+			// unique - remove edge
+			end = std::remove_if(result.begin(), end,
+				[id = vertices[i]](Edge e) { return e.from == id || e.to == id; });
+			i++;
+		}
+	}
+
+	result.erase(end, result.end());
+	return result;
+}
+
+/**
+ * Determine whether the given edge list describes a path - a series of vertices
+ * connected in a row. Only a path can be the spine of a caterpillar or lobster.
+ *
+ * If the edges do indeed describe a path, re-order them in the order in which
+ * they can be traversed from beginning to end.
+ *
+ * @return true if the edges describe a path, false otherwise.
+ */
+bool recognizePath(EdgeList& edges)
+{
+	if (edges.size() == 0)
+		return false; // sanity check - the empty graph is not a path
+
+	std::vector<bool> visited(edges.size(), false); // cycle detection
+
+	// follow the edges back to the start of the path with a cursor
+	std::size_t cursor = 0;
+	visited[cursor] = true;
+	EdgeList::iterator previous;
+
+	while ((previous = std::find_if(edges.begin(), edges.end(),
+		[from = edges[cursor].from](Edge e) { return e.to == from; })) != edges.end()) {
+
+		cursor = previous - edges.begin();
+
+		if (visited[cursor])
+			return false; // cycle
+
+		visited[cursor] = true;
+	}
+
+	// follow the edges along the path and swap them into forward order
+	std::fill(visited.begin(), visited.end(), false);
+
+	std::size_t count = 0; // number of edges traversed
+	EdgeList::iterator next;
+
+	// put the start edge in front
+	std::swap(edges[count], edges[cursor]);
+	std::swap(visited[count], visited[cursor]);
+	cursor = count++;
+
+	while ((next = std::find_if(edges.begin() + count, edges.end(),
+		[to = edges[cursor].to](Edge e) { return e.from == to; })) != edges.end()) {
+
+		cursor = next - edges.begin();
+
+		if (visited[cursor])
+			return false; // cycle
+
+		visited[cursor] = true;
+
+		// put the cursor-indicated edge in front
+		std::swap(edges[count], edges[cursor]);
+		std::swap(visited[count], visited[cursor]);
+		cursor = count++;
+	}
+
+	return count >= edges.size(); // is path if we have visited all the edges
+}
+
+std::pair<DiskGraph, GraphClass> classify(const EdgeList& input)
+{
+	if (input.size() == 0)
+		return { {0, 0}, GraphClass::OTHER }; // sanity check for empty graph
+
+	EdgeList reduced = input;
+
+	// caterpillar without leaves
+	if (recognizePath(reduced)) {
+		return { {0, 0}, GraphClass::CATERPILLAR };
+	}
+
+	reduced = removeLeaves(reduced);
+
+	// caterpillar
+	if (recognizePath(reduced)) {
+		return { {0, 0}, GraphClass::CATERPILLAR };
+	}
+
+	reduced = removeLeaves(reduced);
+
+	// lobster
+	if (recognizePath(reduced)) {
+		return { {0, 0}, GraphClass::LOBSTER };
+	}
+
+	// unfamiliar graph
+	return { {0, 0}, GraphClass::OTHER };
+}
 
 /**
  * Cosmetic positioning for disks which cannot be placed by the algorithm.

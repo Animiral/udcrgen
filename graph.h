@@ -62,6 +62,8 @@ struct Edge
 	int to; //!< end vertex number
 };
 
+using EdgeList = std::vector<Edge>;
+
 /**
  * Parse a text representation of an edge list from the given stream.
  *
@@ -70,7 +72,7 @@ struct Edge
  * where <from> is the id of a some vertex and <to> is the id
  * of another vertex which it connects to.
  */
-std::vector<Edge> edgesFromText(std::istream& stream);
+EdgeList edgesFromText(std::istream& stream);
 
 /**
  * A single unit-sized disk for the output graph representation.

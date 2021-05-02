@@ -50,6 +50,29 @@ private:
 };
 
 /**
+ * Represents one edge in a yet-unrecognized graph.
+ *
+ * We use a list of edges as an intermediary representation from reading
+ * the graph from any input format. Afterwards, it needs to be classified
+ * before being processed into an embedding.
+ */
+struct Edge
+{
+	int from; //!< start vertex number
+	int to; //!< end vertex number
+};
+
+/**
+ * Parse a text representation of an edge list from the given stream.
+ *
+ * We expect the text to consist of lines in the format
+ * <from> <to>
+ * where <from> is the id of a some vertex and <to> is the id
+ * of another vertex which it connects to.
+ */
+std::vector<Edge> edgesFromText(std::istream& stream);
+
+/**
  * A single unit-sized disk for the output graph representation.
  *
  * It has a unique vertex number within the graph and
@@ -117,16 +140,6 @@ public:
 	 * The embedding coordinates of the resulting disks are unspecified.
 	 */
 	static DiskGraph fromCaterpillar(const Caterpillar& caterpillar);
-
-	/**
-	 * Parse a text representation from the given stream.
-	 *
-	 * We expect the text to consist of lines in the format
-	 * <id> <parent>
-	 * where id is the id of a new vertex and parent is the id
-	 * of another vertex which it connects to.
-	 */
-	static DiskGraph fromText(std::istream& stream);
 
 private:
 

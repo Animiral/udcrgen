@@ -99,7 +99,7 @@ struct Parser
         const auto opt = next();
 
         if ("degrees"s == opt)  return Configuration::InputFormat::DEGREES;
-        if ("tree"s == opt)     return Configuration::InputFormat::TREE;
+        if ("edgelist"s == opt) return Configuration::InputFormat::EDGELIST;
 
         throw std::out_of_range("Unknown input format: "s + opt);
     }
@@ -214,7 +214,7 @@ void Configuration::dump(std::ostream& stream) const
     stream << "\tInput File: " << inputFile << " (";
     switch (inputFormat) {
     case InputFormat::DEGREES: stream << "degrees"; break;
-    case InputFormat::TREE: stream << "tree"; break;
+    case InputFormat::EDGELIST: stream << "edgelist"; break;
     }
     stream << ")\n";
 

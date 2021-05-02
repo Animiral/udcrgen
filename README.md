@@ -51,9 +51,13 @@ Graphs without Embedding_.
 
 ## Formats
 
-The program currently has only one input format: `degrees`.
-This is a simple representation of caterpillar graphs.
-The input file must contain a whitespace-separated list of the degrees of the spine vertices in order.
+The program currently has two input formats: `degrees` and `edgelist`.
+Both are simple, whitespace-separated custom representations of graphs.
+
+For `degrees`, the input file must contain a whitespace-separated list of the degrees of the spine vertices in order. The result will be a caterpillar.
+
+For `edgelist`, the input file must contain one line for each edge, with the id of the from-vertex and the id of the to-vertex separated by a space.
+ids are always integers.
 
 The program supports SVG as an output format. Use `-f svg`.
 

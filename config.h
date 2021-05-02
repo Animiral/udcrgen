@@ -30,7 +30,7 @@ public:
     /**
      * Enumeration of available file formats for input files.
      */
-    enum class InputFormat { DEGREES, TREE };
+    enum class InputFormat { DEGREES, EDGELIST };
 
     /**
      * Enumeration of available file formats for output files.

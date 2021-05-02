@@ -53,6 +53,25 @@ Caterpillar Caterpillar::fromText(std::istream& stream)
 	return caterpillar;
 }
 
+std::vector<Edge> edgesFromText(std::istream& stream)
+{
+	std::vector<Edge> edges;
+
+	// read all edges from input stream
+	int from, to;
+
+	while (stream >> from >> to) {
+		Edge e{ from, to };
+		edges.push_back(e);
+	}
+
+	if (stream.bad()) {
+		throw std::exception("Failed to parse edge list.");
+	}
+
+	return edges;
+}
+
 DiskGraph::DiskGraph(int disks, int spine)
 	: disks_(disks), spine_(spine)
 {
@@ -113,39 +132,6 @@ DiskGraph DiskGraph::fromCaterpillar(const Caterpillar& caterpillar)
 
 		id += leaves;
 		spineId++;
-	}
-
-	return result;
-}
-
-DiskGraph DiskGraph::fromText(std::istream& stream)
-{
-	std::vector<Disk> vertices;
-
-	// read all vertices from input stream
-	int id, parent;
-
-	while (stream >> id >> parent) {
-		Disk v;
-		v.id = id;
-		v.parent = parent;
-		v.failure = false;
-		v.rank = 0;
-		v.x = 0;
-		v.y = 0;
-		vertices.push_back(v);
-	}
-
-	if (stream.bad()) {
-		throw std::exception("Failed to parse graph.");
-	}
-
-	// copy all vertices into the result graph
-	const int n = static_cast<int>(vertices.size());
-	DiskGraph result{ n, 0 };
-
-	for (std::size_t i = 0; i < n; i++) {
-		result.disks()[i] = vertices[i];
 	}
 
 	return result;

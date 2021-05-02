@@ -16,7 +16,7 @@
  * @param caterpillar: input caterpillar graph in degree representation
  * @param gap: minimum distance between two disks not in contact
  */
-UdcrGraph udcrgen(const Caterpillar& caterpillar, float gap);
+DiskGraph udcrgen(const Caterpillar& caterpillar, float gap);
 
 /**
  * Generate a weak unit disk contact graph by computing the
@@ -27,4 +27,4 @@ UdcrGraph udcrgen(const Caterpillar& caterpillar, float gap);
  *   Graphs without Embedding.
  *   36th European Workshop on Computational Geometry, Würzburg, Germany, March 16–18, 2020.
  */
-UdcrGraph wudcrgen(const Caterpillar& caterpillar);
+DiskGraph wudcrgen(const Caterpillar& caterpillar);

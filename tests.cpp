@@ -31,7 +31,7 @@ void test_Caterpillar_fromText()
 }
 
 /**
- * Ensure that we can convert a text representation to a UdcrGraph.
+ * Ensure that we can convert a text representation to a DiskGraph.
  */
 void test_UdcrGraph_fromText()
 {
@@ -49,12 +49,12 @@ void test_UdcrGraph_fromText()
 		"8 4\n"
 		"11 8\n";
 	std::istringstream stream{ input };
-	const auto result = UdcrGraph::fromText(stream);
+	const auto result = DiskGraph::fromText(stream);
 	expect(0 == result.spine(), "Spine is undefined in raw graph");
-	expect(8 == result.vertices().size(), "Graph has 8 vertices");
-	expect(3 == result.vertices().at(0).id, "Vertex 0 id is 3");
-	expect(5 == result.vertices().at(1).id, "Vertex 1 id is 5");
-	expect(3 == result.vertices().at(1).parent, "Vertex parent of 5 is 3");
+	expect(8 == result.disks().size(), "Graph has 8 vertices");
+	expect(3 == result.disks().at(0).id, "Vertex 0 id is 3");
+	expect(5 == result.disks().at(1).id, "Vertex 1 id is 5");
+	expect(3 == result.disks().at(1).parent, "Vertex parent of 5 is 3");
 }
 
 void test_all()

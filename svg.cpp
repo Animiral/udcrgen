@@ -13,16 +13,16 @@ void write_circle(float x, float y, float scale, float offsetX, float offsetY,
 void write_line(float x1, float y1, float x2, float y2, float scale, float offsetX, float offsetY,
 	std::ostream& stream);
 
-void write_svg(const UdcrGraph& udcrg, const char* filename)
+void write_svg(const DiskGraph& udcrg, const char* filename)
 {
 	const float padding = 10.f; // width of whitespace around the image
 	const float scale = 100.f; // size of a unit disk in output
 
 	// determine offset to move all circles on screen
-	const float offsetX = -std::min_element(udcrg.vertices().begin(), udcrg.vertices().end(),
-		[](UdcrVertex a, UdcrVertex b) { return a.x < b.x; })->x * scale + scale / 2 + padding;
-	const float offsetY = -std::min_element(udcrg.vertices().begin(), udcrg.vertices().end(),
-		[](UdcrVertex a, UdcrVertex b) { return a.y < b.y; })->y * scale + scale / 2 + padding;
+	const float offsetX = -std::min_element(udcrg.disks().begin(), udcrg.disks().end(),
+		[](Disk a, Disk b) { return a.x < b.x; })->x * scale + scale / 2 + padding;
+	const float offsetY = -std::min_element(udcrg.disks().begin(), udcrg.disks().end(),
+		[](Disk a, Disk b) { return a.y < b.y; })->y * scale + scale / 2 + padding;
 
 	std::ofstream stream{ filename };
 
@@ -31,7 +31,7 @@ void write_svg(const UdcrGraph& udcrg, const char* filename)
 		"<svg xmlns=\"http://www.w3.org/2000/svg\">\n"
 		"<g text-anchor=\"middle\">\n";
 
-	for (const auto& vertex : udcrg.vertices()) {
+	for (const auto& vertex : udcrg.disks()) {
 		const Appearance appearance = vertex.failure ? Appearance::FAIL
 			: vertex.id < udcrg.spine() ? Appearance::SPINE : Appearance::LEAF;
 
@@ -39,7 +39,7 @@ void write_svg(const UdcrGraph& udcrg, const char* filename)
 			vertex.id, appearance, stream);
 
 		if (vertex.parent >= 0) {
-			const auto& parent = udcrg.findVertex(vertex.parent);
+			const auto& parent = udcrg.findDisk(vertex.parent);
 			write_line(vertex.x, vertex.y, parent.x, parent.y,
 				scale, offsetX, offsetY, stream);
 		}

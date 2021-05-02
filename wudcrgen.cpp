@@ -4,7 +4,7 @@
 #include <cassert>
 
 /**
- * Cosmetic positioning for vertices which cannot be placed by the algorithm.
+ * Cosmetic positioning for disks which cannot be placed by the algorithm.
  */
 const float Y_FAIL = 2.2f;
 
@@ -24,7 +24,7 @@ Vec2 nextLeafPosition(Vec2 lastLeaf, Vec2 spine, Vec2 lastSpine, Vec2 forward, f
 	return leafPosition;
 }
 
-UdcrGraph udcrgen(const Caterpillar& caterpillar, float gap)
+DiskGraph udcrgen(const Caterpillar& caterpillar, float gap)
 {
 	Vec2 position{ 0, 0 }; // embedding position for the current spine piece
 	Vec2 forward{ 1.f, 0 }; // general direction for next spine
@@ -33,14 +33,14 @@ UdcrGraph udcrgen(const Caterpillar& caterpillar, float gap)
 	Vec2 lastSpine{ -1, 0 }; // placement of previous spine
 	bool leafUp = false; // where to place the next leaf (alternate)
 
-	auto udcrg = UdcrGraph::fromCaterpillar(caterpillar);
+	auto udcrg = DiskGraph::fromCaterpillar(caterpillar);
 
 	// iterate through all leaves
 	int leafIndex = udcrg.spine(); // by convention, leaves start after spine
 
 	// there is a special slot available only to the first leaf on the first spine
-	if (leafIndex < udcrg.vertices().size()) {
-		auto& leaf0 = udcrg.vertices()[leafIndex];
+	if (leafIndex < udcrg.disks().size()) {
+		auto& leaf0 = udcrg.disks()[leafIndex];
 		if (0 == leaf0.parent) {
 			leaf0.x = -1;
 			leaf0.y = 0;
@@ -50,7 +50,7 @@ UdcrGraph udcrgen(const Caterpillar& caterpillar, float gap)
 
 	for (int spineIndex = 0; spineIndex < udcrg.spine(); spineIndex++) {
 		// place next spine segment
-		auto& spineVertex = udcrg.vertices()[spineIndex];
+		auto& spineVertex = udcrg.disks()[spineIndex];
 		spineVertex.x = position.x;
 		spineVertex.y = position.y;
 
@@ -60,8 +60,8 @@ UdcrGraph udcrgen(const Caterpillar& caterpillar, float gap)
 		}
 
 		// place all leaves for this spine segment
-		while (leafIndex < udcrg.vertices().size()) {
-			auto& leaf = udcrg.vertices()[leafIndex];
+		while (leafIndex < udcrg.disks().size()) {
+			auto& leaf = udcrg.disks()[leafIndex];
 
 			if (leaf.parent != spineVertex.id) // need new spine segment
 				break;
@@ -152,20 +152,20 @@ Slot atNextSpine(Slot slot)
 	return static_cast<Slot>(std::max(nextInt, static_cast<int>(Slot::UP)));
 }
 
-UdcrGraph wudcrgen(const Caterpillar& caterpillar)
+DiskGraph wudcrgen(const Caterpillar& caterpillar)
 {
-	// This algorithm places spine vertices along the x-axis.
+	// This algorithm places spine disks along the x-axis.
 	int slotPosition = 0; // next free slot exists relative to this spine vertex
 	Slot slot = Slot::BEHIND;
 
-	auto udcrg = UdcrGraph::fromCaterpillar(caterpillar);
+	auto udcrg = DiskGraph::fromCaterpillar(caterpillar);
 
 	// iterate through all leaves
 	int leafIndex = udcrg.spine(); // by convention, leaves start after spine
 
 	for (int spineIndex = 0; spineIndex < udcrg.spine(); spineIndex++) {
 		// place next spine segment
-		auto& spineVertex = udcrg.vertices()[spineIndex];
+		auto& spineVertex = udcrg.disks()[spineIndex];
 		spineVertex.x = static_cast<float>(spineIndex);
 		spineVertex.y = 0;
 
@@ -175,8 +175,8 @@ UdcrGraph wudcrgen(const Caterpillar& caterpillar)
 		}
 
 		// place all leaves for this spine segment
-		while (leafIndex < udcrg.vertices().size()) {
-			auto& leaf = udcrg.vertices()[leafIndex];
+		while (leafIndex < udcrg.disks().size()) {
+			auto& leaf = udcrg.disks()[leafIndex];
 
 			if (leaf.parent != spineVertex.id) // need new spine segment
 				break;

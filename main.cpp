@@ -7,7 +7,7 @@
 #include <iomanip>
 
 extern void test_all();
-void write_output(const UdcrGraph& udcrg, std::ostream& stream);
+void write_output(const DiskGraph& udcrg, std::ostream& stream);
 
 int main(int argc, const char* argv[])
 {
@@ -83,13 +83,13 @@ int main(int argc, const char* argv[])
 /**
  * A simple text dump of the output graph that does not yet look very pretty.
  */
-void write_output(const UdcrGraph& udcrg, std::ostream& stream)
+void write_output(const DiskGraph& udcrg, std::ostream& stream)
 {
 	stream << std::setprecision(2);
 
-	for (const auto& v : udcrg.vertices()) {
+	for (const auto& v : udcrg.disks()) {
 		if (v.failure) {
-			stream << "FAILED to place vertex " << v.id << " -> " << v.parent << ".\n";
+			stream << "FAILED to place disk " << v.id << " -> " << v.parent << ".\n";
 		}
 		else {
 			stream << v.id << " -> " << v.parent << "  (" << v.x << ", " << v.y << ")\n";

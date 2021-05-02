@@ -50,15 +50,15 @@ private:
 };
 
 /**
- * A single vertex for the output graph representation.
+ * A single unit-sized disk for the output graph representation.
  *
- * It has a unique number within the graph and
+ * It has a unique vertex number within the graph and
  * 2D coordinates to represent the embedding.
  *
  * It also knows information for ordering relative to other vertices,
  * which is used for assigning the embedding position.
  */
-struct UdcrVertex
+struct Disk
 {
 	int id; //!< unique vertex number [0..n]
 	int parent; //!< parent vertex number, must be spine vertex or -1
@@ -70,11 +70,11 @@ struct UdcrVertex
 /**
  * The output graph representation.
  *
- * It consists of a list of vertices, in which the spine vertices
+ * It consists of a list of disks, in which the spine disks
  * can be recognized by the convention of being placed at the front
  * of the list.
  */
-class UdcrGraph
+class DiskGraph
 {
 
 public:
@@ -82,41 +82,41 @@ public:
 	/**
 	 * Construct the graph.
 	 *
-	 * @param vertices: number of total vertices
-	 * @param spine: length of the central vertex chain
+	 * @param disks: number of total disks
+	 * @param spine: length of the central disk chain
 	 */
-	UdcrGraph(int vertices, int spine);
+	DiskGraph(int disks, int spine);
 
 	/**
 	 * Get the length of the spine a.k.a. backbone.
 	 *
-	 * All vertices at index 0 to spine() - 1 are spine vertices.
+	 * All disks at index 0 to spine() - 1 are spine disks.
 	 */
 	int spine() const noexcept;
 
 	/**
 	 * Get the mutable vertex data.
 	 */
-	std::vector<UdcrVertex>& vertices() noexcept;
+	std::vector<Disk>& disks() noexcept;
 
 	/**
 	 * Get the immutable vertex data.
 	 */
-	const std::vector<UdcrVertex>& vertices() const noexcept;
+	const std::vector<Disk>& disks() const noexcept;
 
 	/**
 	 * Get the vertex with the given unique number.
 	 *
 	 * Throw an exception if the vertex does not exist.
 	 */
-	const UdcrVertex& findVertex(int id) const;
+	const Disk& findDisk(int id) const;
 
 	/**
 	 * Create an instance based on the given basic caterpillar representation.
 	 *
-	 * The embedding coordinates of the resulting vertices are unspecified.
+	 * The embedding coordinates of the resulting disks are unspecified.
 	 */
-	static UdcrGraph fromCaterpillar(const Caterpillar& caterpillar);
+	static DiskGraph fromCaterpillar(const Caterpillar& caterpillar);
 
 	/**
 	 * Parse a text representation from the given stream.
@@ -126,11 +126,11 @@ public:
 	 * where id is the id of a new vertex and parent is the id
 	 * of another vertex which it connects to.
 	 */
-	static UdcrGraph fromText(std::istream& stream);
+	static DiskGraph fromText(std::istream& stream);
 
 private:
 
-	std::vector<UdcrVertex> vertices_;
+	std::vector<Disk> disks_;
 	int spine_;
 
 };

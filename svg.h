@@ -7,4 +7,4 @@
 /**
  * Render the embedded graph as a SVG and write it to the output file.
  */
-void write_svg(const UdcrGraph& udcrg, const char* filename);
+void write_svg(const DiskGraph& udcrg, const char* filename);

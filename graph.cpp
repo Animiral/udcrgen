@@ -53,47 +53,47 @@ Caterpillar Caterpillar::fromText(std::istream& stream)
 	return caterpillar;
 }
 
-UdcrGraph::UdcrGraph(int vertices, int spine)
-	: vertices_(vertices), spine_(spine)
+DiskGraph::DiskGraph(int disks, int spine)
+	: disks_(disks), spine_(spine)
 {
 	assert(spine >= 0);
-	assert(vertices >= spine);
+	assert(disks >= spine);
 }
 
-int UdcrGraph::spine() const noexcept
+int DiskGraph::spine() const noexcept
 {
 	return spine_;
 }
 
-std::vector<UdcrVertex>& UdcrGraph::vertices() noexcept
+std::vector<Disk>& DiskGraph::disks() noexcept
 {
-	return vertices_;
+	return disks_;
 }
 
-const std::vector<UdcrVertex>& UdcrGraph::vertices() const noexcept
+const std::vector<Disk>& DiskGraph::disks() const noexcept
 {
-	return vertices_;
+	return disks_;
 }
 
-const UdcrVertex& UdcrGraph::findVertex(int id) const
+const Disk& DiskGraph::findDisk(int id) const
 {
-	const auto it = std::find_if(vertices_.begin(), vertices_.end(),
-		[id](const UdcrVertex& v) { return v.id == id; });
+	const auto it = std::find_if(disks_.begin(), disks_.end(),
+		[id](const Disk& v) { return v.id == id; });
 
-	if (it == vertices_.end()) {
+	if (it == disks_.end()) {
 		throw std::exception("Vertex does not exist.");
 	}
 
 	return *it;
 }
 
-UdcrGraph UdcrGraph::fromCaterpillar(const Caterpillar& caterpillar)
+DiskGraph DiskGraph::fromCaterpillar(const Caterpillar& caterpillar)
 {
-	UdcrGraph result{ caterpillar.countVertices(), caterpillar.countSpine() };
+	DiskGraph result{ caterpillar.countVertices(), caterpillar.countSpine() };
 
 	int id = 0;
 	for (; id < result.spine(); id++) {
-		auto& v = result.vertices()[id];
+		auto& v = result.disks()[id];
 		v.id = id;
 		v.parent = id - 1;
 		v.rank = 0;
@@ -104,7 +104,7 @@ UdcrGraph UdcrGraph::fromCaterpillar(const Caterpillar& caterpillar)
 
 	for (int leaves : caterpillar.leaves()) {
 		for (int leaf = 0; leaf < leaves; leaf++) {
-			auto& v = result.vertices()[id + leaf];
+			auto& v = result.disks()[id + leaf];
 			v.id = id + leaf;
 			v.parent = spineId;
 			v.rank = leaf;
@@ -118,15 +118,15 @@ UdcrGraph UdcrGraph::fromCaterpillar(const Caterpillar& caterpillar)
 	return result;
 }
 
-UdcrGraph UdcrGraph::fromText(std::istream& stream)
+DiskGraph DiskGraph::fromText(std::istream& stream)
 {
-	std::vector<UdcrVertex> vertices;
+	std::vector<Disk> vertices;
 
 	// read all vertices from input stream
 	int id, parent;
 
 	while (stream >> id >> parent) {
-		UdcrVertex v;
+		Disk v;
 		v.id = id;
 		v.parent = parent;
 		v.failure = false;
@@ -142,10 +142,10 @@ UdcrGraph UdcrGraph::fromText(std::istream& stream)
 
 	// copy all vertices into the result graph
 	const int n = static_cast<int>(vertices.size());
-	UdcrGraph result{ n, 0 };
+	DiskGraph result{ n, 0 };
 
 	for (std::size_t i = 0; i < n; i++) {
-		result.vertices()[i] = vertices[i];
+		result.disks()[i] = vertices[i];
 	}
 
 	return result;

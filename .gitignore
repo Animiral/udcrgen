@@ -24,4 +24,4 @@ ipch
 out/
 .vs
 CMakeSettings.json
-
+*.vs.json

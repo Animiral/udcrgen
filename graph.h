@@ -118,6 +118,16 @@ public:
 	 */
 	static UdcrGraph fromCaterpillar(const Caterpillar& caterpillar);
 
+	/**
+	 * Parse a text representation from the given stream.
+	 *
+	 * We expect the text to consist of lines in the format
+	 * <id> <parent>
+	 * where id is the id of a new vertex and parent is the id
+	 * of another vertex which it connects to.
+	 */
+	static UdcrGraph fromText(std::istream& stream);
+
 private:
 
 	std::vector<UdcrVertex> vertices_;

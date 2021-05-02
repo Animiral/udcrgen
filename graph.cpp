@@ -56,7 +56,7 @@ Caterpillar Caterpillar::fromText(std::istream& stream)
 UdcrGraph::UdcrGraph(int vertices, int spine)
 	: vertices_(vertices), spine_(spine)
 {
-	assert(spine > 0);
+	assert(spine >= 0);
 	assert(vertices >= spine);
 }
 
@@ -113,6 +113,39 @@ UdcrGraph UdcrGraph::fromCaterpillar(const Caterpillar& caterpillar)
 
 		id += leaves;
 		spineId++;
+	}
+
+	return result;
+}
+
+UdcrGraph UdcrGraph::fromText(std::istream& stream)
+{
+	std::vector<UdcrVertex> vertices;
+
+	// read all vertices from input stream
+	int id, parent;
+
+	while (stream >> id >> parent) {
+		UdcrVertex v;
+		v.id = id;
+		v.parent = parent;
+		v.failure = false;
+		v.rank = 0;
+		v.x = 0;
+		v.y = 0;
+		vertices.push_back(v);
+	}
+
+	if (stream.bad()) {
+		throw std::exception("Failed to parse graph.");
+	}
+
+	// copy all vertices into the result graph
+	const int n = static_cast<int>(vertices.size());
+	UdcrGraph result{ n, 0 };
+
+	for (std::size_t i = 0; i < n; i++) {
+		result.vertices()[i] = vertices[i];
 	}
 
 	return result;

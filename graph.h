@@ -72,7 +72,7 @@ using EdgeList = std::vector<Edge>;
  * where <from> is the id of a some vertex and <to> is the id
  * of another vertex which it connects to.
  */
-EdgeList edgesFromText(std::istream& stream);
+EdgeList edges_from_text(std::istream& stream);
 
 /**
  * Reorder the edge list from begin to end.
@@ -81,7 +81,7 @@ EdgeList edgesFromText(std::istream& stream);
  *
  * @return the new past-the-end iterator that indicates the end of non-leaf edges.
  */
-EdgeList::iterator separateLeaves(EdgeList::iterator begin, EdgeList::iterator end);
+EdgeList::iterator separate_leaves(EdgeList::iterator begin, EdgeList::iterator end);
 
 /**
  * Determine whether the given edge list describes a path - a series of vertices
@@ -92,7 +92,7 @@ EdgeList::iterator separateLeaves(EdgeList::iterator begin, EdgeList::iterator e
  *
  * @return true if the edges describe a path, false otherwise.
  */
-bool recognizePath(EdgeList::iterator begin, EdgeList::iterator end);
+bool recognize_path(EdgeList::iterator begin, EdgeList::iterator end);
 
 /**
  * A single unit-sized disk for the output graph representation.
@@ -111,9 +111,8 @@ struct Disk
 /**
  * The output graph representation.
  *
- * It consists of a list of disks, in which the spine disks
- * can be recognized by the convention of being placed at the front
- * of the list.
+ * It consists of lists of disks, separated by their
+ * role as spine, branch or leaf disks.
  */
 class DiskGraph
 {
@@ -123,27 +122,41 @@ public:
 	/**
 	 * Construct the graph.
 	 *
-	 * @param disks: number of total disks
-	 * @param spine: length of the central disk chain
+	 * @param spines: length of the central disk chain
+	 * @param branches: number of branch disks
+	 * @param leaves: number of leaf disks
 	 */
-	DiskGraph(int disks, int spine);
+	DiskGraph(int spines, int branches, int leaves);
 
 	/**
-	 * Get the length of the spine a.k.a. backbone.
-	 *
-	 * All disks at index 0 to spine() - 1 are spine disks.
+	 * Get the mutable spine vertex data.
 	 */
-	int spine() const noexcept;
+	std::vector<Disk>& spines() noexcept;
 
 	/**
-	 * Get the mutable vertex data.
+	 * Get the immutable spine vertex data.
 	 */
-	std::vector<Disk>& disks() noexcept;
+	const std::vector<Disk>& spines() const noexcept;
 
 	/**
-	 * Get the immutable vertex data.
+	 * Get the mutable branch vertex data.
 	 */
-	const std::vector<Disk>& disks() const noexcept;
+	std::vector<Disk>& branches() noexcept;
+
+	/**
+	 * Get the immutable branch vertex data.
+	 */
+	const std::vector<Disk>& branches() const noexcept;
+
+	/**
+	 * Get the mutable leaf vertex data.
+	 */
+	std::vector<Disk>& leaves() noexcept;
+
+	/**
+	 * Get the immutable leaf vertex data.
+	 */
+	const std::vector<Disk>& leaves() const noexcept;
 
 	/**
 	 * Get the vertex with the given unique number.
@@ -161,7 +174,8 @@ public:
 
 private:
 
-	std::vector<Disk> disks_;
-	int spine_;
+	std::vector<Disk> spines_;
+	std::vector<Disk> branches_;
+	std::vector<Disk> leaves_;
 
 };

@@ -34,7 +34,7 @@ void test_Caterpillar_fromText()
 /**
  * Ensure that we can convert a text representation to a vector of Edges.
  */
-void test_edgesFromText()
+void test_edges_from_text()
 {
 	const std::string input =
 		"5 3\n"
@@ -45,41 +45,41 @@ void test_edgesFromText()
 		"8 4\n"
 		"11 8\n";
 	std::istringstream stream{ input };
-	const auto result = edgesFromText(stream);
+	const auto result = edges_from_text(stream);
 	expect(7 == result.size(), "Read 7 edges");
 	expect(5 == result.at(0).from, "Edge 0 from 5");
 	expect(6 == result.at(1).from, "Edge 1 from 6");
 	expect(3 == result.at(1).to, "Edge 1 to 3");
 }
 
-bool edgesEqual(Edge e, Edge f)
+bool edges_equal(Edge e, Edge f)
 {
 	return e.from == f.from && e.to == f.to;
 }
 
-void test_separateLeaves()
+void test_separate_leaves()
 {
 	EdgeList graph{ {3, 5}, {4, 3}, {7, 4} };
 
 	const EdgeList expected{ {4, 3}, {7, 4}, {3, 5} };
-	const auto result = separateLeaves(graph.begin(), graph.end());
+	const auto result = separate_leaves(graph.begin(), graph.end());
 	expect(result == graph.begin() + 1, "One non-leaf edge");
-	expect(equal(graph.begin(), graph.end(), expected.begin(), edgesEqual), "Leaf edges are removed to the back");
+	expect(equal(graph.begin(), graph.end(), expected.begin(), edges_equal), "Leaf edges are removed to the back");
 }
 
-void test_recognizePath()
+void test_recognize_path()
 {
 	EdgeList graph{ {3, 5}, {4, 3}, {7, 4} };
 
 	const EdgeList expected{ {5, 3}, {3, 4}, {4, 7} };
-	expect(recognizePath(graph.begin(), graph.end()), "The input graph is a path");
-	expect(equal(graph.begin(), graph.end(), expected.begin(), edgesEqual), "Path edges become aligned");
+	expect(recognize_path(graph.begin(), graph.end()), "The input graph is a path");
+	expect(equal(graph.begin(), graph.end(), expected.begin(), edges_equal), "Path edges become aligned");
 }
 
 void test_all()
 {
 	test_Caterpillar_fromText();
-	test_edgesFromText();
-	test_separateLeaves();
-	test_recognizePath();
+	test_edges_from_text();
+	test_separate_leaves();
+	test_recognize_path();
 }

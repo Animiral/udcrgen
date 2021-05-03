@@ -54,7 +54,7 @@ Caterpillar Caterpillar::fromText(std::istream& stream)
 	return caterpillar;
 }
 
-EdgeList edgesFromText(std::istream& stream)
+EdgeList edges_from_text(std::istream& stream)
 {
 	std::vector<Edge> edges;
 
@@ -73,7 +73,8 @@ EdgeList edgesFromText(std::istream& stream)
 	return edges;
 }
 
-EdgeList::iterator separateLeaves(EdgeList::iterator begin, EdgeList::iterator end)
+EdgeList::iterator separate_leaves(EdgeList::iterator begin, EdgeList::iterator end)
+{
 	const std::size_t es = end - begin; // nr of edges
 	const std::size_t vs = es * 2; // nr of vertice ids (non-unique)
 
@@ -128,7 +129,7 @@ EdgeList::iterator separateLeaves(EdgeList::iterator begin, EdgeList::iterator e
  *
  * @return true if the edges describe a path, false otherwise.
  */
-bool recognizePath(EdgeList::iterator begin, EdgeList::iterator end)
+bool recognize_path(EdgeList::iterator begin, EdgeList::iterator end)
 {
 	if (begin == end)
 		return false; // sanity check - the empty graph is not a path
@@ -188,47 +189,72 @@ bool recognizePath(EdgeList::iterator begin, EdgeList::iterator end)
 	return front == back; // is path if we have visited all the edges
 }
 
-DiskGraph::DiskGraph(int disks, int spine)
-	: disks_(disks), spine_(spine)
+DiskGraph::DiskGraph(int spines, int branches, int leaves)
+	: spines_(spines), branches_(branches), leaves_(leaves)
 {
-	assert(spine >= 0);
-	assert(disks >= spine);
 }
 
-int DiskGraph::spine() const noexcept
+std::vector<Disk>& DiskGraph::spines() noexcept
 {
-	return spine_;
+	return spines_;
 }
 
-std::vector<Disk>& DiskGraph::disks() noexcept
+const std::vector<Disk>& DiskGraph::spines() const noexcept
 {
-	return disks_;
+	return spines_;
 }
 
-const std::vector<Disk>& DiskGraph::disks() const noexcept
+std::vector<Disk>& DiskGraph::branches() noexcept
 {
-	return disks_;
+	return branches_;
+}
+
+const std::vector<Disk>& DiskGraph::branches() const noexcept
+{
+	return branches_;
+}
+
+std::vector<Disk>& DiskGraph::leaves() noexcept
+{
+	return leaves_;
+}
+
+const std::vector<Disk>& DiskGraph::leaves() const noexcept
+{
+	return leaves_;
 }
 
 const Disk& DiskGraph::findDisk(int id) const
 {
-	const auto it = std::find_if(disks_.begin(), disks_.end(),
-		[id](const Disk& v) { return v.id == id; });
+	const auto hasId = [id](const Disk& v) { return v.id == id; };
 
-	if (it == disks_.end()) {
-		throw std::exception("Vertex does not exist.");
-	}
+	auto it = std::find_if(spines_.begin(), spines_.end(), hasId);
 
-	return *it;
+	if (it != spines_.end())
+		return *it;
+
+	it = std::find_if(branches_.begin(), branches_.end(), hasId);
+
+	if (it != branches_.end())
+		return *it;
+
+	it = std::find_if(leaves_.begin(), leaves_.end(), hasId);
+
+	if (it != leaves_.end())
+		return *it;
+
+	throw std::exception("Vertex does not exist.");
 }
 
 DiskGraph DiskGraph::fromCaterpillar(const Caterpillar& caterpillar)
 {
-	DiskGraph result{ caterpillar.countVertices(), caterpillar.countSpine() };
+	int spinesCount = caterpillar.countSpine();
+	int leavesCount = caterpillar.countVertices() - spinesCount;
+	DiskGraph result{ spinesCount, 0, leavesCount };
 
 	int id = 0;
-	for (; id < result.spine(); id++) {
-		auto& v = result.disks()[id];
+	for (; id < spinesCount; id++) {
+		auto& v = result.spines()[id];
 		v.id = id;
 		v.parent = id - 1;
 		v.failure = false;
@@ -236,10 +262,11 @@ DiskGraph DiskGraph::fromCaterpillar(const Caterpillar& caterpillar)
 
 	int spineId = 0; // attach the number of leaves to this spine vertex
 
+	id = 0;
 	for (int leaves : caterpillar.leaves()) {
 		for (int leaf = 0; leaf < leaves; leaf++) {
-			auto& v = result.disks()[id + leaf];
-			v.id = id + leaf;
+			auto& v = result.leaves()[id + leaf];
+			v.id = spinesCount + id + leaf;
 			v.parent = spineId;
 			v.failure = false;
 		}

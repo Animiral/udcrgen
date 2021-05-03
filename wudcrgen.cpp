@@ -18,25 +18,41 @@
  * @param leaves beginning of leaf-adjacent edges
  * @param end end of the edge container
  */
-DiskGraph fromEdgeList(EdgeList::iterator begin, EdgeList::iterator branches, EdgeList::iterator leaves, EdgeList::iterator end)
+DiskGraph from_edge_list(EdgeList::iterator begin, EdgeList::iterator branches, EdgeList::iterator leaves, EdgeList::iterator end)
 {
-	const int diskCount = end - begin + 1;
-	int spineCount = leaves - begin + 1;
+	const int spineCount = branches - begin + 1;
+	const int branchCount = leaves - branches;
+	const int leafCount = end - leaves;
 
-	DiskGraph graph{ diskCount, spineCount };
-	auto& disks = graph.disks();
+	DiskGraph graph{ spineCount, branchCount, leafCount };
 
-	disks[0].id = begin[0].from;
-	disks[0].parent = -1;
-	disks[0].failure = false;
+	auto& spineList = graph.spines();
+
+	spineList[0].id = begin[0].from;
+	spineList[0].parent = -1;
+	spineList[0].failure = false;
 
 	for (int i = 1; i < spineCount; i++) {
-		disks[i].id = begin[i - 1].to;
-		disks[i].parent = -1;
-		disks[i].failure = false;
+		spineList[i].id = begin[i - 1].to;
+		spineList[i].parent = -1;
+		spineList[i].failure = false;
 	}
 
-	// TODO: finish this when the graph representation can handle lobsters.
+	auto& branchList = graph.branches();
+
+	for (int i = 0; i < branchCount; i++) {
+		branchList[i].id = branches[i].to;
+		branchList[i].parent = branches[i].from;
+		branchList[i].failure = false;
+	}
+
+	auto& leafList = graph.leaves();
+
+	for (int i = 0; i < leafCount; i++) {
+		leafList[i].id = leaves[i].to;
+		leafList[i].parent = leaves[i].from;
+		leafList[i].failure = false;
+	}
 
 	return graph;
 }
@@ -44,31 +60,31 @@ DiskGraph fromEdgeList(EdgeList::iterator begin, EdgeList::iterator branches, Ed
 std::pair<DiskGraph, GraphClass> classify(EdgeList input)
 {
 	if (input.size() == 0)
-		return { {0, 0}, GraphClass::OTHER }; // sanity check for empty graph
+		return { {0, 0, 0}, GraphClass::OTHER }; // sanity check for empty graph
 
 	// caterpillar without leaves
-	if (recognizePath(input.begin(), input.end())) {
-		return { {0, 0}, GraphClass::CATERPILLAR };
+	if (recognize_path(input.begin(), input.end())) {
+		return { {0, 0, 0}, GraphClass::CATERPILLAR };
 	}
 
-	auto leaves = separateLeaves(input.begin(), input.end());
+	auto leaves = separate_leaves(input.begin(), input.end());
 
 	// caterpillar
-	if (recognizePath(input.begin(), leaves)) {
-		DiskGraph graph = fromEdgeList(input.begin(), leaves, leaves, input.end());
+	if (recognize_path(input.begin(), leaves)) {
+		DiskGraph graph = from_edge_list(input.begin(), leaves, leaves, input.end());
 		return { graph, GraphClass::CATERPILLAR };
 	}
 
-	auto branches = separateLeaves(input.begin(), leaves);
+	auto branches = separate_leaves(input.begin(), leaves);
 
 	// lobster
-	if (recognizePath(input.begin(), branches)) {
-		DiskGraph graph = fromEdgeList(input.begin(), branches, leaves, input.end());
+	if (recognize_path(input.begin(), branches)) {
+		DiskGraph graph = from_edge_list(input.begin(), branches, leaves, input.end());
 		return { graph, GraphClass::LOBSTER };
 	}
 
 	// unfamiliar graph
-	return { {0, 0}, GraphClass::OTHER };
+	return { {0, 0, 0}, GraphClass::OTHER };
 }
 
 /**
@@ -104,11 +120,11 @@ DiskGraph udcrgen(const Caterpillar& caterpillar, float gap)
 	auto udcrg = DiskGraph::fromCaterpillar(caterpillar);
 
 	// iterate through all leaves
-	int leafIndex = udcrg.spine(); // by convention, leaves start after spine
+	int leafIndex = 0;
 
 	// there is a special slot available only to the first leaf on the first spine
-	if (leafIndex < udcrg.disks().size()) {
-		auto& leaf0 = udcrg.disks()[leafIndex];
+	if (leafIndex < udcrg.leaves().size()) {
+		auto& leaf0 = udcrg.leaves()[leafIndex];
 		if (0 == leaf0.parent) {
 			leaf0.x = -1;
 			leaf0.y = 0;
@@ -116,9 +132,9 @@ DiskGraph udcrgen(const Caterpillar& caterpillar, float gap)
 		}
 	}
 
-	for (int spineIndex = 0; spineIndex < udcrg.spine(); spineIndex++) {
+	for (int spineIndex = 0; spineIndex < udcrg.spines().size(); spineIndex++) {
 		// place next spine segment
-		auto& spineVertex = udcrg.disks()[spineIndex];
+		auto& spineVertex = udcrg.spines()[spineIndex];
 		spineVertex.x = position.x;
 		spineVertex.y = position.y;
 
@@ -128,8 +144,8 @@ DiskGraph udcrgen(const Caterpillar& caterpillar, float gap)
 		}
 
 		// place all leaves for this spine segment
-		while (leafIndex < udcrg.disks().size()) {
-			auto& leaf = udcrg.disks()[leafIndex];
+		while (leafIndex < udcrg.leaves().size()) {
+			auto& leaf = udcrg.leaves()[leafIndex];
 
 			if (leaf.parent != spineVertex.id) // need new spine segment
 				break;
@@ -229,11 +245,11 @@ DiskGraph wudcrgen(const Caterpillar& caterpillar)
 	auto udcrg = DiskGraph::fromCaterpillar(caterpillar);
 
 	// iterate through all leaves
-	int leafIndex = udcrg.spine(); // by convention, leaves start after spine
+	int leafIndex = 0;
 
-	for (int spineIndex = 0; spineIndex < udcrg.spine(); spineIndex++) {
+	for (int spineIndex = 0; spineIndex < udcrg.spines().size(); spineIndex++) {
 		// place next spine segment
-		auto& spineVertex = udcrg.disks()[spineIndex];
+		auto& spineVertex = udcrg.spines()[spineIndex];
 		spineVertex.x = static_cast<float>(spineIndex);
 		spineVertex.y = 0;
 
@@ -243,14 +259,14 @@ DiskGraph wudcrgen(const Caterpillar& caterpillar)
 		}
 
 		// place all leaves for this spine segment
-		while (leafIndex < udcrg.disks().size()) {
-			auto& leaf = udcrg.disks()[leafIndex];
+		while (leafIndex < udcrg.leaves().size()) {
+			auto& leaf = udcrg.leaves()[leafIndex];
 
 			if (leaf.parent != spineVertex.id) // need new spine segment
 				break;
 
 			// fail all leaves for which there is no slot
-			if (Slot::FRONT == slot && (spineIndex < udcrg.spine() - 1))
+			if (Slot::FRONT == slot && (spineIndex < udcrg.spines().size() - 1))
 				slot = Slot::FAIL;
 
 			if (Slot::FAIL == slot)

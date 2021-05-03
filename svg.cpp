@@ -1,6 +1,7 @@
 #include "svg.h"
 #include <fstream>
 #include <algorithm>
+#include <tuple>
 
 /**
  * Describes how the vertex should be presented to the user.
@@ -13,16 +14,16 @@ void write_circle(float x, float y, float scale, float offsetX, float offsetY,
 void write_line(float x1, float y1, float x2, float y2, float scale, float offsetX, float offsetY,
 	std::ostream& stream);
 
+std::pair<float, float> calculate_offset(const DiskGraph& graph, float scale, float padding);
+
 void write_svg(const DiskGraph& udcrg, const char* filename)
 {
 	const float padding = 10.f; // width of whitespace around the image
 	const float scale = 100.f; // size of a unit disk in output
 
 	// determine offset to move all circles on screen
-	const float offsetX = -std::min_element(udcrg.disks().begin(), udcrg.disks().end(),
-		[](Disk a, Disk b) { return a.x < b.x; })->x * scale + scale / 2 + padding;
-	const float offsetY = -std::min_element(udcrg.disks().begin(), udcrg.disks().end(),
-		[](Disk a, Disk b) { return a.y < b.y; })->y * scale + scale / 2 + padding;
+	float offsetX, offsetY;
+	std::tie(offsetX, offsetY) = calculate_offset(udcrg, scale, padding);
 
 	std::ofstream stream{ filename };
 
@@ -31,18 +32,34 @@ void write_svg(const DiskGraph& udcrg, const char* filename)
 		"<svg xmlns=\"http://www.w3.org/2000/svg\">\n"
 		"<g text-anchor=\"middle\">\n";
 
-	for (const auto& vertex : udcrg.disks()) {
-		const Appearance appearance = vertex.failure ? Appearance::FAIL
-			: vertex.id < udcrg.spine() ? Appearance::SPINE : Appearance::LEAF;
+	float prevX = 0, prevY = 0; // previous spine coordinates
+
+	for (const auto& vertex : udcrg.spines()) {
+		const Appearance appearance = vertex.failure ? Appearance::FAIL : Appearance::SPINE;
 
 		write_circle(vertex.x, vertex.y, scale, offsetX, offsetY,
 			vertex.id, appearance, stream);
 
-		if (vertex.parent >= 0) {
-			const auto& parent = udcrg.findDisk(vertex.parent);
-			write_line(vertex.x, vertex.y, parent.x, parent.y,
+		// connect spines to their predecessors
+		if (prevX != 0) {
+			write_line(vertex.x, vertex.y, prevX, prevY,
 				scale, offsetX, offsetY, stream);
 		}
+
+		std::tie(prevX, prevY) = std::tie(vertex.x, vertex.y);
+	}
+
+	// TODO: branches
+
+	for (const auto& vertex : udcrg.leaves()) {
+		const Appearance appearance = vertex.failure ? Appearance::FAIL : Appearance::LEAF;
+
+		write_circle(vertex.x, vertex.y, scale, offsetX, offsetY,
+			vertex.id, appearance, stream);
+
+		const auto& parent = udcrg.findDisk(vertex.parent);
+		write_line(vertex.x, vertex.y, parent.x, parent.y,
+			scale, offsetX, offsetY, stream);
 	}
 
 	stream << "</g></svg>\n";
@@ -91,4 +108,23 @@ void write_line(float x1, float y1, float x2, float y2, float scale, float offse
 	stream << "\t<g stroke=\"black\" stroke-width=\"2\">"
 		<< "<line x1=\"" << sx << "\" y1=\"" << sy << "\" x2=\""
 		<< tx << "\" y2=\"" << ty << "\" /></g>\n";
+}
+
+std::pair<float, float> calculate_offset(const DiskGraph& graph, float scale, float padding)
+{
+	const auto lessX = [](Disk a, Disk b) { return a.x < b.x; };
+
+	const Disk& minxSpine = *std::min_element(graph.spines().begin(), graph.spines().end(), lessX);
+	const Disk& minxBranch = *std::min_element(graph.branches().begin(), graph.branches().end(), lessX);
+	const Disk& minxLeaf = *std::min_element(graph.leaves().begin(), graph.leaves().end(), lessX);
+	const Disk& minxDisk = std::min({ minxSpine, minxBranch, minxLeaf }, lessX);
+
+	const auto lessY = [](Disk a, Disk b) { return a.y < b.y; };
+
+	const Disk& minySpine = *std::min_element(graph.spines().begin(), graph.spines().end(), lessY);
+	const Disk& minyBranch = *std::min_element(graph.branches().begin(), graph.branches().end(), lessY);
+	const Disk& minyLeaf = *std::min_element(graph.leaves().begin(), graph.leaves().end(), lessY);
+	const Disk& minyDisk = std::min({ minySpine, minyBranch, minyLeaf }, lessY);
+
+	return { -minxDisk.x * scale + scale / 2 + padding, -minyDisk.y * scale + scale / 2 + padding };
 }

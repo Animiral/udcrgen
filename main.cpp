@@ -87,7 +87,12 @@ void write_output(const DiskGraph& udcrg, std::ostream& stream)
 {
 	stream << std::setprecision(2);
 
-	for (const auto& v : udcrg.disks()) {
+	std::vector<Disk> disks;
+	disks.insert(disks.end(), udcrg.spines().begin(), udcrg.spines().end());
+	disks.insert(disks.end(), udcrg.branches().begin(), udcrg.branches().end());
+	disks.insert(disks.end(), udcrg.leaves().begin(), udcrg.leaves().end());
+
+	for (const auto& v : disks) {
 		if (v.failure) {
 			stream << "FAILED to place disk " << v.id << " -> " << v.parent << ".\n";
 		}

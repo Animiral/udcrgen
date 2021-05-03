@@ -1,6 +1,7 @@
 // Various unit tests
 
 #include <iostream>
+#include <algorithm>
 #include <string>
 #include <sstream>
 #include "graph.h"
@@ -51,8 +52,34 @@ void test_edgesFromText()
 	expect(3 == result.at(1).to, "Edge 1 to 3");
 }
 
+bool edgesEqual(Edge e, Edge f)
+{
+	return e.from == f.from && e.to == f.to;
+}
+
+void test_separateLeaves()
+{
+	EdgeList graph{ {3, 5}, {4, 3}, {7, 4} };
+
+	const EdgeList expected{ {4, 3}, {7, 4}, {3, 5} };
+	const auto result = separateLeaves(graph.begin(), graph.end());
+	expect(result == graph.begin() + 1, "One non-leaf edge");
+	expect(equal(graph.begin(), graph.end(), expected.begin(), edgesEqual), "Leaf edges are removed to the back");
+}
+
+void test_recognizePath()
+{
+	EdgeList graph{ {3, 5}, {4, 3}, {7, 4} };
+
+	const EdgeList expected{ {5, 3}, {3, 4}, {4, 7} };
+	expect(recognizePath(graph.begin(), graph.end()), "The input graph is a path");
+	expect(equal(graph.begin(), graph.end(), expected.begin(), edgesEqual), "Path edges become aligned");
+}
+
 void test_all()
 {
 	test_Caterpillar_fromText();
 	test_edgesFromText();
+	test_separateLeaves();
+	test_recognizePath();
 }

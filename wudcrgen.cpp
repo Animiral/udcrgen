@@ -1,131 +1,70 @@
 ﻿#include "wudcrgen.h"
 #include "graph.h"
 #include "geometry.h"
-#include <algorithm>
 #include <cassert>
 
 /**
- * Remove all leaf vertices (vertices with only one edge).
+ * Convert a properly pre-processed edge list to a DiskGraph.
+ *
+ * The edge list must be ordered in the following way:
+ *   1. edges which form the spine
+ *   2. edges which attach branches
+ *   3. edges which attach leaves
+ *
+ * Edges must point outward, i.e. to the branch or leaf vertex.
+ *
+ * @param begin beginning of the edge container
+ * @param branches beginning of branch-connecting edges
+ * @param leaves beginning of leaf-adjacent edges
+ * @param end end of the edge container
  */
-EdgeList removeLeaves(const EdgeList& edges)
+DiskGraph fromEdgeList(EdgeList::iterator begin, EdgeList::iterator branches, EdgeList::iterator leaves, EdgeList::iterator end)
 {
-	EdgeList result = edges;
+	const int diskCount = end - begin + 1;
+	int spineCount = leaves - begin + 1;
 
-	std::vector<int> vertices(edges.size() * 2);
+	DiskGraph graph{ diskCount, spineCount };
+	auto& disks = graph.disks();
 
-	for (std::size_t i = 0; i < edges.size(); i++) {
-		vertices[i * 2] = edges[i].from;
-		vertices[i * 2 + 1] = edges[i].to;
+	disks[0].id = begin[0].from;
+	disks[0].parent = -1;
+	disks[0].failure = false;
+
+	for (int i = 1; i < spineCount; i++) {
+		disks[i].id = begin[i - 1].to;
+		disks[i].parent = -1;
+		disks[i].failure = false;
 	}
 
-	std::sort(vertices.begin(), vertices.end());
+	// TODO: finish this when the graph representation can handle lobsters.
 
-	auto end = result.end(); // track removed edges
-
-	const auto n = vertices.size();
-	for (std::size_t i = 0; i + 1 < n; ) {
-		if (vertices[i] == vertices[i + 1]) {
-			// vertex id not unique - skip all occurrences
-			do i++; while (vertices[i - 1] == vertices[i] && i + 1 < n);
-		}
-		else {
-			// unique - remove edge
-			end = std::remove_if(result.begin(), end,
-				[id = vertices[i]](Edge e) { return e.from == id || e.to == id; });
-			i++;
-		}
-	}
-
-	result.erase(end, result.end());
-	return result;
+	return graph;
 }
 
-/**
- * Determine whether the given edge list describes a path - a series of vertices
- * connected in a row. Only a path can be the spine of a caterpillar or lobster.
- *
- * If the edges do indeed describe a path, re-order them in the order in which
- * they can be traversed from beginning to end.
- *
- * @return true if the edges describe a path, false otherwise.
- */
-bool recognizePath(EdgeList& edges)
-{
-	if (edges.size() == 0)
-		return false; // sanity check - the empty graph is not a path
-
-	std::vector<bool> visited(edges.size(), false); // cycle detection
-
-	// follow the edges back to the start of the path with a cursor
-	std::size_t cursor = 0;
-	visited[cursor] = true;
-	EdgeList::iterator previous;
-
-	while ((previous = std::find_if(edges.begin(), edges.end(),
-		[from = edges[cursor].from](Edge e) { return e.to == from; })) != edges.end()) {
-
-		cursor = previous - edges.begin();
-
-		if (visited[cursor])
-			return false; // cycle
-
-		visited[cursor] = true;
-	}
-
-	// follow the edges along the path and swap them into forward order
-	std::fill(visited.begin(), visited.end(), false);
-
-	std::size_t count = 0; // number of edges traversed
-	EdgeList::iterator next;
-
-	// put the start edge in front
-	std::swap(edges[count], edges[cursor]);
-	std::swap(visited[count], visited[cursor]);
-	cursor = count++;
-
-	while ((next = std::find_if(edges.begin() + count, edges.end(),
-		[to = edges[cursor].to](Edge e) { return e.from == to; })) != edges.end()) {
-
-		cursor = next - edges.begin();
-
-		if (visited[cursor])
-			return false; // cycle
-
-		visited[cursor] = true;
-
-		// put the cursor-indicated edge in front
-		std::swap(edges[count], edges[cursor]);
-		std::swap(visited[count], visited[cursor]);
-		cursor = count++;
-	}
-
-	return count >= edges.size(); // is path if we have visited all the edges
-}
-
-std::pair<DiskGraph, GraphClass> classify(const EdgeList& input)
+std::pair<DiskGraph, GraphClass> classify(EdgeList input)
 {
 	if (input.size() == 0)
 		return { {0, 0}, GraphClass::OTHER }; // sanity check for empty graph
 
-	EdgeList reduced = input;
-
 	// caterpillar without leaves
-	if (recognizePath(reduced)) {
+	if (recognizePath(input.begin(), input.end())) {
 		return { {0, 0}, GraphClass::CATERPILLAR };
 	}
 
-	reduced = removeLeaves(reduced);
+	auto leaves = separateLeaves(input.begin(), input.end());
 
 	// caterpillar
-	if (recognizePath(reduced)) {
-		return { {0, 0}, GraphClass::CATERPILLAR };
+	if (recognizePath(input.begin(), leaves)) {
+		DiskGraph graph = fromEdgeList(input.begin(), leaves, leaves, input.end());
+		return { graph, GraphClass::CATERPILLAR };
 	}
 
-	reduced = removeLeaves(reduced);
+	auto branches = separateLeaves(input.begin(), leaves);
 
 	// lobster
-	if (recognizePath(reduced)) {
-		return { {0, 0}, GraphClass::LOBSTER };
+	if (recognizePath(input.begin(), branches)) {
+		DiskGraph graph = fromEdgeList(input.begin(), branches, leaves, input.end());
+		return { graph, GraphClass::LOBSTER };
 	}
 
 	// unfamiliar graph

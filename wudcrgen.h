@@ -22,7 +22,7 @@ enum class GraphClass { CATERPILLAR, LOBSTER, OTHER };
  *
  * @return the prepared graph and a type classification.
  */
-std::pair<DiskGraph, GraphClass> classify(const EdgeList& input);
+std::pair<DiskGraph, GraphClass> classify(EdgeList input);
 
 /**
  * Generate a unit disk contact graph by computing the

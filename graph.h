@@ -75,19 +75,35 @@ using EdgeList = std::vector<Edge>;
 EdgeList edgesFromText(std::istream& stream);
 
 /**
+ * Reorder the edge list from begin to end.
+ * Move edges which connect leaves to the back and others to the front.
+ * Turn all leaf-adjacent edges to always point *to* the leaf.
+ *
+ * @return the new past-the-end iterator that indicates the end of non-leaf edges.
+ */
+EdgeList::iterator separateLeaves(EdgeList::iterator begin, EdgeList::iterator end);
+
+/**
+ * Determine whether the given edge list describes a path - a series of vertices
+ * connected in a row. Only a path can be the spine of a caterpillar or lobster.
+ *
+ * If the edges do indeed describe a path, re-order them in the order in which
+ * they can be traversed from beginning to end.
+ *
+ * @return true if the edges describe a path, false otherwise.
+ */
+bool recognizePath(EdgeList::iterator begin, EdgeList::iterator end);
+
+/**
  * A single unit-sized disk for the output graph representation.
  *
  * It has a unique vertex number within the graph and
  * 2D coordinates to represent the embedding.
- *
- * It also knows information for ordering relative to other vertices,
- * which is used for assigning the embedding position.
  */
 struct Disk
 {
 	int id; //!< unique vertex number [0..n]
 	int parent; //!< parent vertex number, must be spine vertex or -1
-	int rank; //!< child number relative to the parent, >= 0
 	float x, y; //!< embedding coordinates
 	bool failure; //!< whether the algorithm failed to place this vertex in UDCR
 };

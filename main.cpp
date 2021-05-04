@@ -1,4 +1,4 @@
-#include "wudcrgen.h"
+#include "embed.h"
 #include "graph.h"
 #include "svg.h"
 #include "config.h"
@@ -27,18 +27,25 @@ int main(int argc, const char* argv[])
 
 	configuration.dump(std::cout);
 
-	// DEBUG: in the current stage of development, config is partially hardcoded.
-	if (configuration.inputFile.empty())
-	{
-		configuration.inputFile = "example.txt";
-	}
-
-	Caterpillar input;
+	DiskGraph* graph = nullptr;
 
 	try {
 		std::cout << "Process input file " << configuration.inputFile << "...\n";
 		std::ifstream stream{ configuration.inputFile };
-		input = Caterpillar::fromText(stream);
+
+		switch (configuration.inputFormat) {
+
+		case Configuration::InputFormat::DEGREES:
+			graph = new DiskGraph{ DiskGraph::fromCaterpillar(Caterpillar::fromText(stream)) };
+			break;
+
+		case Configuration::InputFormat::EDGELIST:
+			EdgeList edges = edges_from_text(stream);
+			auto result = classify(edges);
+			graph = new DiskGraph{ result.first };
+			break;
+
+		}
 	}
 	catch (const std::exception& e) {
 		std::cerr << "Failed to read input file \"" << configuration.inputFile << "\": " << e.what() << "\n";
@@ -46,35 +53,54 @@ int main(int argc, const char* argv[])
 	}
 
 	try {
-		// DEBUG: in the current stage of development, we always produce two outputs (hardcoded).
-		{
-			// run strong embedding algorithm (not actually strong yet)
-			auto output = udcrgen(input, configuration.gap);
+		Embedder* embedder = nullptr;
 
-			// write output to predefined file
-			constexpr auto outfilename = "udcrgen.txt";
-			constexpr auto outsvgname = "udcrgen.svg";
-			std::ofstream stream{ outfilename };
-			write_output(output, stream);
-			write_svg(output, outsvgname);
+		switch (configuration.algorithm) {
+
+		case Configuration::Algorithm::KLEMZ_NOELLENBURG_PRUTKIN:
+		{
+			auto properEmbedder = new ProperEmbedder();
+			properEmbedder->setGap(configuration.gap);
+			embedder = properEmbedder;
+		}
+			break;
+
+		case Configuration::Algorithm::CLEVE:
+			embedder = new WeakEmbedder(graph->spines().size());
+			break;
+
 		}
 
-		{
-			// run weak embedding algorithm
-			auto output = wudcrgen(input);
-
-			// write output to predefined file
-			constexpr auto outfilename = "wudcrgen.txt";
-			constexpr auto outsvgname = "wudcrgen.svg";
-			std::ofstream stream{ outfilename };
-			write_output(output, stream);
-			write_svg(output, outsvgname);
-		}
+		embed(*graph, *embedder);
+		delete embedder;
 	}
 	catch (const std::exception& e) {
 		std::cerr << "Failed to determine graph embedding: " << e.what() << "\n";
 		return 1;
 	}
+
+	try {
+		switch (configuration.outputFormat) {
+
+		case Configuration::OutputFormat::DUMP:
+		{
+			std::ofstream stream{ configuration.outputFile };
+			write_output(*graph, stream);
+		}
+			break;
+
+		case Configuration::OutputFormat::SVG:
+			write_svg(*graph, configuration.outputFile.c_str());
+			break;
+
+		}
+	}
+	catch (const std::exception& e) {
+		std::cerr << "Failed to write output file \"" << configuration.outputFile << "\": " << e.what() << "\n";
+		return 1;
+	}
+
+	delete graph;
 
 	std::cout << "All Done.\n";
 	return 0;

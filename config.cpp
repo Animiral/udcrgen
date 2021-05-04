@@ -198,6 +198,11 @@ void Configuration::readArgv(int argc, const char* argv[])
 
         token = parser.next();
     }
+
+    // autocomplete non-defaults
+    if (outputFile.empty()) {
+        outputFile = inputFile + ((OutputFormat::SVG == outputFormat) ? std::string{ ".svg" } : std::string{ ".dump.txt" });
+    }
 }
 
 void Configuration::dump(std::ostream& stream) const

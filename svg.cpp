@@ -110,20 +110,27 @@ void write_line(float x1, float y1, float x2, float y2, float scale, float offse
 		<< tx << "\" y2=\"" << ty << "\" /></g>\n";
 }
 
+template<typename Iterator, typename Less>
+Disk min_disk(Iterator begin, Iterator end, Less less)
+{
+	auto min_elem = std::min_element(begin, end, less);
+	return min_elem == end ? Disk{0, 0, 0, 0} : *min_elem;
+}
+
 std::pair<float, float> calculate_offset(const DiskGraph& graph, float scale, float padding)
 {
 	const auto lessX = [](Disk a, Disk b) { return a.x < b.x; };
 
-	const Disk& minxSpine = *std::min_element(graph.spines().begin(), graph.spines().end(), lessX);
-	const Disk& minxBranch = *std::min_element(graph.branches().begin(), graph.branches().end(), lessX);
-	const Disk& minxLeaf = *std::min_element(graph.leaves().begin(), graph.leaves().end(), lessX);
+	const Disk& minxSpine = min_disk(graph.spines().begin(), graph.spines().end(), lessX);
+	const Disk& minxBranch = min_disk(graph.branches().begin(), graph.branches().end(), lessX);
+	const Disk& minxLeaf = min_disk(graph.leaves().begin(), graph.leaves().end(), lessX);
 	const Disk& minxDisk = std::min({ minxSpine, minxBranch, minxLeaf }, lessX);
 
 	const auto lessY = [](Disk a, Disk b) { return a.y < b.y; };
 
-	const Disk& minySpine = *std::min_element(graph.spines().begin(), graph.spines().end(), lessY);
-	const Disk& minyBranch = *std::min_element(graph.branches().begin(), graph.branches().end(), lessY);
-	const Disk& minyLeaf = *std::min_element(graph.leaves().begin(), graph.leaves().end(), lessY);
+	const Disk& minySpine = min_disk(graph.spines().begin(), graph.spines().end(), lessY);
+	const Disk& minyBranch = min_disk(graph.branches().begin(), graph.branches().end(), lessY);
+	const Disk& minyLeaf = min_disk(graph.leaves().begin(), graph.leaves().end(), lessY);
 	const Disk& minyDisk = std::min({ minySpine, minyBranch, minyLeaf }, lessY);
 
 	return { -minxDisk.x * scale + scale / 2 + padding, -minyDisk.y * scale + scale / 2 + padding };

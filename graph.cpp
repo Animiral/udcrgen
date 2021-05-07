@@ -48,6 +48,9 @@ Caterpillar Caterpillar::fromText(std::istream& stream)
 	Caterpillar caterpillar;
 
 	for (int d : degrees) {
+		if (d < 2)
+			throw std::exception("Caterpillar spine cannot have less than 2 leaves.");
+
 		caterpillar.extend(d - 2);
 	}
 
@@ -224,33 +227,33 @@ const std::vector<Disk>& DiskGraph::leaves() const noexcept
 	return leaves_;
 }
 
-const Disk& DiskGraph::findDisk(int id) const
+const Disk* DiskGraph::findDisk(int id) const
 {
 	const auto hasId = [id](const Disk& v) { return v.id == id; };
 
 	auto it = std::find_if(spines_.begin(), spines_.end(), hasId);
 
 	if (it != spines_.end())
-		return *it;
+		return &*it;
 
 	it = std::find_if(branches_.begin(), branches_.end(), hasId);
 
 	if (it != branches_.end())
-		return *it;
+		return &*it;
 
 	it = std::find_if(leaves_.begin(), leaves_.end(), hasId);
 
 	if (it != leaves_.end())
-		return *it;
+		return &*it;
 
-	throw std::exception("Vertex does not exist.");
+	return nullptr;
 }
 
 DiskGraph DiskGraph::fromCaterpillar(const Caterpillar& caterpillar)
 {
 	int spinesCount = caterpillar.countSpine();
 	int leavesCount = caterpillar.countVertices() - spinesCount;
-	DiskGraph result{ spinesCount, 0, leavesCount };
+	DiskGraph result{ spinesCount, leavesCount, 0 };
 
 	int id = 0;
 	for (; id < spinesCount; id++) {
@@ -265,7 +268,7 @@ DiskGraph DiskGraph::fromCaterpillar(const Caterpillar& caterpillar)
 	id = 0;
 	for (int leaves : caterpillar.leaves()) {
 		for (int leaf = 0; leaf < leaves; leaf++) {
-			auto& v = result.leaves()[id + leaf];
+			auto& v = result.branches()[id + leaf];
 			v.id = spinesCount + id + leaf;
 			v.parent = spineId;
 			v.failure = false;

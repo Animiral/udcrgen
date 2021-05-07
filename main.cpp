@@ -39,6 +39,7 @@ int main(int argc, const char* argv[])
 			graph = new DiskGraph{ DiskGraph::fromCaterpillar(Caterpillar::fromText(stream)) };
 			break;
 
+		default:
 		case Configuration::InputFormat::EDGELIST:
 			EdgeList edges = edges_from_text(stream);
 			auto result = classify(edges);
@@ -46,6 +47,8 @@ int main(int argc, const char* argv[])
 			break;
 
 		}
+
+		stream.close();
 	}
 	catch (const std::exception& e) {
 		std::cerr << "Failed to read input file \"" << configuration.inputFile << "\": " << e.what() << "\n";
@@ -57,6 +60,7 @@ int main(int argc, const char* argv[])
 
 		switch (configuration.algorithm) {
 
+		default:
 		case Configuration::Algorithm::KLEMZ_NOELLENBURG_PRUTKIN:
 		{
 			auto properEmbedder = new ProperEmbedder();

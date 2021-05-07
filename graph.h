@@ -159,11 +159,11 @@ public:
 	const std::vector<Disk>& leaves() const noexcept;
 
 	/**
-	 * Get the vertex with the given unique number.
+	 * Get the disk with the given vertex id.
 	 *
-	 * Throw an exception if the vertex does not exist.
+	 * @return a pointer to the disk or nullptr if the id is unknown.
 	 */
-	const Disk& findDisk(int id) const;
+	const Disk* findDisk(int id) const;
 
 	/**
 	 * Create an instance based on the given basic caterpillar representation.

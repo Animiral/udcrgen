@@ -40,7 +40,7 @@ public:
     Algorithm algorithm = Algorithm::KLEMZ_NOELLENBURG_PRUTKIN;
     path inputFile; //!< only one supported at this time
     path outputFile; //!< only one supported at this time
-    InputFormat inputFormat = InputFormat::DEGREES;
+    InputFormat inputFormat = InputFormat::EDGELIST;
     OutputFormat outputFormat = OutputFormat::SVG;
     float gap = .1f; //!< size of gap between non-contact disks in strong UDCRs
 

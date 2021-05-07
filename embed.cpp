@@ -240,13 +240,13 @@ EmbedResult WeakEmbedder::leaf() noexcept
 
 void embed(DiskGraph& graph, Embedder& embedder)
 {
-	auto spines = graph.spines();
-	auto branches = graph.branches(); // TODO: support lobsters
-	auto leaves = graph.leaves();
+	auto& spines = graph.spines();
+	auto& branches = graph.branches(); // TODO: support lobsters
+	auto& leaves = graph.leaves();
 
 	auto branchIt = branches.begin(); // branches are ordered by parent spine
 
-	for (Disk& spineDisk : spines) { //int spineIndex = 0; spineIndex < udcrg.spines().size(); spineIndex++) {
+	for (Disk& spineDisk : spines) {
 		// place next spine segment
 		embedder.spine().applyTo(spineDisk);
 

@@ -80,20 +80,26 @@ int main(int argc, const char* argv[])
 	}
 
 	try {
+		std::ofstream stream{ configuration.outputFile };
+
 		switch (configuration.outputFormat) {
 
 		case Configuration::OutputFormat::DUMP:
 		{
-			std::ofstream stream{ configuration.outputFile };
 			write_output(*graph, stream);
 		}
 			break;
 
 		case Configuration::OutputFormat::SVG:
-			write_svg(*graph, configuration.outputFile.c_str());
+		{
+			Svg svg{ *graph, stream };
+			svg.write();
+		}
 			break;
 
 		}
+
+		stream.close();
 	}
 	catch (const std::exception& e) {
 		std::cerr << "Failed to write output file \"" << configuration.outputFile << "\": " << e.what() << "\n";

@@ -1,6 +1,7 @@
 ﻿#include "embed.h"
 #include "graph.h"
 #include "geometry.h"
+#include <algorithm>
 #include <cassert>
 
 /**
@@ -46,6 +47,15 @@ DiskGraph from_edge_list(EdgeList::iterator begin, EdgeList::iterator branches, 
 		branchList[i].failure = false;
 	}
 
+	// lambda: determine position of disk's parent id in the given list
+	auto pos = [](const std::vector<Disk>& l, const Disk& d) {
+		return std::find_if(l.begin(), l.end(), [&d](const Disk& p) { return p.id == d.parent; });
+	};
+
+	// order branches by index of appearance of their parent in the spine
+	std::sort(branchList.begin(), branchList.end(),
+		[&l = spineList, pos](const Disk& a, const Disk& b) { return pos(l, a) < pos(l, b); });
+
 	auto& leafList = graph.leaves();
 
 	for (int i = 0; i < leafCount; i++) {
@@ -53,6 +63,10 @@ DiskGraph from_edge_list(EdgeList::iterator begin, EdgeList::iterator branches, 
 		leafList[i].parent = leaves[i].from;
 		leafList[i].failure = false;
 	}
+
+	// order leaves by index of appearance of their parent in the branches
+	std::sort(leafList.begin(), leafList.end(),
+		[&l = branchList, pos](const Disk& a, const Disk& b) { return pos(l, a) < pos(l, b); });
 
 	return graph;
 }

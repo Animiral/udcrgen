@@ -50,6 +50,11 @@ public:
 	virtual EmbedResult spine() noexcept = 0;
 
 	/**
+	 * Place the next branch.
+	 */
+	virtual EmbedResult branch() noexcept = 0;
+
+	/**
 	 * Place the next leaf.
 	 */
 	virtual EmbedResult leaf() noexcept = 0;
@@ -82,6 +87,11 @@ public:
 	 * in contact with the current spine.
 	 */
 	virtual EmbedResult spine() noexcept override;
+
+	/**
+	 * Place the next branch.
+	 */
+	virtual EmbedResult branch() noexcept override;
 
 	/**
 	 * Place the next leaf.
@@ -137,6 +147,11 @@ public:
 	virtual EmbedResult spine() noexcept override;
 
 	/**
+	 * Place the next branch.
+	 */
+	virtual EmbedResult branch() noexcept override;
+
+	/**
 	 * Place the next leaf.
 	 */
 	virtual EmbedResult leaf() noexcept override;
@@ -144,13 +159,32 @@ public:
 private:
 
 	/**
-	 * Position names relative to current spine vertex in the weak algorithm.
+	 * Position names with index offsets relative to any locality.
 	 */
-	enum class Slot { BEHIND, UP, DOWN, FWD_UP, FWD_DOWN, FRONT, FAIL };
+	enum class Rel { SPINE = 12, BEHIND = -5, UP = -6, DOWN = 1, FWD_UP = -1, FWD_DOWN = 6, FRONT = 5 };
 
-	Slot slot_;
-	int spineIndex_;
-	int spineCount_;
+	/**
+	 * Which way around we'll attempt to find a free slot.
+	 */
+	enum class Affinity { UP = -1, DOWN = 1 };
+
+	bool zone_[25]; //!< markers for used space
+	int locality_; //!< zone index of current branch
+	Affinity affinity_; //!< current affinity
+	int spineIndex_; //!< offset of zone coordinates
+	int spineCount_; //!< enables reserving space for all spines exactly
+
+	/**
+	 * Determine a zone index in the current locality that we may use
+	 * to place another disk.
+	 */
+	int findFreePosition(int locality, Affinity affinity) noexcept;
+
+	/**
+	 * Turn the given position in the current zone into embedding coordinates
+	 * under consideration of the current spine offset.
+	 */
+	Vec2 getCoords(int position) noexcept;
 
 };
 

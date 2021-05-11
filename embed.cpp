@@ -91,6 +91,16 @@ std::pair<DiskGraph, GraphClass> classify(EdgeList input)
 
 	auto branches = separate_leaves(input.begin(), leaves);
 
+	// "leaves" are actually 0-leaf branches to us if they connect to the spine
+	auto isSpine = [&input, branches](int id)
+	{
+		return std::any_of(input.begin(), branches, [id](Edge e)
+			{
+				return e.from == id || e.to == id;
+			});
+	};
+	leaves = std::partition(branches, input.end(), [&isSpine](Edge e) { return isSpine(e.from); });
+
 	// lobster
 	if (recognize_path(input.begin(), branches)) {
 		DiskGraph graph = from_edge_list(input.begin(), branches, leaves, input.end());
@@ -156,10 +166,12 @@ EmbedResult ProperEmbedder::spine() noexcept
 	return { spine_, failure };
 }
 
-EmbedResult ProperEmbedder::leaf() noexcept
+EmbedResult ProperEmbedder::branch() noexcept
 {
 	assert(!beforeFirstSpine_);
 
+	// We still refer to branches as "leaves" here because the proper
+	// algorithm does not yet handle lobsters.
 	if (beforeFirstLeaf_) {
 		beforeFirstLeaf_ = false;
 		return { {-1, 0}, false };
@@ -180,6 +192,12 @@ EmbedResult ProperEmbedder::leaf() noexcept
 	return { leafPosition, false };
 }
 
+EmbedResult ProperEmbedder::leaf() noexcept
+{
+	// This embedder cannot yet deal with lobster leaves.
+	return { {0, Y_FAIL}, true };
+}
+
 Vec2 ProperEmbedder::findLeafPosition(Vec2 constraint) noexcept
 {
 	Vec2 leafPosition = triangulate(spine_, 1, constraint, 1 + gap_, forward_, gap_ * 0.01f);
@@ -195,10 +213,17 @@ Vec2 ProperEmbedder::findLeafPosition(Vec2 constraint) noexcept
 }
 
 WeakEmbedder::WeakEmbedder(int spineCount) noexcept :
-	slot_{ Slot::BEHIND },
+	locality_{ (int)Rel::SPINE },
+	affinity_{ Affinity::UP },
 	spineIndex_{ -1 },
 	spineCount_{ spineCount }
 {
+	std::fill(zone_, zone_ + 25, false);
+
+	// reserve space for spines, if necessary
+	for (int i = 0; i < spineCount && i < 2; i++) {
+		zone_[(int)Rel::SPINE + (int)Rel::FRONT * (i+1)] = true;
+	}
 }
 
 /**
@@ -223,49 +248,89 @@ EmbedResult WeakEmbedder::spine() noexcept
 {
 	spineIndex_++;
 
-	// adjust slot relative to next spine
-	if (0 == spineIndex_) {
-		slot_ = Slot::BEHIND;
-	}
-	else {
-		const int nextSlot = static_cast<int>(slot_) - 2;
-		slot_ = static_cast<Slot>(std::max(nextSlot, static_cast<int>(Slot::UP)));
-	}
+	// shift all contextual information in the zone
+	auto end = std::copy(zone_ + 5, zone_ + 25, zone_);
+	std::fill(zone_ + 20, zone_ + 25, false);
+
+	// Reserve space for straight spine ahead
+	if (spineIndex_ + 2 < spineCount_)
+		zone_[22] = true;
 
 	return { { static_cast<float>(spineIndex_), 0 }, false }; // straight spine
 }
 
+EmbedResult WeakEmbedder::branch() noexcept
+{
+	// invert affinity for even distribution
+	affinity_ = (Affinity)((int)affinity_ * -1);
+
+	static const int spineLocality = (int)Rel::SPINE;
+	const int position = findFreePosition(spineLocality, affinity_);
+
+	if (position >= 0) {
+		zone_[position] = true;
+		locality_ = position;
+		return { getCoords(position), false };
+	}
+	else {
+		return { getCoords(spineLocality) + Vec2{ 0, Y_FAIL }, true };
+	}
+}
+
 EmbedResult WeakEmbedder::leaf() noexcept
 {
-	// the front slot is only available if there are no more spines coming
-	if (Slot::FRONT == slot_ && (spineIndex_ < spineCount_ - 1))
-		slot_ = Slot::FAIL;
+	const int position = findFreePosition(locality_, affinity_);
 
-	Vec2 leafPosition = Vec2{ static_cast<float>(spineIndex_), 0 } +
-		relativeSlots[static_cast<std::size_t>(slot_)];
-	bool failure = Slot::FAIL == slot_;
+	if (position >= 0) {
+		zone_[position] = true;
+		return { getCoords(position), false };
+	}
+	else {
+		return { getCoords(locality_) + Vec2{ 0, Y_FAIL }, true };
+	}
+}
 
-	// next slot
-	if (WeakEmbedder::Slot::FAIL != slot_)
-		slot_ = static_cast<WeakEmbedder::Slot>(static_cast<int>(slot_) + 1);
+int WeakEmbedder::findFreePosition(int locality, Affinity affinity) noexcept
+{
+	static const Rel upCandidates[6] = { Rel::BEHIND, Rel::UP, Rel::FWD_UP, Rel::FRONT, Rel::FWD_DOWN, Rel::DOWN };
+	static const Rel downCandidates[6] = { Rel::BEHIND, Rel::DOWN, Rel::FWD_DOWN, Rel::FRONT, Rel::FWD_UP, Rel::UP };
+	auto* const candidates = Affinity::UP == affinity ? upCandidates : downCandidates;
+	auto* const end = candidates + 6;
 
-	return { leafPosition, failure };
+	auto it = std::find_if(candidates, end, [this, locality](Rel r) { return !zone_[locality + (int)r]; });
+	if (it == end)
+		return -1; // no slot free
+
+	return locality + (int)*it;
+}
+
+Vec2 WeakEmbedder::getCoords(int position) noexcept
+{
+	const int forwardSteps = position / 5 - 2;
+	const int upSteps = -(position % 5) + 2;
+
+	return { spineIndex_ + forwardSteps + upSteps * .5f, upSteps * Y_HIGH };
 }
 
 void embed(DiskGraph& graph, Embedder& embedder)
 {
 	auto& spines = graph.spines();
-	auto& branches = graph.branches(); // TODO: support lobsters
+	auto& branches = graph.branches();
 	auto& leaves = graph.leaves();
 
 	auto branchIt = branches.begin(); // branches are ordered by parent spine
+	auto leafIt = leaves.begin(); // leaves are ordered by parent branch
 
 	for (Disk& spineDisk : spines) {
 		// place next spine segment
 		embedder.spine().applyTo(spineDisk);
 
 		for (; branchIt != branches.end() && branchIt->parent == spineDisk.id; ++branchIt) {
-			embedder.leaf().applyTo(*branchIt);
+			embedder.branch().applyTo(*branchIt);
+
+			for (; leafIt != leaves.end() && leafIt->parent == branchIt->id; ++leafIt) {
+				embedder.leaf().applyTo(*leafIt);
+			}
 		}
 	}
 }

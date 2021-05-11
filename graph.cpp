@@ -76,6 +76,17 @@ EdgeList edges_from_text(std::istream& stream)
 	return edges;
 }
 
+void edges_to_text(std::ostream& stream, const EdgeList& edges)
+{
+	for (const auto& edge : edges) {
+		stream << edge.from << " " << edge.to << "\n";
+	}
+
+	if (stream.bad()) {
+		throw std::exception("Failed to write edge list.");
+	}
+}
+
 EdgeList::iterator separate_leaves(EdgeList::iterator begin, EdgeList::iterator end)
 {
 	const std::size_t es = end - begin; // nr of edges
@@ -279,4 +290,24 @@ DiskGraph DiskGraph::fromCaterpillar(const Caterpillar& caterpillar)
 	}
 
 	return result;
+}
+
+EdgeList DiskGraph::toEdgeList() const
+{
+	EdgeList edgeList;
+
+	for (const auto& spine : spines()) {
+		if (spine.parent > 0)
+			edgeList.push_back({ spine.parent, spine.id });
+	}
+
+	for (const auto& branch : branches()) {
+		edgeList.push_back({ branch.parent, branch.id });
+	}
+
+	for (const auto& leaf : leaves()) {
+		edgeList.push_back({ leaf.parent, leaf.id });
+	}
+
+	return edgeList;
 }

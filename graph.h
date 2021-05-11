@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <istream>
+#include <ostream>
 
 /**
  * A basic representation of a caterpillar graph used for input.
@@ -73,6 +74,11 @@ using EdgeList = std::vector<Edge>;
  * of another vertex which it connects to.
  */
 EdgeList edges_from_text(std::istream& stream);
+
+/**
+ * Write a text representation of an edge list to the given stream.
+ */
+void edges_to_text(std::ostream& stream, const EdgeList& edges);
 
 /**
  * Reorder the edge list from begin to end.
@@ -171,6 +177,13 @@ public:
 	 * The embedding coordinates of the resulting disks are unspecified.
 	 */
 	static DiskGraph fromCaterpillar(const Caterpillar& caterpillar);
+
+	/**
+	 * Return the edge list representation of this graph.
+	 *
+	 * Additional information, such as the vertex coordinates, is lost.
+	 */
+	EdgeList toEdgeList() const;
 
 private:
 

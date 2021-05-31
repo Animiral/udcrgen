@@ -146,7 +146,7 @@ EdgeList::iterator separate_leaves(EdgeList::iterator begin, EdgeList::iterator 
 bool recognize_path(EdgeList::iterator begin, EdgeList::iterator end)
 {
 	if (begin == end)
-		return false; // sanity check - the empty graph is not a path
+		return true; // the empty graph is also a path
 
 	// TODO! This implementation does not yet check that all vertices on the path are unique.
 

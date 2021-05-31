@@ -25,11 +25,14 @@ DiskGraph from_edge_list(EdgeList::iterator begin, EdgeList::iterator branches, 
 	const int branchCount = leaves - branches;
 	const int leafCount = end - leaves;
 
+	assert(spineCount > 1 || branchCount > 0); // must have at least one edge
+	assert(branchCount > 0 || leafCount == 0); // no leaves without branches
+
 	DiskGraph graph{ spineCount, branchCount, leafCount };
 
 	auto& spineList = graph.spines();
 
-	spineList[0].id = begin[0].from;
+	spineList[0].id = begin[0].from; // this works even with 1 spine, because begin then connects the first branch
 	spineList[0].parent = -1;
 	spineList[0].failure = false;
 
@@ -94,10 +97,8 @@ std::pair<DiskGraph, GraphClass> classify(EdgeList input)
 	// "leaves" are actually 0-leaf branches to us if they connect to the spine
 	auto isSpine = [&input, branches](int id)
 	{
-		return std::any_of(input.begin(), branches, [id](Edge e)
-			{
-				return e.from == id || e.to == id;
-			});
+		return input[0].from == id ||
+			std::any_of(input.begin(), branches, [id](Edge e) { return e.to == id; });
 	};
 	leaves = std::partition(branches, input.end(), [&isSpine](Edge e) { return isSpine(e.from); });
 

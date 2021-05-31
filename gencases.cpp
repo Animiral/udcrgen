@@ -7,6 +7,26 @@ const int MAX_PROBLEM_SIZE = 100; //!< size of instances to generate
 
 /**
  * Generate lobsters with a lot of branches.
+ *
+ * Example with 5 spines: (numbering)
+ *
+ *              15  16  17  18  19       < leaves top
+ *             5   6   7   8   9         < branches top
+ *           0   1   2   3   4           < spine
+ *        10  11  12  13  14             < branches bottom
+ *      20  21  22  23  24               < leaves bottom
+ *
+ *     29  30   x   x   x   x   x        <
+ *   31  25   x   x   x   x   x  33      < extra branch 1
+ * 32  26   x   x   x   x   x  27  34    < extra branch 2 -- extra branch 3
+ *        x   x   x   x   x  28  35      < extra branch 4
+ *      x   x   x   x   x      36        <
+ *
+ *      x   x   x   x   x   x   x        <
+ *    x   x   x   x   x   x   x   x      <
+ *  x   x   x   x   x   x   x   x   x    <
+ *   37   x   x   x   x   x   x   x      < extra
+ *      x   x   x   x   x  38   x        < leaves
  */
 void max_branches()
 {

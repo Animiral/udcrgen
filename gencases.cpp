@@ -117,8 +117,8 @@ void max_leaves(int size)
 			edges.push_back({ branch, ++n });
 	}
 
-	// do spine vertices except first and last
-	for (int j = 1; j < size - 1; j++) {
+	// do spine vertices except first
+	for (int j = 1; j < size; j++) {
 		int spine = ++n;
 		edges.push_back({ prev, spine });
 		prev = spine;
@@ -202,8 +202,8 @@ void onesided_bent(int size)
 			edges.push_back({ branch, ++n });
 	}
 
-	// do spine vertices except first and last
-	for (int j = 1; j < size - 1; j++) {
+	// do spine vertices except first
+	for (int j = 1; j < size; j++) {
 		int spine = ++n;
 		edges.push_back({ prev, spine });
 		prev = spine;
@@ -282,8 +282,8 @@ void onesided_straight(int size)
 			edges.push_back({ branch, ++n });
 	}
 
-	// do spine vertices except first and last
-	for (int j = 1; j < size - 1; j++) {
+	// do spine vertices except first
+	for (int j = 1; j < size; j++) {
 		int spine = ++n;
 		edges.push_back({ prev, spine });
 		prev = spine;

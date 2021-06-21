@@ -81,7 +81,8 @@ std::pair<DiskGraph, GraphClass> classify(EdgeList input)
 
 	// caterpillar without leaves
 	if (recognize_path(input.begin(), input.end())) {
-		return { {0, 0, 0}, GraphClass::CATERPILLAR };
+		int const spines = static_cast<int>(input.end() - input.begin()) + 1;
+		return { {spines, 0, 0}, GraphClass::CATERPILLAR };
 	}
 
 	auto leaves = separate_leaves(input.begin(), input.end());

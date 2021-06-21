@@ -95,16 +95,16 @@ std::pair<DiskGraph, GraphClass> classify(EdgeList input)
 
 	auto branches = separate_leaves(input.begin(), leaves);
 
-	// "leaves" are actually 0-leaf branches to us if they connect to the spine
-	auto isSpine = [&input, branches](int id)
-	{
-		return input[0].from == id ||
-			std::any_of(input.begin(), branches, [id](Edge e) { return e.to == id; });
-	};
-	leaves = std::partition(branches, input.end(), [&isSpine](Edge e) { return isSpine(e.from); });
-
 	// lobster
 	if (recognize_path(input.begin(), branches)) {
+		// "leaves" are actually 0-leaf branches to us if they connect to the spine
+		auto isSpine = [&input, branches](int id)
+		{
+			return input[0].from == id ||
+				std::any_of(input.begin(), branches, [id](Edge e) { return e.to == id; });
+		};
+		leaves = std::partition(branches, input.end(), [&isSpine](Edge e) { return isSpine(e.from); });
+
 		DiskGraph graph = from_edge_list(input.begin(), branches, leaves, input.end());
 		return { graph, GraphClass::LOBSTER };
 	}

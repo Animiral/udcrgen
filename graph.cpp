@@ -134,15 +134,6 @@ EdgeList::iterator separate_leaves(EdgeList::iterator begin, EdgeList::iterator 
 	return newEnd;
 }
 
-/**
- * Determine whether the given edge list describes a path - a series of vertices
- * connected in a row. Only a path can be the spine of a caterpillar or lobster.
- *
- * If the edges do indeed describe a path, re-order them in the order in which
- * they can be traversed from beginning to end.
- *
- * @return true if the edges describe a path, false otherwise.
- */
 bool recognize_path(EdgeList::iterator begin, EdgeList::iterator end)
 {
 	if (begin == end)
@@ -178,6 +169,9 @@ bool recognize_path(EdgeList::iterator begin, EdgeList::iterator end)
 		}
 	} while (next != last);
 
+	// remember where the forward path ends
+	auto const cut = front;
+
 	// follow the edges back to the start of the path, swap them in reverse into the back
 	int start = begin->from; // vertex id at start of path
 	next = start;
@@ -200,7 +194,11 @@ bool recognize_path(EdgeList::iterator begin, EdgeList::iterator end)
 		}
 	} while (next != start);
 
-	return front == back; // is path if we have visited all the edges
+	if (front != back)
+		return false; // we have not been able to cover all the edges
+
+	std::rotate(begin, cut, end); // make the path continuous
+	return true;
 }
 
 DiskGraph::DiskGraph(int spines, int branches, int leaves)

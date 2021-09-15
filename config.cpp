@@ -117,6 +117,7 @@ struct Parser
         const auto opt = next();
 
         if ("svg"s == opt)   return Configuration::OutputFormat::SVG;
+        if ("ipe"s == opt)   return Configuration::OutputFormat::IPE;
         if ("dump"s == opt)  return Configuration::OutputFormat::DUMP;
 
         throw std::out_of_range("Unknown output format: "s + opt);
@@ -201,7 +202,24 @@ void Configuration::readArgv(int argc, const char* argv[])
 
     // autocomplete non-defaults
     if (outputFile.empty()) {
-        outputFile = inputFile + ((OutputFormat::SVG == outputFormat) ? std::string{ ".svg" } : std::string{ ".dump.txt" });
+        const char* ext = nullptr;
+
+        switch (outputFormat)
+        {
+        case OutputFormat::SVG:
+            ext = ".svg";
+            break;
+        case OutputFormat::IPE:
+            ext = ".ipe";
+            break;
+        default:
+        case OutputFormat::DUMP:
+            ext = ".dump.txt";
+            break;
+
+        }
+
+        outputFile = inputFile + ext;
     }
 }
 

@@ -1,5 +1,6 @@
 #include "embed.h"
 #include "graph.h"
+#include "ipe.h"
 #include "svg.h"
 #include "config.h"
 #include <iostream>
@@ -98,6 +99,13 @@ int main(int argc, const char* argv[])
 		{
 			Svg svg{ *graph, stream };
 			svg.write();
+		}
+			break;
+
+		case Configuration::OutputFormat::IPE:
+		{
+			Ipe ipe{ *graph, stream };
+			ipe.write();
 		}
 			break;
 

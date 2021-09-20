@@ -45,7 +45,7 @@ void Ipe::write()
 		"<?xml version=\"1.0\"?>\n"
 		"<!DOCTYPE ipe SYSTEM \"ipe.dtd\">\n"
 		"<ipe version=\"70218\" creator=\"Ipe 7.2.23\">\n"
-		"<info created=\"D:20210427103907\" modified=\"D : 20210427105114\"/>\n"
+		"<info created=\"D:20210427103907\" modified=\"D:20210427105114\"/>\n"
 		"<ipestyle name=\"min\">\n"
 		"<symbol name=\"mark / hex_hor(sx)\" transformations=\"translations\">\n"
 		"<path fill=\"sym - stroke\">\n"
@@ -67,7 +67,7 @@ void Ipe::write()
 
 	// page start
 	const char* layer = "alpha";
-	*stream_ << "<page>\n<layer name=\"" << layer << "\"/>\n<view layers=\"" << layer << "\" active=\"" << layer << "\"/>";
+	*stream_ << "<page>\n<layer name=\"" << layer << "\"/>\n<view layers=\"" << layer << "\" active=\"" << layer << "\"/>\n";
 
 	auto writeAllDisks = [this](const std::vector<Disk>& v, Appearance a) {
 		std::for_each(v.begin(), v.end(), [this, a](const Disk& d) { writeDisk(d, a); });
@@ -149,7 +149,7 @@ void Ipe::writeCircle(float x, float y, int id, Appearance appearance)
 	}
 
 	*stream_ << "<path fill=\"" << ipe_color << "\">\n" << (gstep / 2) << " 0 0 "
-		<< (gstep / 2) << " " << std::ios::fixed << std::setprecision(3) << x << " " << y << " e\n</path>\n";
+		<< (gstep / 2) << " " << std::fixed << std::setprecision(3) << cx << " " << cy << " e\n</path>\n";
 }
 
 void Ipe::writeLine(float x1, float y1, float x2, float y2)
@@ -158,5 +158,5 @@ void Ipe::writeLine(float x1, float y1, float x2, float y2)
 
 	grid_to_coord(x1, y1, 0, sx, sy);
 	grid_to_coord(x2, y2, 0, tx, ty);
-	*stream_ << "<path stroke=\"black\" pen=\"0.4\">\n" << (x1) << " " << (y1) << " m\n" << (x2) << " " << (y2) << " l\n</path>\n";
+	*stream_ << "<path stroke=\"black\" pen=\"0.4\">\n" << (sx) << " " << (sy) << " m\n" << (tx) << " " << (ty) << " l\n</path>\n";
 }

@@ -35,7 +35,7 @@ public:
     /**
      * Enumeration of available file formats for output files.
      */
-    enum class OutputFormat { SVG, DUMP };
+    enum class OutputFormat { SVG, IPE, DUMP };
 
     Algorithm algorithm = Algorithm::KLEMZ_NOELLENBURG_PRUTKIN;
     path inputFile; //!< only one supported at this time

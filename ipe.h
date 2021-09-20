@@ -8,17 +8,17 @@
 #include <utility>
 
 /**
- * Render a given graph in SVG.
+ * Render a given graph in IPE.
  */
-class Svg
+class Ipe
 {
 
 public:
 
 	/**
-	 * Construct the SVG renderer to print the given graph to the given output stream.
+	 * Construct the IPE renderer to print the given graph to the given output stream.
 	 */
-	explicit Svg(const DiskGraph& graph, std::ostream& stream) noexcept;
+	explicit Ipe(const DiskGraph& graph, std::ostream& stream) noexcept;
 
 	/**
 	 * Perform the rendering.

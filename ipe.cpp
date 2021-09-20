@@ -33,10 +33,8 @@ namespace
 
 
 Ipe::Ipe(const DiskGraph& graph, std::ostream& stream) noexcept :
-	graph_(&graph), stream_(&stream), scale_(100.f)
+	graph_(&graph), scale_(16.f), translate_(graph, 1.f, scale_), stream_(&stream)
 {
-	const float padding = 10.f; // width of whitespace around the image
-	std::tie(offsetX_, offsetY_) = calculateOffset(padding);
 }
 
 void Ipe::write()
@@ -86,32 +84,6 @@ void Ipe::write()
 		throw std::exception("Failed to write SVG.");
 }
 
-template<typename Iterator, typename Less>
-Disk min_disk(Iterator begin, Iterator end, Less less)
-{
-	auto min_elem = std::min_element(begin, end, less);
-	return min_elem == end ? Disk{ 0, 0, 0, 0 } : *min_elem;
-}
-
-std::pair<float, float> Ipe::calculateOffset(float padding) noexcept
-{
-	const auto lessX = [](Disk a, Disk b) { return a.x < b.x; };
-
-	const Disk& minxSpine = min_disk(graph_->spines().begin(), graph_->spines().end(), lessX);
-	const Disk& minxBranch = min_disk(graph_->branches().begin(), graph_->branches().end(), lessX);
-	const Disk& minxLeaf = min_disk(graph_->leaves().begin(), graph_->leaves().end(), lessX);
-	const Disk& minxDisk = std::min({ minxSpine, minxBranch, minxLeaf }, lessX);
-
-	const auto lessY = [](Disk a, Disk b) { return a.y < b.y; };
-
-	const Disk& minySpine = min_disk(graph_->spines().begin(), graph_->spines().end(), lessY);
-	const Disk& minyBranch = min_disk(graph_->branches().begin(), graph_->branches().end(), lessY);
-	const Disk& minyLeaf = min_disk(graph_->leaves().begin(), graph_->leaves().end(), lessY);
-	const Disk& minyDisk = std::min({ minySpine, minyBranch, minyLeaf }, lessY);
-
-	return { -minxDisk.x * scale_ + scale_ / 2 + padding, -minyDisk.y * scale_ + scale_ / 2 + padding };
-}
-
 void Ipe::writeDisk(const Disk& disk, Appearance appearance)
 {
 	if (disk.failure)
@@ -126,11 +98,9 @@ void Ipe::writeDisk(const Disk& disk, Appearance appearance)
 
 void Ipe::writeCircle(float x, float y, int id, Appearance appearance)
 {
-	//int cx = x * scale_ + offsetX_;
-	//int cy = y * scale_ + offsetY_;
-
-	float cx, cy;
-	grid_to_coord(x, y, 0, cx, cy);
+	//float cx, cy;
+	//grid_to_coord(x, y, 0, cx, cy);
+	const Vec2 center = translate_.translate({ x, y });
 
 	const char* ipe_color;
 	switch (appearance) {
@@ -148,15 +118,20 @@ void Ipe::writeCircle(float x, float y, int id, Appearance appearance)
 		ipe_color = "KITblack";
 	}
 
-	*stream_ << "<path fill=\"" << ipe_color << "\">\n" << (gstep / 2) << " 0 0 "
-		<< (gstep / 2) << " " << std::fixed << std::setprecision(3) << cx << " " << cy << " e\n</path>\n";
+	*stream_ << "<path fill=\"" << ipe_color << "\">\n" << (scale_ / 2) << " 0 0 "
+		<< (scale_ / 2) << " " << std::fixed << std::setprecision(3) << center.x << " " << center.y << " e\n</path>\n";
 }
 
 void Ipe::writeLine(float x1, float y1, float x2, float y2)
 {
-	float sx, sy, tx, ty;
+	//float sx, sy, tx, ty;
 
-	grid_to_coord(x1, y1, 0, sx, sy);
-	grid_to_coord(x2, y2, 0, tx, ty);
-	*stream_ << "<path stroke=\"black\" pen=\"0.4\">\n" << (sx) << " " << (sy) << " m\n" << (tx) << " " << (ty) << " l\n</path>\n";
+	//grid_to_coord(x1, y1, 0, sx, sy);
+	//grid_to_coord(x2, y2, 0, tx, ty);
+
+	const Vec2 source = translate_.translate({ x1, y1 });
+	const Vec2 target = translate_.translate({ x2, y2 });
+
+	*stream_ << "<path stroke=\"black\" pen=\"0.4\">\n" << source.x << " " << source.y
+		<< " m\n" << target.x << " " << target.y << " l\n</path>\n";
 }

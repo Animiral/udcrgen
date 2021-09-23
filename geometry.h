@@ -30,7 +30,7 @@ struct Vec2
 	/**
 	 * Apply a translation to this.
 	 */
-	Vec2& Vec2::operator+=(Vec2 translate) noexcept;
+	Vec2& operator+=(Vec2 translate) noexcept;
 
 	/**
 	 * Return the length of this vector.

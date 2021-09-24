@@ -7,15 +7,10 @@
 #include <fstream>
 #include <iomanip>
 
-extern void test_all();
 void write_output(const DiskGraph& udcrg, std::ostream& stream);
 
 int main(int argc, const char* argv[])
 {
-	std::cout << "Run tests...\n";
-	test_all();
-	std::cout << "Tests Done.\n";
-
 	Configuration configuration;
 
 	try {

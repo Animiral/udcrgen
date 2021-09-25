@@ -3,7 +3,7 @@
 #
 cmake_minimum_required (VERSION 3.8)
 
-project ("wudcrgen")
+project ("udcrgen")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
@@ -14,8 +14,8 @@ add_library(udcr STATIC "embed.cpp"  "graph.h" "graph.cpp" "embed.h"
 "ipe.h" "ipe.cpp" "translate.h" "translate.cpp")
 
 # This is the main executable.
-add_executable(wudcrgen "main.cpp")
-target_link_libraries(wudcrgen udcr)
+add_executable(udcrgen "main.cpp")
+target_link_libraries(udcrgen udcr)
 
 # This is the generator executable, which produces test cases.
 add_executable(gencases "gencases.cpp")
@@ -24,7 +24,6 @@ target_link_libraries(gencases udcr)
 # GTest
 enable_testing()
 find_package(GTest REQUIRED)
-#include_directories(${GTEST_INCLUDE_DIRS})
 
 # Unit Tests
 add_executable(unittests tests.cpp)

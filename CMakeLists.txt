@@ -9,9 +9,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # All implementation details of the recognition algorithm, generator etc.
 # are compiled in this library, on which all the executables depend.
-add_library(udcr STATIC "embed.cpp"  "graph.h" "graph.cpp" "embed.h"
-"svg.cpp" "svg.h" "geometry.cpp" "geometry.h" "config.cpp" "config.h" "util.h" "util.cpp"
-"ipe.h" "ipe.cpp" "translate.h" "translate.cpp")
+add_library(udcr STATIC
+	"embed.cpp" "embed.h"
+	"config.cpp" "config.h"
+	"output/svg.cpp" "output/svg.h"
+	"output/ipe.cpp" "output/ipe.h"
+	"output/translate.cpp" "output/translate.h"
+	"utility/graph.cpp" "utility/graph.h"
+	"utility/geometry.cpp" "utility/geometry.h"
+	"utility/util.cpp" "utility/util.h")
 
 # This is the main executable.
 add_executable(udcrgen "main.cpp")
@@ -26,6 +32,6 @@ enable_testing()
 find_package(GTest REQUIRED)
 
 # Unit Tests
-add_executable(unittests tests.cpp)
+add_executable(unittests "test/tests.cpp")
 target_link_libraries(unittests ${GTEST_BOTH_LIBRARIES} udcr)
 add_test(unittests unittests)

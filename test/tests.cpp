@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <string>
 #include <sstream>
-#include "graph.h"
+#include "utility/graph.h"
 #include "embed.h"
 
 std::ostream& operator<<(std::ostream& stream, GraphClass gc)

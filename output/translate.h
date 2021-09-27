@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "graph.h"
-#include "geometry.h"
+#include "utility/graph.h"
+#include "utility/geometry.h"
 
 /**
  * Translate coordinates of disks in the graph to a target canvas.

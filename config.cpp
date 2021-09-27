@@ -4,7 +4,7 @@
 #include <functional>
 #include <stdexcept>
 #include <cassert>
-#include "util.h"
+#include "utility/util.h"
 
 /**
  * The Parser object holds the state of the options parser in progress.

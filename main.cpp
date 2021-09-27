@@ -1,7 +1,7 @@
 #include "embed.h"
-#include "graph.h"
-#include "ipe.h"
-#include "svg.h"
+#include "utility/graph.h"
+#include "output/ipe.h"
+#include "output/svg.h"
 #include "config.h"
 #include <iostream>
 #include <fstream>

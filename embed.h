@@ -1,8 +1,8 @@
 #pragma once
 
 #include <utility>
-#include "graph.h"
-#include "geometry.h"
+#include "utility/graph.h"
+#include "utility/geometry.h"
 
 /**
  * The graph classes that the algorithms in this reportoire can differentiate.

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "graph.h"
+#include "utility/graph.h"
 #include "translate.h"
 #include <fstream>
 #include <utility>

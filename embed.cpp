@@ -1,6 +1,6 @@
 ﻿#include "embed.h"
-#include "graph.h"
-#include "geometry.h"
+#include "utility/graph.h"
+#include "utility/geometry.h"
 #include <algorithm>
 #include <cassert>
 

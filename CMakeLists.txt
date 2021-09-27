@@ -18,6 +18,7 @@ add_library(udcr STATIC
 	"utility/graph.cpp" "utility/graph.h"
 	"utility/geometry.cpp" "utility/geometry.h"
 	"utility/util.cpp" "utility/util.h")
+target_include_directories(udcr PRIVATE ${PROJECT_SOURCE_DIR})
 
 # This is the main executable.
 add_executable(udcrgen "main.cpp")
@@ -27,11 +28,11 @@ target_link_libraries(udcrgen udcr)
 add_executable(gencases "gencases.cpp")
 target_link_libraries(gencases udcr)
 
-# GTest
+# Unit Tests
 enable_testing()
 find_package(GTest REQUIRED)
 
-# Unit Tests
 add_executable(unittests "test/tests.cpp")
 target_link_libraries(unittests ${GTEST_BOTH_LIBRARIES} udcr)
+target_include_directories(unittests PRIVATE ${PROJECT_SOURCE_DIR})
 add_test(unittests unittests)

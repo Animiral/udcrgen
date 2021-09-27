@@ -43,7 +43,8 @@ struct Parser
     enum class Token
     {
         LITERAL,
-        ALGORITHM, INPUT_FILE, OUTPUT_FILE, INPUT_FORMAT, OUTPUT_FORMAT, GAP,
+        ALGORITHM, INPUT_FILE, OUTPUT_FILE, INPUT_FORMAT, OUTPUT_FORMAT,
+        EMBED_ORDER, GAP,
         OPT_END
     };
 
@@ -62,6 +63,7 @@ struct Parser
         if ("-o"s == opt || "--output-file"s == opt)   return Token::OUTPUT_FILE;
         if ("-j"s == opt || "--input-format"s == opt)  return Token::INPUT_FORMAT;
         if ("-f"s == opt || "--output-format"s == opt) return Token::OUTPUT_FORMAT;
+        if ("-e"s == opt || "--embed-order"s == opt)   return Token::EMBED_ORDER;
         if ("-g"s == opt || "--gap"s == opt)           return Token::GAP;
         if ("--"s == opt)                              return Token::OPT_END;
 
@@ -121,6 +123,28 @@ struct Parser
         if ("dump"s == opt)  return Configuration::OutputFormat::DUMP;
 
         throw std::out_of_range("Unknown output format: "s + opt);
+    }
+
+    /**
+     * Interpret the next argument value as an embed order specification.
+     *
+     * @return: the argument parsed into an EmbedOrder
+     * @throw std::out_of_range: if the argument cannot be interpreted
+     */
+    Configuration::EmbedOrder embedOrder()
+    {
+        using namespace std::string_literals;
+
+        const auto opt = next();
+
+        if ("lbs"s == opt)  return Configuration::EmbedOrder::LBS;
+        if ("bls"s == opt)  return Configuration::EmbedOrder::BLS;
+        if ("lsb"s == opt)  return Configuration::EmbedOrder::LSB;
+        if ("bsl"s == opt)  return Configuration::EmbedOrder::BSL;
+        if ("sbl"s == opt)  return Configuration::EmbedOrder::SBL;
+        if ("slb"s == opt)  return Configuration::EmbedOrder::SLB;
+
+        throw std::out_of_range("Unknown embed order: "s + opt);
     }
 
     /**
@@ -188,6 +212,7 @@ void Configuration::readArgv(int argc, const char* argv[])
         case Parser::Token::OUTPUT_FILE:     outputFile = parser.pathArg(); break;
         case Parser::Token::INPUT_FORMAT:    inputFormat = parser.inputFormat(); break;
         case Parser::Token::OUTPUT_FORMAT:   outputFormat = parser.outputFormat(); break;
+        case Parser::Token::EMBED_ORDER:     embedOrder = parser.embedOrder(); break;
         case Parser::Token::GAP:             gap = parser.floatArg(0.f, 2.f); break;
         case Parser::Token::OPT_END:
             //inputFiles.insert(inputFiles.end(), &parser.argv[1], &parser.argv[parser.argc]);
@@ -244,9 +269,21 @@ void Configuration::dump(std::ostream& stream) const
     stream << "\tOutput File: " << outputFile << " (";
     switch (outputFormat) {
     case OutputFormat::SVG: stream << "svg"; break;
+    case OutputFormat::IPE: stream << "ipe"; break;
     case OutputFormat::DUMP: stream << "dump"; break;
     }
     stream << ")\n";
+
+    stream << "\tEmbed Order: ";
+    switch (embedOrder) {
+    case EmbedOrder::LBS: stream << "lbs"; break;
+    case EmbedOrder::BLS: stream << "bls"; break;
+    case EmbedOrder::LSB: stream << "lsb"; break;
+    case EmbedOrder::BSL: stream << "bsl"; break;
+    case EmbedOrder::SBL: stream << "sbl"; break;
+    case EmbedOrder::SLB: stream << "slb"; break;
+    }
+    stream << "\n";
 
     stream << "\tGap: " << std::setprecision(3) << gap << "\n\n";
 }

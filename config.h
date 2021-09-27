@@ -37,11 +37,21 @@ public:
      */
     enum class OutputFormat { SVG, IPE, DUMP };
 
+    /**
+     * Heuristic preference for order of embedding.
+     *
+     * L ... Leaf
+     * B ... Branch
+     * S ... Spine
+     */
+    enum class EmbedOrder { LBS, BLS, LSB, BSL, SBL, SLB };
+
     Algorithm algorithm = Algorithm::KLEMZ_NOELLENBURG_PRUTKIN;
     path inputFile; //!< only one supported at this time
     path outputFile; //!< only one supported at this time
     InputFormat inputFormat = InputFormat::EDGELIST;
     OutputFormat outputFormat = OutputFormat::SVG;
+    EmbedOrder embedOrder = EmbedOrder::LBS;
     float gap = .1f; //!< size of gap between non-contact disks in strong UDCRs
 
     /**

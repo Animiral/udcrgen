@@ -34,11 +34,13 @@ DiskGraph from_edge_list(EdgeList::iterator begin, EdgeList::iterator branches, 
 
 	spineList[0].id = begin[0].from; // this works even with 1 spine, because begin then connects the first branch
 	spineList[0].parent = -1;
+	spineList[0].depth = 0;
 	spineList[0].failure = false;
 
 	for (int i = 1; i < spineCount; i++) {
 		spineList[i].id = begin[i - 1].to;
 		spineList[i].parent = -1;
+		spineList[i].depth = 0;
 		spineList[i].failure = false;
 	}
 
@@ -47,6 +49,7 @@ DiskGraph from_edge_list(EdgeList::iterator begin, EdgeList::iterator branches, 
 	for (int i = 0; i < branchCount; i++) {
 		branchList[i].id = branches[i].to;
 		branchList[i].parent = branches[i].from;
+		branchList[i].depth = 1;
 		branchList[i].failure = false;
 	}
 
@@ -64,6 +67,7 @@ DiskGraph from_edge_list(EdgeList::iterator begin, EdgeList::iterator branches, 
 	for (int i = 0; i < leafCount; i++) {
 		leafList[i].id = leaves[i].to;
 		leafList[i].parent = leaves[i].from;
+		leafList[i].depth = 2;
 		leafList[i].failure = false;
 	}
 

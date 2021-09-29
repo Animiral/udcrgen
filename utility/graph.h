@@ -108,9 +108,13 @@ bool recognize_path(EdgeList::iterator begin, EdgeList::iterator end);
  */
 struct Disk
 {
+	// graph info, filled in the classification step - see classify()
 	int id; //!< unique vertex number [0..n]
 	int parent; //!< parent vertex number, must be spine vertex or -1
-	float x, y; //!< embedding coordinates
+	int depth; //!< distance from the spine (0 for spine vertices)
+
+	// embedding info, filled in the embedding step - see embed()
+	float x, y; //!< coordinates
 	bool failure; //!< whether the algorithm failed to place this vertex in UDCR
 };
 

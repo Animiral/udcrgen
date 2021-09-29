@@ -1,6 +1,8 @@
 /**
  * Contains infrastructure for reading program configuration from program arguments and sources.
  */
+#pragma once
+
 #include <vector>
 #include <string>
 #include <ostream>

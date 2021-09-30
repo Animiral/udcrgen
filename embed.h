@@ -3,6 +3,7 @@
 #include <utility>
 #include "utility/graph.h"
 #include "utility/geometry.h"
+#include "config.h"
 
 /**
  * The graph classes that the algorithms in this reportoire can differentiate.
@@ -191,4 +192,4 @@ private:
 /**
  * Apply an embedding to the graph using the given embedding strategy.
  */
-void embed(DiskGraph& graph, Embedder& embedder);
+void embed(DiskGraph& graph, Embedder& embedder, Configuration::EmbedOrder embedOrder);

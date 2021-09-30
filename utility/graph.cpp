@@ -236,7 +236,7 @@ const std::vector<Disk>& DiskGraph::leaves() const noexcept
 	return leaves_;
 }
 
-const Disk* DiskGraph::findDisk(int id) const
+Disk* DiskGraph::findDisk(int id)
 {
 	const auto hasId = [id](const Disk& v) { return v.id == id; };
 
@@ -256,6 +256,11 @@ const Disk* DiskGraph::findDisk(int id) const
 		return &*it;
 
 	return nullptr;
+}
+
+const Disk* DiskGraph::findDisk(int id) const
+{
+	return const_cast<DiskGraph*>(this)->findDisk(id); // reuse implementation
 }
 
 DiskGraph DiskGraph::fromCaterpillar(const Caterpillar& caterpillar)

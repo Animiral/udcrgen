@@ -114,6 +114,7 @@ struct Disk
 	int depth; //!< distance from the spine (0 for spine vertices)
 
 	// embedding info, filled in the embedding step - see embed()
+	bool embedded; //!< whether the disk has coordinates or failure
 	float x, y; //!< coordinates
 	bool failure; //!< whether the algorithm failed to place this vertex in UDCR
 };
@@ -167,6 +168,13 @@ public:
 	 * Get the immutable leaf vertex data.
 	 */
 	const std::vector<Disk>& leaves() const noexcept;
+
+	/**
+	 * Get the disk with the given vertex id.
+	 *
+	 * @return a pointer to the disk or nullptr if the id is unknown.
+	 */
+	Disk* findDisk(int id);
 
 	/**
 	 * Get the disk with the given vertex id.

@@ -1,7 +1,9 @@
 ﻿#include "embed.h"
 #include "utility/graph.h"
 #include "utility/geometry.h"
+#include "utility/util.h"
 #include <algorithm>
+#include <stdexcept>
 #include <cassert>
 
 /**
@@ -262,6 +264,8 @@ EmbedResult WeakEmbedder::spine() noexcept
 	if (spineIndex_ + 2 < spineCount_)
 		zone_[22] = true;
 
+	trace("Embed spine at ({}/{})", spineIndex_, 0);
+
 	return { { static_cast<float>(spineIndex_), 0 }, false }; // straight spine
 }
 
@@ -276,9 +280,11 @@ EmbedResult WeakEmbedder::branch() noexcept
 	if (position >= 0) {
 		zone_[position] = true;
 		locality_ = position;
+		trace("Embed branch at ({}/{})", getCoords(position).x, getCoords(position).y);
 		return { getCoords(position), false };
 	}
 	else {
+		trace("FAIL branch");
 		return { getCoords(spineLocality) + Vec2{ 0, Y_FAIL }, true };
 	}
 }
@@ -289,9 +295,11 @@ EmbedResult WeakEmbedder::leaf() noexcept
 
 	if (position >= 0) {
 		zone_[position] = true;
+		trace("Embed leaf at ({}/{})", getCoords(position).x, getCoords(position).y);
 		return { getCoords(position), false };
 	}
 	else {
+		trace("FAIL leaf");
 		return { getCoords(locality_) + Vec2{ 0, Y_FAIL }, true };
 	}
 }
@@ -318,25 +326,66 @@ Vec2 WeakEmbedder::getCoords(int position) noexcept
 	return { spineIndex_ + forwardSteps + upSteps * .5f, upSteps * Y_HIGH };
 }
 
-void embed(DiskGraph& graph, Embedder& embedder)
+namespace
 {
-	auto& spines = graph.spines();
-	auto& branches = graph.branches();
-	auto& leaves = graph.leaves();
+// Helper functions for embed()
 
-	auto branchIt = branches.begin(); // branches are ordered by parent spine
-	auto leafIt = leaves.begin(); // leaves are ordered by parent branch
+using EmbedOrder = Configuration::EmbedOrder;
+using DiskVec = std::vector<Disk>;
 
-	for (Disk& spineDisk : spines) {
-		// place next spine segment
-		embedder.spine().applyTo(spineDisk);
+/**
+ * Return the disk vectors to embed by their priority according to the given embed order.
+ */
+std::tuple<DiskVec*, DiskVec*, DiskVec*> decodePriority(DiskGraph& graph, EmbedOrder embedOrder)
+{
+	auto* spines = &graph.spines(); // branches are ordered by parent spine
+	auto* branches = &graph.branches(); // branches are ordered by parent spine
+	auto* leaves = &graph.leaves(); // leaves are ordered by parent branch
 
-		for (; branchIt != branches.end() && branchIt->parent == spineDisk.id; ++branchIt) {
-			embedder.branch().applyTo(*branchIt);
+	using std::tie;
 
-			for (; leafIt != leaves.end() && leafIt->parent == branchIt->id; ++leafIt) {
-				embedder.leaf().applyTo(*leafIt);
-			}
-		}
+	switch (embedOrder) {
+	case EmbedOrder::LBS: return tie(leaves, branches, spines);
+	case EmbedOrder::BLS: return tie(branches, leaves, spines);
+	case EmbedOrder::LSB: return tie(leaves, spines, branches);
+	case EmbedOrder::BSL: return tie(branches, spines, leaves);
+	case EmbedOrder::SBL: return tie(spines, branches, leaves);
+	case EmbedOrder::SLB: return tie(spines, leaves, branches);
+	default: assert(0); return {};
 	}
+}
+
+void embedDisk(DiskGraph& graph, Embedder& embedder, Disk& disk)
+{
+	if (disk.embedded)
+		return; // nothing to do
+
+	// ensure that parent is embedded
+	Disk* parent = graph.findDisk(disk.parent);
+	if (parent != nullptr) {
+		embedDisk(graph, embedder, *parent);
+	}
+
+	switch (disk.depth) {
+	case 0: embedder.spine().applyTo(disk); break;
+	case 1: embedder.branch().applyTo(disk); break;
+	case 2: embedder.leaf().applyTo(disk); break;
+	default: throw std::exception("cannot embed disk with invalid depth");
+	}
+
+	disk.embedded = true;
+}
+
+}
+
+using EmbedOrder = Configuration::EmbedOrder;
+
+void embed(DiskGraph& graph, Embedder& embedder, EmbedOrder embedOrder)
+{
+	DiskVec *p1, *p2, *p3;
+	std::tie(p1, p2, p3) = decodePriority(graph, embedOrder);
+
+	for (Disk& disk : *p1) embedDisk(graph, embedder, disk);
+	for (Disk& disk : *p2) embedDisk(graph, embedder, disk);
+	for (Disk& disk : *p3) embedDisk(graph, embedder, disk);
 }

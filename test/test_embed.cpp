@@ -91,3 +91,110 @@ TEST(Embed, classify_stumped_lobster)
 	for (const auto& branch : graph.branches()) EXPECT_EQ(branch.depth, 1);
 	for (const auto& leaf : graph.leaves()) EXPECT_EQ(leaf.depth, 2);
 }
+
+// a simple easy example caterpillar: spine [0] with 3 leaves, spine [1] with 4 leaves
+DiskGraph make_caterpillar()
+{
+	DiskGraph graph{ 2, 7, 0 };
+	auto& spines = graph.spines();
+	auto& branches = graph.branches();
+	Disk* disk;
+
+	for (DiskId id = 0; id < 9; id++) {
+		if (id < 2) {
+			disk = &spines[id];
+			disk->parent = id - 1;
+			disk->depth = 0;
+		}
+		else {
+			disk = &branches[id - 2];
+			disk->parent = id < 5 ? 0 : 1;
+			disk->depth = 1;
+		}
+
+		disk->id = id;
+	}
+
+	return graph;
+}
+
+TEST(Embed, embed_proper)
+{
+	auto graph = make_caterpillar();
+	auto embedder = ProperEmbedder{};
+
+	// execute
+	embed(graph, embedder, Configuration::EmbedOrder::LBS);
+
+	auto& spines = graph.spines();
+	auto& branches = graph.branches();
+	EXPECT_NEAR(spines[0].x, 0, 0.01);        EXPECT_NEAR(spines[0].y, 0, 0.01);
+	EXPECT_NEAR(spines[1].x, 1, 0.01);        EXPECT_NEAR(spines[1].y, 0, 0.01);
+	EXPECT_NEAR(branches[0].x, -1, 0.01);     EXPECT_NEAR(branches[0].y, 0, 0.01);
+	EXPECT_NEAR(branches[1].x, -0.395, 0.01); EXPECT_NEAR(branches[1].y, -0.91889f, 0.01);
+	EXPECT_NEAR(branches[2].x, -0.395, 0.01); EXPECT_NEAR(branches[2].y, 0.91889f, 0.01);
+	EXPECT_NEAR(branches[3].x, .705, 0.01);   EXPECT_NEAR(branches[3].y, -0.95466f, 0.01);
+	EXPECT_NEAR(branches[4].x, .705, 0.01);   EXPECT_NEAR(branches[4].y, 0.95466f, 0.01);
+	EXPECT_NEAR(branches[5].x, 1.7605, 0.01); EXPECT_NEAR(branches[5].y, -0.6481f, 0.01);
+	EXPECT_NEAR(branches[6].x, 1.7605, 0.01); EXPECT_NEAR(branches[6].y, 0.6481f, 0.01);
+}
+
+// a simple easy example lobster: spine [0] with 3 branches (2, 1, 1 leaves), spine [1] with 4 branches (first has 1 leaf)
+DiskGraph make_lobster()
+{
+	DiskGraph graph{ 2, 7, 5 };
+	auto& spines = graph.spines();
+	auto& branches = graph.branches();
+	auto& leaves = graph.leaves();
+	Disk* disk;
+
+	for (DiskId id = 0; id < 14; id++) {
+		if (id < 2) {
+			disk = &spines[id];
+			disk->parent = id - 1;
+			disk->depth = 0;
+		}
+		else if (id < 9) {
+			disk = &branches[id - 2];
+			disk->parent = id < 5 ? 0 : 1;
+			disk->depth = 1;
+		}
+		else {
+			disk = &leaves[id - 9];
+			disk->parent = id < 10 ? 2 : id-8;
+			disk->depth = 2;
+		}
+
+		disk->id = id;
+	}
+
+	return graph;
+}
+
+TEST(Embed, embed_weak)
+{
+	auto graph = make_lobster();
+	auto embedder = WeakEmbedder{ (int) graph.spines().size() };
+
+	// execute
+	embed(graph, embedder, Configuration::EmbedOrder::LBS);
+
+	auto& spines = graph.spines();
+	auto& branches = graph.branches();
+	auto& leaves = graph.leaves();
+	//EXPECT_EQ(spines[0].grid_x, 0, 0.01); EXPECT_EQ(spines[0].grid_sly, 0, 0.01);
+	EXPECT_NEAR(spines[0].x, 0, 0.01);      EXPECT_NEAR(spines[0].y, 0, 0.01);
+	EXPECT_NEAR(spines[1].x, 1, 0.01);      EXPECT_NEAR(spines[1].y, 0, 0.01);
+	EXPECT_NEAR(branches[0].x, -1, 0.01);   EXPECT_NEAR(branches[0].y, 0, 0.01);
+	EXPECT_NEAR(branches[1].x, -0.5, 0.01); EXPECT_NEAR(branches[1].y, 0.866f, 0.01);
+	EXPECT_NEAR(branches[2].x, -0.5, 0.01); EXPECT_NEAR(branches[2].y, -0.866f, 0.01);
+	EXPECT_NEAR(branches[3].x, .5, 0.01);   EXPECT_NEAR(branches[3].y, 0.866f, 0.01);
+	EXPECT_NEAR(branches[4].x, .5, 0.01);   EXPECT_NEAR(branches[4].y, -0.866f, 0.01);
+	EXPECT_NEAR(branches[5].x, 1.5, 0.01);  EXPECT_NEAR(branches[5].y, 0.866f, 0.01);
+	EXPECT_NEAR(branches[6].x, 1.5, 0.01);  EXPECT_NEAR(branches[6].y, -0.866f, 0.01);
+	EXPECT_NEAR(leaves[0].x, -2, 0.01);     EXPECT_NEAR(leaves[0].y, 0, 0.01);
+	EXPECT_NEAR(leaves[1].x, -1.5, 0.01);   EXPECT_NEAR(leaves[1].y, -0.866f, 0.01);
+	EXPECT_NEAR(leaves[2].x, -1.5, 0.01);   EXPECT_NEAR(leaves[2].y, 0.866f, 0.01);
+	EXPECT_NEAR(leaves[3].x, -1, 0.01);     EXPECT_NEAR(leaves[3].y, -1.732f, 0.01);
+	EXPECT_NEAR(leaves[4].x, 0, 0.01);      EXPECT_NEAR(leaves[4].y, 1.732f, 0.01);
+}

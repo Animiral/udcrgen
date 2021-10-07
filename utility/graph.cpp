@@ -62,7 +62,7 @@ EdgeList edges_from_text(std::istream& stream)
 	std::vector<Edge> edges;
 
 	// read all edges from input stream
-	int from, to;
+	DiskId from, to;
 
 	while (stream >> from >> to) {
 		Edge e{ from, to };
@@ -236,7 +236,7 @@ const std::vector<Disk>& DiskGraph::leaves() const noexcept
 	return leaves_;
 }
 
-Disk* DiskGraph::findDisk(int id)
+Disk* DiskGraph::findDisk(DiskId id)
 {
 	const auto hasId = [id](const Disk& v) { return v.id == id; };
 
@@ -258,7 +258,7 @@ Disk* DiskGraph::findDisk(int id)
 	return nullptr;
 }
 
-const Disk* DiskGraph::findDisk(int id) const
+const Disk* DiskGraph::findDisk(DiskId id) const
 {
 	return const_cast<DiskGraph*>(this)->findDisk(id); // reuse implementation
 }

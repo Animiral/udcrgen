@@ -2,6 +2,7 @@
 
 #include <utility>
 #include "utility/graph.h"
+#include "utility/grid.h"
 #include "utility/geometry.h"
 #include "config.h"
 
@@ -27,17 +28,6 @@ enum class GraphClass { CATERPILLAR, LOBSTER, OTHER };
 std::pair<DiskGraph, GraphClass> classify(EdgeList input);
 
 /**
- * Stores the result of an attempt to embed a single disk.
- */
-struct EmbedResult
-{
-	Vec2 position; //!< placement for the new disk
-	bool failure; //!< true if the position adheres to disk contact constraints, false otherwise
-
-	void applyTo(Disk& disk) noexcept;
-};
-
-/**
  * An Embedder can embed single disks on the 2D plane.
  */
 class Embedder
@@ -46,25 +36,18 @@ class Embedder
 public:
 
 	/**
-	 * Place the next spine.
+	 * Place the next disk.
 	 */
-	virtual EmbedResult spine() noexcept = 0;
-
-	/**
-	 * Place the next branch.
-	 */
-	virtual EmbedResult branch() noexcept = 0;
-
-	/**
-	 * Place the next leaf.
-	 */
-	virtual EmbedResult leaf() noexcept = 0;
+	virtual void embed(Disk& disk) = 0;
 
 };
 
 /**
  * The proper embedder provides the state and operations to run the unit disk
  * contact graph embedding algorithm based on the Klemz et al. paper.
+ *
+ * It exclusively handles caterpillar graphs and will reject deeper disks
+ * with an exception.
  */
 class ProperEmbedder : public Embedder
 {
@@ -82,25 +65,15 @@ public:
 	void setGap(float gap) noexcept;
 
 	/**
-	 * Place the next spine.
+	 * Place the next disk.
 	 *
-	 * The position is chosen along the bisector of the free space ahead,
-	 * in contact with the current spine.
+	 * For spines, the position is chosen along the bisector
+	 * of the free space ahead, in contact with the current spine.
+	 *
+	 * For leaves, the position is chosen to be in contact with the
+	 * current spine and to respect the gap to other already embedded disks.
 	 */
-	virtual EmbedResult spine() noexcept override;
-
-	/**
-	 * Place the next branch.
-	 */
-	virtual EmbedResult branch() noexcept override;
-
-	/**
-	 * Place the next leaf.
-	 * 
-	 * The position is chosen to be in contact with the current spine and
-	 * to respect the gap to other already embedded disks.
-	 */
-	virtual EmbedResult leaf() noexcept override;
+	virtual void embed(Disk& disk) override;
 
 private:
 
@@ -126,6 +99,8 @@ private:
 	 */
 	Vec2 findLeafPosition(Vec2 constraint) noexcept;
 
+	void embedSpine(Disk& disk) noexcept;
+	void embedLeaf(Disk& disk) noexcept;
 };
 
 /**
@@ -143,21 +118,13 @@ public:
 	explicit WeakEmbedder(int spineCount) noexcept;
 
 	/**
-	 * Place the next spine.
+	 * Place the next disk.
 	 */
-	virtual EmbedResult spine() noexcept override;
-
-	/**
-	 * Place the next branch.
-	 */
-	virtual EmbedResult branch() noexcept override;
-
-	/**
-	 * Place the next leaf.
-	 */
-	virtual EmbedResult leaf() noexcept override;
+	virtual void embed(Disk& disk) override;
 
 private:
+
+	Grid grid_;
 
 	/**
 	 * Position names with index offsets relative to any locality.
@@ -175,6 +142,10 @@ private:
 	int spineIndex_; //!< offset of zone coordinates
 	int spineCount_; //!< enables reserving space for all spines exactly
 
+	void embedSpine(Disk& disk) noexcept;
+	void embedBranch(Disk& disk) noexcept;
+	void embedLeaf(Disk& disk) noexcept;
+
 	/**
 	 * Determine a zone index in the current locality that we may use
 	 * to place another disk.
@@ -186,7 +157,6 @@ private:
 	 * under consideration of the current spine offset.
 	 */
 	Vec2 getCoords(int position) noexcept;
-
 };
 
 /**

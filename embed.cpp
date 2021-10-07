@@ -104,7 +104,7 @@ std::pair<DiskGraph, GraphClass> classify(EdgeList input)
 	// lobster
 	if (recognize_path(input.begin(), branches)) {
 		// "leaves" are actually 0-leaf branches to us if they connect to the spine
-		auto isSpine = [&input, branches](int id)
+		auto isSpine = [&input, branches](DiskId id)
 		{
 			return input[0].from == id ||
 				std::any_of(input.begin(), branches, [id](Edge e) { return e.to == id; });
@@ -117,13 +117,6 @@ std::pair<DiskGraph, GraphClass> classify(EdgeList input)
 
 	// unfamiliar graph
 	return { {0, 0, 0}, GraphClass::OTHER };
-}
-
-void EmbedResult::applyTo(Disk& disk) noexcept
-{
-	disk.x = position.x;
-	disk.y = position.y;
-	disk.failure = failure;
 }
 
 /**
@@ -140,6 +133,7 @@ ProperEmbedder::ProperEmbedder() noexcept :
 	leafUp_{ false },
 	gap_{ 0.1f },
 	beforeFirstSpine_{ true },
+	atFirstSpine_{ false },
 	beforeFirstLeaf_{ true }
 {
 }
@@ -149,11 +143,25 @@ void ProperEmbedder::setGap(float gap) noexcept
 	gap_ = gap;
 }
 
-EmbedResult ProperEmbedder::spine() noexcept
+void ProperEmbedder::embed(Disk& disk)
+{
+	if (0 == disk.depth)
+		return embedSpine(disk);
+
+	if (1 == disk.depth)
+		return embedLeaf(disk);
+
+	else
+		throw std::exception("proper embedder can not embed graphs deeper than caterpillars");
+}
+
+void ProperEmbedder::embedSpine(Disk& disk) noexcept
 {
 	if (beforeFirstSpine_) {
 		beforeFirstSpine_ = false;
-		return { spine_, false };
+		disk.x = spine_.x;
+		disk.y = spine_.y;
+		return;
 	}
 
 	// determine the bisector of the free space ahead as new "forward"
@@ -168,21 +176,20 @@ EmbedResult ProperEmbedder::spine() noexcept
 	spine_ += forward_;
 	beforeFirstLeaf_ = false;
 
-	// is there enough room for the spine?
-	bool failure = distance(spine_, lastUp_) < 1 + gap_;
-
-	return { spine_, failure };
+	disk.x = spine_.x;
+	disk.y = spine_.y;
+	disk.failure = distance(spine_, lastUp_) < 1 + gap_; // is there enough room for the spine?
 }
 
-EmbedResult ProperEmbedder::branch() noexcept
+void ProperEmbedder::embedLeaf(Disk& disk) noexcept
 {
 	assert(!beforeFirstSpine_);
 
-	// We still refer to branches as "leaves" here because the proper
-	// algorithm does not yet handle lobsters.
 	if (beforeFirstLeaf_) {
 		beforeFirstLeaf_ = false;
-		return { {-1, 0}, false };
+		disk.x = -1;
+		disk.y = 0;
+		return;
 	}
 
 	Vec2& lastLeaf = leafUp_ ? lastUp_ : lastDown_;
@@ -191,19 +198,17 @@ EmbedResult ProperEmbedder::branch() noexcept
 	// leaf wrap-around collision due to too many leaves
 	if (distance(leafPosition, leafUp_ ? lastDown_ : lastUp_) < 1 + gap_) {
 		leafPosition.y += Y_FAIL;
-		return { leafPosition, true };
+		disk.x = leafPosition.x;
+		disk.y = leafPosition.y;
+		disk.failure = true;
+		return;
 	}
 
 	leafUp_ = !leafUp_; // alternate placement
 	lastLeaf = leafPosition;
 
-	return { leafPosition, false };
-}
-
-EmbedResult ProperEmbedder::leaf() noexcept
-{
-	// This embedder cannot yet deal with lobster leaves.
-	return { {0, Y_FAIL}, true };
+	disk.x = leafPosition.x;
+	disk.y = leafPosition.y;
 }
 
 Vec2 ProperEmbedder::findLeafPosition(Vec2 constraint) noexcept
@@ -221,6 +226,7 @@ Vec2 ProperEmbedder::findLeafPosition(Vec2 constraint) noexcept
 }
 
 WeakEmbedder::WeakEmbedder(int spineCount) noexcept :
+	grid_{ spineCount, 2 },
 	locality_{ (int)Rel::SPINE },
 	affinity_{ Affinity::UP },
 	spineIndex_{ -1 },
@@ -252,7 +258,22 @@ const Vec2 relativeSlots[] = {
 	Vec2{ 0, Y_FAIL }      // FAIL
 };
 
-EmbedResult WeakEmbedder::spine() noexcept
+void WeakEmbedder::embed(Disk& disk)
+{
+	if (0 == disk.depth)
+		return embedSpine(disk);
+
+	if (1 == disk.depth)
+		return embedBranch(disk);
+
+	if (2 == disk.depth)
+		return embedLeaf(disk);
+
+	else
+		throw std::exception("weak embedder can not embed graphs deeper than lobsters");
+}
+
+void WeakEmbedder::embedSpine(Disk& disk) noexcept
 {
 	spineIndex_++;
 
@@ -266,10 +287,11 @@ EmbedResult WeakEmbedder::spine() noexcept
 
 	trace("Embed spine at ({}/{})", spineIndex_, 0);
 
-	return { { static_cast<float>(spineIndex_), 0 }, false }; // straight spine
+	disk.x = spineIndex_;
+	disk.y = 0;
 }
 
-EmbedResult WeakEmbedder::branch() noexcept
+void WeakEmbedder::embedBranch(Disk& disk) noexcept
 {
 	// invert affinity for even distribution
 	affinity_ = (Affinity)((int)affinity_ * -1);
@@ -280,27 +302,37 @@ EmbedResult WeakEmbedder::branch() noexcept
 	if (position >= 0) {
 		zone_[position] = true;
 		locality_ = position;
-		trace("Embed branch at ({}/{})", getCoords(position).x, getCoords(position).y);
-		return { getCoords(position), false };
+		Vec2 pos = getCoords(position);
+		trace("Embed branch at ({}/{})", pos.x, pos.y);
+		disk.x = pos.x;
+		disk.y = pos.y;
 	}
 	else {
 		trace("FAIL branch");
-		return { getCoords(spineLocality) + Vec2{ 0, Y_FAIL }, true };
+		Vec2 pos = getCoords(spineLocality) + Vec2{ 0, Y_FAIL };
+		disk.x = pos.x;
+		disk.y = pos.y;
+		disk.failure = true;
 	}
 }
 
-EmbedResult WeakEmbedder::leaf() noexcept
+void WeakEmbedder::embedLeaf(Disk& disk) noexcept
 {
 	const int position = findFreePosition(locality_, affinity_);
 
 	if (position >= 0) {
 		zone_[position] = true;
+		Vec2 pos = getCoords(position);
 		trace("Embed leaf at ({}/{})", getCoords(position).x, getCoords(position).y);
-		return { getCoords(position), false };
+		disk.x = pos.x;
+		disk.y = pos.y;
 	}
 	else {
 		trace("FAIL leaf");
-		return { getCoords(locality_) + Vec2{ 0, Y_FAIL }, true };
+		Vec2 pos = getCoords(locality_) + Vec2{ 0, Y_FAIL };
+		disk.x = pos.x;
+		disk.y = pos.y;
+		disk.failure = true;
 	}
 }
 
@@ -366,13 +398,7 @@ void embedDisk(DiskGraph& graph, Embedder& embedder, Disk& disk)
 		embedDisk(graph, embedder, *parent);
 	}
 
-	switch (disk.depth) {
-	case 0: embedder.spine().applyTo(disk); break;
-	case 1: embedder.branch().applyTo(disk); break;
-	case 2: embedder.leaf().applyTo(disk); break;
-	default: throw std::exception("cannot embed disk with invalid depth");
-	}
-
+	embedder.embed(disk);
 	disk.embedded = true;
 }
 

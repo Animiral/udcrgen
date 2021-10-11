@@ -5,6 +5,7 @@
 #include <vector>
 #include <istream>
 #include <ostream>
+#include "geometry.h"
 
 /**
  * A basic representation of a caterpillar graph used for input.
@@ -49,8 +50,6 @@ private:
 	std::vector<int> leaves_;
 
 };
-
-using DiskId = int;
 
 /**
  * Represents one edge in a yet-unrecognized graph.
@@ -101,28 +100,6 @@ EdgeList::iterator separate_leaves(EdgeList::iterator begin, EdgeList::iterator 
  * @return true if the edges describe a path, false otherwise.
  */
 bool recognize_path(EdgeList::iterator begin, EdgeList::iterator end);
-
-/**
- * @brief A single unit-sized disk for the output graph representation.
- *
- * It has a unique vertex number within the graph and
- * 2D coordinates to represent the embedding.
- */
-struct Disk
-{
-	// graph info, filled in the classification step - see classify()
-	DiskId id; //!< unique vertex number [0..n]
-	DiskId parent; //!< parent vertex number, must be spine vertex or -1
-	int depth; //!< distance from the spine (0 for spine vertices)
-
-	// embedding info, filled in the embedding step - see embed()
-	bool embedded; //!< whether the disk has coordinates or failure
-	int grid_x; //!< triangular grid x-coordinate (weak embedding only)
-	int grid_sly; //!< triangular grid "slash-y"-coordinate (weak embedding only)
-	float x; //!< canvas x-coordinate
-	float y; //!< canvas y-coordinate
-	bool failure; //!< whether the algorithm failed to place this vertex in UDCR
-};
 
 /**
  * The output graph representation.

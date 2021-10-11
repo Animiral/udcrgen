@@ -15,14 +15,14 @@ TEST(Grid, Grid_access)
 	// populate grid
 	for (int x = -size; x < length + size; x++) {
 		for (int sly = -size; sly < size; sly++) {
-			grid.at(x, sly) = x + 2 * sly;
+			grid.put({ x, sly }, x + 2 * sly);
 		}
 	}
 
 	// read out grid
 	for (int x = -size; x < length + size; x++) {
 		for (int sly = -size; sly < size; sly++) {
-			EXPECT_EQ(grid.at(x, sly), x + 2 * sly);
+			EXPECT_EQ(grid.at({ x, sly }), x + 2 * sly);
 		}
 	}
 }

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "geometry.h"
 #include <vector>
 
 /**
@@ -23,17 +24,36 @@ public:
 	Grid(int length, int size);
 
 	/**
-	 * Read- or write-access the value stored at the given coordinates.
-	 *
-	 * @arg @c x the x-coordinate of the index to access
-	 * @arg @c sly the y-coordinate ("slash-y" for slant) of the index to access
+	 * Read the value stored at the given coordinates.
 	 */
-	int& at(int x, int sly);
+	DiskId at(Coord coord) const;
+
+	/**
+	 * Return the unique placement location of the given disk.
+	 */
+	Coord find(DiskId id) const;
+
+	/**
+	 * Return the coordinate after taking a step in a particular relative direction.
+	 */
+	Coord step(Coord from, Rel rel) const;
+
+	/**
+	 * Turn the given coordinates into a 2D Euclidean plane vector.
+	 */
+	Vec2 vec(Coord coord) const;
+
+	/**
+	 * Store the given disk ID at the specified coordinates.
+	 */
+	void put(Coord coord, DiskId id);
 
 private:
 
 	int length_;
 	int size_;
-	std::vector<int> values_;
+	std::vector<DiskId> values_;
+
+	std::size_t coordIndex(Coord coord) const;
 
 };

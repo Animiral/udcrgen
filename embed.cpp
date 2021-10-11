@@ -226,18 +226,8 @@ Vec2 ProperEmbedder::findLeafPosition(Vec2 constraint) noexcept
 }
 
 WeakEmbedder::WeakEmbedder(int spineCount) noexcept :
-	grid_{ spineCount, 2 },
-	locality_{ (int)Rel::SPINE },
-	affinity_{ Affinity::UP },
-	spineIndex_{ -1 },
-	spineCount_{ spineCount }
+	grid_{ spineCount, 2 }
 {
-	std::fill(zone_, zone_ + 25, false);
-
-	// reserve space for spines, if necessary
-	for (int i = 0; i < spineCount && i < 2; i++) {
-		zone_[(int)Rel::SPINE + (int)Rel::FRONT * (i+1)] = true;
-	}
 }
 
 /**
@@ -263,11 +253,8 @@ void WeakEmbedder::embed(Disk& disk)
 	if (0 == disk.depth)
 		return embedSpine(disk);
 
-	if (1 == disk.depth)
-		return embedBranch(disk);
-
-	if (2 == disk.depth)
-		return embedLeaf(disk);
+	if (1 == disk.depth || 2 == disk.depth)
+		return embedBranchOrLeaf(disk);
 
 	else
 		throw std::exception("weak embedder can not embed graphs deeper than lobsters");
@@ -275,87 +262,109 @@ void WeakEmbedder::embed(Disk& disk)
 
 void WeakEmbedder::embedSpine(Disk& disk) noexcept
 {
-	spineIndex_++;
+	Coord coord{ 0, 0 };
 
-	// shift all contextual information in the zone
-	auto end = std::copy(zone_ + 5, zone_ + 25, zone_);
-	std::fill(zone_ + 20, zone_ + 25, false);
+	if(-1 != disk.parent)
+	{
+		Coord parentCoord =  grid_.find(disk.parent);
+		coord = grid_.step(parentCoord, Rel::FORWARD);
+	}
 
-	// Reserve space for straight spine ahead
-	if (spineIndex_ + 2 < spineCount_)
-		zone_[22] = true;
-
-	trace("Embed spine at ({}/{})", spineIndex_, 0);
-
-	disk.x = spineIndex_;
-	disk.y = 0;
-}
-
-void WeakEmbedder::embedBranch(Disk& disk) noexcept
-{
-	// invert affinity for even distribution
-	affinity_ = (Affinity)((int)affinity_ * -1);
-
-	static const int spineLocality = (int)Rel::SPINE;
-	const int position = findFreePosition(spineLocality, affinity_);
-
-	if (position >= 0) {
-		zone_[position] = true;
-		locality_ = position;
-		Vec2 pos = getCoords(position);
-		trace("Embed branch at ({}/{})", pos.x, pos.y);
-		disk.x = pos.x;
-		disk.y = pos.y;
+	if (NODISK == grid_.at(coord)) {
+		putDiskAt(disk, coord);
 	}
 	else {
-		trace("FAIL branch");
-		Vec2 pos = getCoords(spineLocality) + Vec2{ 0, Y_FAIL };
-		disk.x = pos.x;
-		disk.y = pos.y;
 		disk.failure = true;
 	}
-}
 
-void WeakEmbedder::embedLeaf(Disk& disk) noexcept
-{
-	const int position = findFreePosition(locality_, affinity_);
-
-	if (position >= 0) {
-		zone_[position] = true;
-		Vec2 pos = getCoords(position);
-		trace("Embed leaf at ({}/{})", getCoords(position).x, getCoords(position).y);
-		disk.x = pos.x;
-		disk.y = pos.y;
+	if (disk.failure) {
+		trace("FAIL spine");
 	}
 	else {
-		trace("FAIL leaf");
-		Vec2 pos = getCoords(locality_) + Vec2{ 0, Y_FAIL };
-		disk.x = pos.x;
-		disk.y = pos.y;
-		disk.failure = true;
+		trace("Embed spine at ({}/{})", disk.x, disk.y);
 	}
 }
 
-int WeakEmbedder::findFreePosition(int locality, Affinity affinity) noexcept
+void WeakEmbedder::embedBranchOrLeaf(Disk& disk) noexcept
 {
-	static const Rel upCandidates[6] = { Rel::BEHIND, Rel::UP, Rel::FWD_UP, Rel::FRONT, Rel::FWD_DOWN, Rel::DOWN };
-	static const Rel downCandidates[6] = { Rel::BEHIND, Rel::DOWN, Rel::FWD_DOWN, Rel::FRONT, Rel::FWD_UP, Rel::UP };
+	assert(NODISK != disk.parent); // branches and leaves always have parents
+
+	Coord parentCoord = grid_.find(disk.parent);
+	Affinity affinity = determineAffinity(parentCoord); // whether to place disk high or low
+
+	putDiskNear(disk, parentCoord, affinity);
+
+	if (disk.failure) {
+		trace(1 == disk.depth ? "FAIL branch" : "FAIL leaf");
+	}
+	else {
+		trace(1 == disk.depth ? "Embed branch at ({}/{})" : "Embed leaf at ({}/{})", disk.x, disk.y);
+	}
+}
+
+void WeakEmbedder::putDiskNear(Disk& disk, Coord coord, Affinity affinity) noexcept
+{
+	static const Rel upCandidates[6] = { Rel::BACK, Rel::BACK_UP, Rel::FWD_UP, Rel::FORWARD, Rel::FWD_DOWN, Rel::BACK_DOWN };
+	static const Rel downCandidates[6] = { Rel::BACK, Rel::BACK_DOWN, Rel::FWD_DOWN, Rel::FORWARD, Rel::FWD_UP, Rel::BACK_UP };
+
 	auto* const candidates = Affinity::UP == affinity ? upCandidates : downCandidates;
 	auto* const end = candidates + 6;
 
-	auto it = std::find_if(candidates, end, [this, locality](Rel r) { return !zone_[locality + (int)r]; });
-	if (it == end)
-		return -1; // no slot free
+	for (int i = 0; i < 6; i++) {
+		Coord target = grid_.step(coord, candidates[i]);
 
-	return locality + (int)*it;
+		if (NODISK == grid_.at(target)) {
+			putDiskAt(disk, target);
+			return;
+		}
+	}
+
+	// no free coordinate found
+	disk.failure = true;
 }
 
-Vec2 WeakEmbedder::getCoords(int position) noexcept
+void WeakEmbedder::putDiskAt(Disk& disk, Coord coord) noexcept
 {
-	const int forwardSteps = position / 5 - 2;
-	const int upSteps = -(position % 5) + 2;
+	grid_.put(coord, disk.id);
+	disk.grid_x = coord.x;
+	disk.grid_sly = coord.sly;
+	Vec2 diskVec = grid_.vec(coord);
+	disk.x = diskVec.x;
+	disk.y = diskVec.y;
+}
 
-	return { spineIndex_ + forwardSteps + upSteps * .5f, upSteps * Y_HIGH };
+WeakEmbedder::Affinity WeakEmbedder::determineAffinity(Coord center) noexcept
+{
+	// affinity is based on the available free space in the vicinity
+	Coord upperArea[] = {
+		grid_.step(center, Rel::BACK_UP),
+		grid_.step(grid_.step(center, Rel::BACK_UP), Rel::BACK),
+		grid_.step(grid_.step(center, Rel::BACK_UP), Rel::BACK_UP),
+		grid_.step(grid_.step(center, Rel::BACK_UP), Rel::FWD_UP),
+		grid_.step(center, Rel::FWD_UP),
+		grid_.step(grid_.step(center, Rel::FWD_UP), Rel::FWD_UP),
+		grid_.step(grid_.step(center, Rel::FWD_UP), Rel::FORWARD)
+	};
+
+	Coord lowerArea[] = {
+		grid_.step(center, Rel::BACK_DOWN),
+		grid_.step(grid_.step(center, Rel::BACK_DOWN), Rel::BACK),
+		grid_.step(grid_.step(center, Rel::BACK_DOWN), Rel::BACK_DOWN),
+		grid_.step(grid_.step(center, Rel::BACK_DOWN), Rel::FWD_DOWN),
+		grid_.step(center, Rel::FWD_DOWN),
+		grid_.step(grid_.step(center, Rel::FWD_DOWN), Rel::FWD_DOWN),
+		grid_.step(grid_.step(center, Rel::FWD_DOWN), Rel::FORWARD)
+	};
+
+	int upperWeight = 0;
+	int lowerWeight = 0;
+
+	for (int i = 0; i < 7; i++) {
+		upperWeight += NODISK != grid_.at(upperArea[i]);
+		lowerWeight += NODISK != grid_.at(lowerArea[i]);
+	}
+
+	return lowerWeight < upperWeight ? Affinity::DOWN : Affinity::UP;
 }
 
 namespace

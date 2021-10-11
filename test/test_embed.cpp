@@ -176,25 +176,51 @@ TEST(Embed, embed_weak)
 	auto graph = make_lobster();
 	auto embedder = WeakEmbedder{ (int) graph.spines().size() };
 
-	// execute
+	// execute, leaves first
 	embed(graph, embedder, Configuration::EmbedOrder::LBS);
 
 	auto& spines = graph.spines();
 	auto& branches = graph.branches();
 	auto& leaves = graph.leaves();
-	//EXPECT_EQ(spines[0].grid_x, 0, 0.01); EXPECT_EQ(spines[0].grid_sly, 0, 0.01);
-	EXPECT_NEAR(spines[0].x, 0, 0.01);      EXPECT_NEAR(spines[0].y, 0, 0.01);
-	EXPECT_NEAR(spines[1].x, 1, 0.01);      EXPECT_NEAR(spines[1].y, 0, 0.01);
-	EXPECT_NEAR(branches[0].x, -1, 0.01);   EXPECT_NEAR(branches[0].y, 0, 0.01);
-	EXPECT_NEAR(branches[1].x, -0.5, 0.01); EXPECT_NEAR(branches[1].y, 0.866f, 0.01);
-	EXPECT_NEAR(branches[2].x, -0.5, 0.01); EXPECT_NEAR(branches[2].y, -0.866f, 0.01);
-	EXPECT_NEAR(branches[3].x, .5, 0.01);   EXPECT_NEAR(branches[3].y, 0.866f, 0.01);
-	EXPECT_NEAR(branches[4].x, .5, 0.01);   EXPECT_NEAR(branches[4].y, -0.866f, 0.01);
-	EXPECT_NEAR(branches[5].x, 1.5, 0.01);  EXPECT_NEAR(branches[5].y, 0.866f, 0.01);
-	EXPECT_NEAR(branches[6].x, 1.5, 0.01);  EXPECT_NEAR(branches[6].y, -0.866f, 0.01);
-	EXPECT_NEAR(leaves[0].x, -2, 0.01);     EXPECT_NEAR(leaves[0].y, 0, 0.01);
-	EXPECT_NEAR(leaves[1].x, -1.5, 0.01);   EXPECT_NEAR(leaves[1].y, -0.866f, 0.01);
-	EXPECT_NEAR(leaves[2].x, -1.5, 0.01);   EXPECT_NEAR(leaves[2].y, 0.866f, 0.01);
-	EXPECT_NEAR(leaves[3].x, -1, 0.01);     EXPECT_NEAR(leaves[3].y, -1.732f, 0.01);
-	EXPECT_NEAR(leaves[4].x, 0, 0.01);      EXPECT_NEAR(leaves[4].y, 1.732f, 0.01);
+	EXPECT_NEAR(spines[0].x, 0, 0.01);      EXPECT_NEAR(spines[0].y, 0, 0.01);         EXPECT_EQ(spines[0].grid_x, 0);    EXPECT_EQ(spines[0].grid_sly, 0);
+	EXPECT_NEAR(spines[1].x, 1, 0.01);      EXPECT_NEAR(spines[1].y, 0, 0.01);         EXPECT_EQ(spines[1].grid_x, 1);    EXPECT_EQ(spines[1].grid_sly, 0);
+	EXPECT_NEAR(branches[0].x, -1, 0.01);   EXPECT_NEAR(branches[0].y, 0, 0.01);       EXPECT_EQ(branches[0].grid_x, -1); EXPECT_EQ(branches[0].grid_sly, 0);
+	EXPECT_NEAR(branches[1].x, -0.5, 0.01); EXPECT_NEAR(branches[1].y, -0.866f, 0.01); EXPECT_EQ(branches[1].grid_x, 0);  EXPECT_EQ(branches[1].grid_sly, -1);
+	EXPECT_NEAR(branches[2].x, -0.5, 0.01); EXPECT_NEAR(branches[2].y, 0.866f, 0.01);  EXPECT_EQ(branches[2].grid_x, -1); EXPECT_EQ(branches[2].grid_sly, 1);
+	EXPECT_NEAR(branches[3].x, .5, 0.01);   EXPECT_NEAR(branches[3].y, 0.866f, 0.01);  EXPECT_EQ(branches[3].grid_x, 0);  EXPECT_EQ(branches[3].grid_sly, 1);
+	EXPECT_NEAR(branches[4].x, .5, 0.01);   EXPECT_NEAR(branches[4].y, -0.866f, 0.01); EXPECT_EQ(branches[4].grid_x, 1);  EXPECT_EQ(branches[4].grid_sly, -1);
+	EXPECT_NEAR(branches[5].x, 1.5, 0.01);  EXPECT_NEAR(branches[5].y, -0.866f, 0.01); EXPECT_EQ(branches[5].grid_x, 2);  EXPECT_EQ(branches[5].grid_sly, -1);
+	EXPECT_NEAR(branches[6].x, 1.5, 0.01);  EXPECT_NEAR(branches[6].y, 0.866f, 0.01);  EXPECT_EQ(branches[6].grid_x, 1);  EXPECT_EQ(branches[6].grid_sly, 1);
+	EXPECT_NEAR(leaves[0].x, -2, 0.01);     EXPECT_NEAR(leaves[0].y, 0, 0.01);         EXPECT_EQ(leaves[0].grid_x, -2);   EXPECT_EQ(leaves[0].grid_sly, 0);
+	EXPECT_NEAR(leaves[1].x, -1.5, 0.01);   EXPECT_NEAR(leaves[1].y, 0.866f, 0.01);    EXPECT_EQ(leaves[1].grid_x, -2);   EXPECT_EQ(leaves[1].grid_sly, 1);
+	EXPECT_NEAR(leaves[2].x, -1.5, 0.01);   EXPECT_NEAR(leaves[2].y, -0.866f, 0.01);   EXPECT_EQ(leaves[2].grid_x, -1);   EXPECT_EQ(leaves[2].grid_sly, -1);
+	EXPECT_NEAR(leaves[3].x, -1, 0.01);     EXPECT_NEAR(leaves[3].y, 1.732f, 0.01);    EXPECT_EQ(leaves[3].grid_x, -2);   EXPECT_EQ(leaves[3].grid_sly, 2);
+	EXPECT_NEAR(leaves[4].x, 0, 0.01);      EXPECT_NEAR(leaves[4].y, 1.732f, 0.01);    EXPECT_EQ(leaves[4].grid_x, -1);   EXPECT_EQ(leaves[4].grid_sly, 2);
+}
+
+TEST(Embed, embed_weak_sbl)
+{
+	auto graph = make_lobster();
+	auto embedder = WeakEmbedder{ (int)graph.spines().size() };
+
+	// execute, spine first
+	embed(graph, embedder, Configuration::EmbedOrder::SBL);
+
+	auto& spines = graph.spines();
+	auto& branches = graph.branches();
+	auto& leaves = graph.leaves();
+	EXPECT_NEAR(spines[0].x, 0, 0.01);      EXPECT_NEAR(spines[0].y, 0, 0.01);         EXPECT_EQ(spines[0].grid_x, 0);    EXPECT_EQ(spines[0].grid_sly, 0);
+	EXPECT_NEAR(spines[1].x, 1, 0.01);      EXPECT_NEAR(spines[1].y, 0, 0.01);         EXPECT_EQ(spines[1].grid_x, 1);    EXPECT_EQ(spines[1].grid_sly, 0);
+	EXPECT_NEAR(branches[0].x, -1, 0.01);   EXPECT_NEAR(branches[0].y, 0, 0.01);       EXPECT_EQ(branches[0].grid_x, -1); EXPECT_EQ(branches[0].grid_sly, 0);
+	EXPECT_NEAR(branches[1].x, -0.5, 0.01); EXPECT_NEAR(branches[1].y, 0.866f, 0.01);  EXPECT_EQ(branches[1].grid_x, -1); EXPECT_EQ(branches[1].grid_sly, 1);
+	EXPECT_NEAR(branches[2].x, -0.5, 0.01); EXPECT_NEAR(branches[2].y, -0.866f, 0.01); EXPECT_EQ(branches[2].grid_x, 0);  EXPECT_EQ(branches[2].grid_sly, -1);
+	EXPECT_NEAR(branches[3].x, .5, 0.01);   EXPECT_NEAR(branches[3].y, 0.866f, 0.01);  EXPECT_EQ(branches[3].grid_x, 0);  EXPECT_EQ(branches[3].grid_sly, 1);
+	EXPECT_NEAR(branches[4].x, .5, 0.01);   EXPECT_NEAR(branches[4].y, -0.866f, 0.01); EXPECT_EQ(branches[4].grid_x, 1);  EXPECT_EQ(branches[4].grid_sly, -1);
+	EXPECT_NEAR(branches[5].x, 1.5, 0.01);  EXPECT_NEAR(branches[5].y, 0.866f, 0.01);  EXPECT_EQ(branches[5].grid_x, 1);  EXPECT_EQ(branches[5].grid_sly, 1);
+	EXPECT_NEAR(branches[6].x, 1.5, 0.01);  EXPECT_NEAR(branches[6].y, -0.866f, 0.01); EXPECT_EQ(branches[6].grid_x, 2);  EXPECT_EQ(branches[6].grid_sly, -1);
+	EXPECT_NEAR(leaves[0].x, -2, 0.01);     EXPECT_NEAR(leaves[0].y, 0, 0.01);         EXPECT_EQ(leaves[0].grid_x, -2);   EXPECT_EQ(leaves[0].grid_sly, 0);
+	EXPECT_NEAR(leaves[1].x, -1.5, 0.01);   EXPECT_NEAR(leaves[1].y, 0.866f, 0.01);    EXPECT_EQ(leaves[1].grid_x, -2);   EXPECT_EQ(leaves[1].grid_sly, 1);
+	EXPECT_NEAR(leaves[2].x, -1, 0.01);     EXPECT_NEAR(leaves[2].y, 1.732f, 0.01);    EXPECT_EQ(leaves[2].grid_x, -2);   EXPECT_EQ(leaves[2].grid_sly, 2);
+	EXPECT_NEAR(leaves[3].x, -1.5, 0.01);   EXPECT_NEAR(leaves[3].y, -0.866f, 0.01);   EXPECT_EQ(leaves[3].grid_x, -1);   EXPECT_EQ(leaves[3].grid_sly, -1);
+	EXPECT_NEAR(leaves[4].x, 0, 0.01);      EXPECT_NEAR(leaves[4].y, 1.732f, 0.01);    EXPECT_EQ(leaves[4].grid_x, -1);   EXPECT_EQ(leaves[4].grid_sly, 2);
 }

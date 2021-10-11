@@ -126,37 +126,18 @@ private:
 
 	Grid grid_;
 
-	/**
-	 * Position names with index offsets relative to any locality.
-	 */
-	enum class Rel { SPINE = 12, BEHIND = -5, UP = -6, DOWN = 1, FWD_UP = -1, FWD_DOWN = 6, FRONT = 5 };
+	void embedSpine(Disk& disk) noexcept;
+	void embedBranchOrLeaf(Disk& disk) noexcept;
 
 	/**
 	 * Which way around we'll attempt to find a free slot.
 	 */
 	enum class Affinity { UP = -1, DOWN = 1 };
 
-	bool zone_[25]; //!< markers for used space
-	int locality_; //!< zone index of current branch
-	Affinity affinity_; //!< current affinity
-	int spineIndex_; //!< offset of zone coordinates
-	int spineCount_; //!< enables reserving space for all spines exactly
+	void putDiskNear(Disk& disk, Coord coord, Affinity affinity) noexcept;
+	void putDiskAt(Disk& disk, Coord coord) noexcept;
+	Affinity determineAffinity(Coord center) noexcept;
 
-	void embedSpine(Disk& disk) noexcept;
-	void embedBranch(Disk& disk) noexcept;
-	void embedLeaf(Disk& disk) noexcept;
-
-	/**
-	 * Determine a zone index in the current locality that we may use
-	 * to place another disk.
-	 */
-	int findFreePosition(int locality, Affinity affinity) noexcept;
-
-	/**
-	 * Turn the given position in the current zone into embedding coordinates
-	 * under consideration of the current spine offset.
-	 */
-	Vec2 getCoords(int position) noexcept;
 };
 
 /**

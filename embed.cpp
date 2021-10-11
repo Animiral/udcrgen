@@ -1,7 +1,9 @@
 ﻿#include "embed.h"
 #include "utility/graph.h"
 #include "utility/geometry.h"
+#include "utility/util.h"
 #include <algorithm>
+#include <stdexcept>
 #include <cassert>
 
 /**
@@ -34,11 +36,13 @@ DiskGraph from_edge_list(EdgeList::iterator begin, EdgeList::iterator branches, 
 
 	spineList[0].id = begin[0].from; // this works even with 1 spine, because begin then connects the first branch
 	spineList[0].parent = -1;
+	spineList[0].depth = 0;
 	spineList[0].failure = false;
 
 	for (int i = 1; i < spineCount; i++) {
 		spineList[i].id = begin[i - 1].to;
 		spineList[i].parent = -1;
+		spineList[i].depth = 0;
 		spineList[i].failure = false;
 	}
 
@@ -47,6 +51,7 @@ DiskGraph from_edge_list(EdgeList::iterator begin, EdgeList::iterator branches, 
 	for (int i = 0; i < branchCount; i++) {
 		branchList[i].id = branches[i].to;
 		branchList[i].parent = branches[i].from;
+		branchList[i].depth = 1;
 		branchList[i].failure = false;
 	}
 
@@ -64,6 +69,7 @@ DiskGraph from_edge_list(EdgeList::iterator begin, EdgeList::iterator branches, 
 	for (int i = 0; i < leafCount; i++) {
 		leafList[i].id = leaves[i].to;
 		leafList[i].parent = leaves[i].from;
+		leafList[i].depth = 2;
 		leafList[i].failure = false;
 	}
 
@@ -98,7 +104,7 @@ std::pair<DiskGraph, GraphClass> classify(EdgeList input)
 	// lobster
 	if (recognize_path(input.begin(), branches)) {
 		// "leaves" are actually 0-leaf branches to us if they connect to the spine
-		auto isSpine = [&input, branches](int id)
+		auto isSpine = [&input, branches](DiskId id)
 		{
 			return input[0].from == id ||
 				std::any_of(input.begin(), branches, [id](Edge e) { return e.to == id; });
@@ -111,13 +117,6 @@ std::pair<DiskGraph, GraphClass> classify(EdgeList input)
 
 	// unfamiliar graph
 	return { {0, 0, 0}, GraphClass::OTHER };
-}
-
-void EmbedResult::applyTo(Disk& disk) noexcept
-{
-	disk.x = position.x;
-	disk.y = position.y;
-	disk.failure = failure;
 }
 
 /**
@@ -134,6 +133,7 @@ ProperEmbedder::ProperEmbedder() noexcept :
 	leafUp_{ false },
 	gap_{ 0.1f },
 	beforeFirstSpine_{ true },
+	atFirstSpine_{ false },
 	beforeFirstLeaf_{ true }
 {
 }
@@ -143,11 +143,25 @@ void ProperEmbedder::setGap(float gap) noexcept
 	gap_ = gap;
 }
 
-EmbedResult ProperEmbedder::spine() noexcept
+void ProperEmbedder::embed(Disk& disk)
+{
+	if (0 == disk.depth)
+		return embedSpine(disk);
+
+	if (1 == disk.depth)
+		return embedLeaf(disk);
+
+	else
+		throw std::exception("proper embedder can not embed graphs deeper than caterpillars");
+}
+
+void ProperEmbedder::embedSpine(Disk& disk) noexcept
 {
 	if (beforeFirstSpine_) {
 		beforeFirstSpine_ = false;
-		return { spine_, false };
+		disk.x = spine_.x;
+		disk.y = spine_.y;
+		return;
 	}
 
 	// determine the bisector of the free space ahead as new "forward"
@@ -162,21 +176,20 @@ EmbedResult ProperEmbedder::spine() noexcept
 	spine_ += forward_;
 	beforeFirstLeaf_ = false;
 
-	// is there enough room for the spine?
-	bool failure = distance(spine_, lastUp_) < 1 + gap_;
-
-	return { spine_, failure };
+	disk.x = spine_.x;
+	disk.y = spine_.y;
+	disk.failure = distance(spine_, lastUp_) < 1 + gap_; // is there enough room for the spine?
 }
 
-EmbedResult ProperEmbedder::branch() noexcept
+void ProperEmbedder::embedLeaf(Disk& disk) noexcept
 {
 	assert(!beforeFirstSpine_);
 
-	// We still refer to branches as "leaves" here because the proper
-	// algorithm does not yet handle lobsters.
 	if (beforeFirstLeaf_) {
 		beforeFirstLeaf_ = false;
-		return { {-1, 0}, false };
+		disk.x = -1;
+		disk.y = 0;
+		return;
 	}
 
 	Vec2& lastLeaf = leafUp_ ? lastUp_ : lastDown_;
@@ -185,19 +198,17 @@ EmbedResult ProperEmbedder::branch() noexcept
 	// leaf wrap-around collision due to too many leaves
 	if (distance(leafPosition, leafUp_ ? lastDown_ : lastUp_) < 1 + gap_) {
 		leafPosition.y += Y_FAIL;
-		return { leafPosition, true };
+		disk.x = leafPosition.x;
+		disk.y = leafPosition.y;
+		disk.failure = true;
+		return;
 	}
 
 	leafUp_ = !leafUp_; // alternate placement
 	lastLeaf = leafPosition;
 
-	return { leafPosition, false };
-}
-
-EmbedResult ProperEmbedder::leaf() noexcept
-{
-	// This embedder cannot yet deal with lobster leaves.
-	return { {0, Y_FAIL}, true };
+	disk.x = leafPosition.x;
+	disk.y = leafPosition.y;
 }
 
 Vec2 ProperEmbedder::findLeafPosition(Vec2 constraint) noexcept
@@ -215,17 +226,8 @@ Vec2 ProperEmbedder::findLeafPosition(Vec2 constraint) noexcept
 }
 
 WeakEmbedder::WeakEmbedder(int spineCount) noexcept :
-	locality_{ (int)Rel::SPINE },
-	affinity_{ Affinity::UP },
-	spineIndex_{ -1 },
-	spineCount_{ spineCount }
+	grid_{ spineCount, 2 }
 {
-	std::fill(zone_, zone_ + 25, false);
-
-	// reserve space for spines, if necessary
-	for (int i = 0; i < spineCount && i < 2; i++) {
-		zone_[(int)Rel::SPINE + (int)Rel::FRONT * (i+1)] = true;
-	}
 }
 
 /**
@@ -246,93 +248,179 @@ const Vec2 relativeSlots[] = {
 	Vec2{ 0, Y_FAIL }      // FAIL
 };
 
-EmbedResult WeakEmbedder::spine() noexcept
+void WeakEmbedder::embed(Disk& disk)
 {
-	spineIndex_++;
+	if (0 == disk.depth)
+		return embedSpine(disk);
 
-	// shift all contextual information in the zone
-	auto end = std::copy(zone_ + 5, zone_ + 25, zone_);
-	std::fill(zone_ + 20, zone_ + 25, false);
+	if (1 == disk.depth || 2 == disk.depth)
+		return embedBranchOrLeaf(disk);
 
-	// Reserve space for straight spine ahead
-	if (spineIndex_ + 2 < spineCount_)
-		zone_[22] = true;
-
-	return { { static_cast<float>(spineIndex_), 0 }, false }; // straight spine
+	else
+		throw std::exception("weak embedder can not embed graphs deeper than lobsters");
 }
 
-EmbedResult WeakEmbedder::branch() noexcept
+void WeakEmbedder::embedSpine(Disk& disk) noexcept
 {
-	// invert affinity for even distribution
-	affinity_ = (Affinity)((int)affinity_ * -1);
+	Coord coord{ 0, 0 };
 
-	static const int spineLocality = (int)Rel::SPINE;
-	const int position = findFreePosition(spineLocality, affinity_);
+	if(-1 != disk.parent)
+	{
+		Coord parentCoord =  grid_.find(disk.parent);
+		coord = grid_.step(parentCoord, Rel::FORWARD);
+	}
 
-	if (position >= 0) {
-		zone_[position] = true;
-		locality_ = position;
-		return { getCoords(position), false };
+	if (NODISK == grid_.at(coord)) {
+		putDiskAt(disk, coord);
 	}
 	else {
-		return { getCoords(spineLocality) + Vec2{ 0, Y_FAIL }, true };
+		disk.failure = true;
 	}
-}
 
-EmbedResult WeakEmbedder::leaf() noexcept
-{
-	const int position = findFreePosition(locality_, affinity_);
-
-	if (position >= 0) {
-		zone_[position] = true;
-		return { getCoords(position), false };
+	if (disk.failure) {
+		trace("FAIL spine");
 	}
 	else {
-		return { getCoords(locality_) + Vec2{ 0, Y_FAIL }, true };
+		trace("Embed spine at ({}/{})", disk.x, disk.y);
 	}
 }
 
-int WeakEmbedder::findFreePosition(int locality, Affinity affinity) noexcept
+void WeakEmbedder::embedBranchOrLeaf(Disk& disk) noexcept
 {
-	static const Rel upCandidates[6] = { Rel::BEHIND, Rel::UP, Rel::FWD_UP, Rel::FRONT, Rel::FWD_DOWN, Rel::DOWN };
-	static const Rel downCandidates[6] = { Rel::BEHIND, Rel::DOWN, Rel::FWD_DOWN, Rel::FRONT, Rel::FWD_UP, Rel::UP };
+	assert(NODISK != disk.parent); // branches and leaves always have parents
+
+	Coord parentCoord = grid_.find(disk.parent);
+	Affinity affinity = determineAffinity(parentCoord); // whether to place disk high or low
+
+	putDiskNear(disk, parentCoord, affinity);
+
+	if (disk.failure) {
+		trace(1 == disk.depth ? "FAIL branch" : "FAIL leaf");
+	}
+	else {
+		trace(1 == disk.depth ? "Embed branch at ({}/{})" : "Embed leaf at ({}/{})", disk.x, disk.y);
+	}
+}
+
+void WeakEmbedder::putDiskNear(Disk& disk, Coord coord, Affinity affinity) noexcept
+{
+	static const Rel upCandidates[6] = { Rel::BACK, Rel::BACK_UP, Rel::FWD_UP, Rel::FORWARD, Rel::FWD_DOWN, Rel::BACK_DOWN };
+	static const Rel downCandidates[6] = { Rel::BACK, Rel::BACK_DOWN, Rel::FWD_DOWN, Rel::FORWARD, Rel::FWD_UP, Rel::BACK_UP };
+
 	auto* const candidates = Affinity::UP == affinity ? upCandidates : downCandidates;
 	auto* const end = candidates + 6;
 
-	auto it = std::find_if(candidates, end, [this, locality](Rel r) { return !zone_[locality + (int)r]; });
-	if (it == end)
-		return -1; // no slot free
+	for (int i = 0; i < 6; i++) {
+		Coord target = grid_.step(coord, candidates[i]);
 
-	return locality + (int)*it;
-}
-
-Vec2 WeakEmbedder::getCoords(int position) noexcept
-{
-	const int forwardSteps = position / 5 - 2;
-	const int upSteps = -(position % 5) + 2;
-
-	return { spineIndex_ + forwardSteps + upSteps * .5f, upSteps * Y_HIGH };
-}
-
-void embed(DiskGraph& graph, Embedder& embedder)
-{
-	auto& spines = graph.spines();
-	auto& branches = graph.branches();
-	auto& leaves = graph.leaves();
-
-	auto branchIt = branches.begin(); // branches are ordered by parent spine
-	auto leafIt = leaves.begin(); // leaves are ordered by parent branch
-
-	for (Disk& spineDisk : spines) {
-		// place next spine segment
-		embedder.spine().applyTo(spineDisk);
-
-		for (; branchIt != branches.end() && branchIt->parent == spineDisk.id; ++branchIt) {
-			embedder.branch().applyTo(*branchIt);
-
-			for (; leafIt != leaves.end() && leafIt->parent == branchIt->id; ++leafIt) {
-				embedder.leaf().applyTo(*leafIt);
-			}
+		if (NODISK == grid_.at(target)) {
+			putDiskAt(disk, target);
+			return;
 		}
 	}
+
+	// no free coordinate found
+	disk.failure = true;
+}
+
+void WeakEmbedder::putDiskAt(Disk& disk, Coord coord) noexcept
+{
+	grid_.put(coord, disk.id);
+	disk.grid_x = coord.x;
+	disk.grid_sly = coord.sly;
+	Vec2 diskVec = grid_.vec(coord);
+	disk.x = diskVec.x;
+	disk.y = diskVec.y;
+}
+
+WeakEmbedder::Affinity WeakEmbedder::determineAffinity(Coord center) noexcept
+{
+	// affinity is based on the available free space in the vicinity
+	Coord upperArea[] = {
+		grid_.step(center, Rel::BACK_UP),
+		grid_.step(grid_.step(center, Rel::BACK_UP), Rel::BACK),
+		grid_.step(grid_.step(center, Rel::BACK_UP), Rel::BACK_UP),
+		grid_.step(grid_.step(center, Rel::BACK_UP), Rel::FWD_UP),
+		grid_.step(center, Rel::FWD_UP),
+		grid_.step(grid_.step(center, Rel::FWD_UP), Rel::FWD_UP),
+		grid_.step(grid_.step(center, Rel::FWD_UP), Rel::FORWARD)
+	};
+
+	Coord lowerArea[] = {
+		grid_.step(center, Rel::BACK_DOWN),
+		grid_.step(grid_.step(center, Rel::BACK_DOWN), Rel::BACK),
+		grid_.step(grid_.step(center, Rel::BACK_DOWN), Rel::BACK_DOWN),
+		grid_.step(grid_.step(center, Rel::BACK_DOWN), Rel::FWD_DOWN),
+		grid_.step(center, Rel::FWD_DOWN),
+		grid_.step(grid_.step(center, Rel::FWD_DOWN), Rel::FWD_DOWN),
+		grid_.step(grid_.step(center, Rel::FWD_DOWN), Rel::FORWARD)
+	};
+
+	int upperWeight = 0;
+	int lowerWeight = 0;
+
+	for (int i = 0; i < 7; i++) {
+		upperWeight += NODISK != grid_.at(upperArea[i]);
+		lowerWeight += NODISK != grid_.at(lowerArea[i]);
+	}
+
+	return lowerWeight < upperWeight ? Affinity::DOWN : Affinity::UP;
+}
+
+namespace
+{
+// Helper functions for embed()
+
+using EmbedOrder = Configuration::EmbedOrder;
+using DiskVec = std::vector<Disk>;
+
+/**
+ * Return the disk vectors to embed by their priority according to the given embed order.
+ */
+std::tuple<DiskVec*, DiskVec*, DiskVec*> decodePriority(DiskGraph& graph, EmbedOrder embedOrder)
+{
+	auto* spines = &graph.spines(); // branches are ordered by parent spine
+	auto* branches = &graph.branches(); // branches are ordered by parent spine
+	auto* leaves = &graph.leaves(); // leaves are ordered by parent branch
+
+	using std::tie;
+
+	switch (embedOrder) {
+	case EmbedOrder::LBS: return tie(leaves, branches, spines);
+	case EmbedOrder::BLS: return tie(branches, leaves, spines);
+	case EmbedOrder::LSB: return tie(leaves, spines, branches);
+	case EmbedOrder::BSL: return tie(branches, spines, leaves);
+	case EmbedOrder::SBL: return tie(spines, branches, leaves);
+	case EmbedOrder::SLB: return tie(spines, leaves, branches);
+	default: assert(0); return {};
+	}
+}
+
+void embedDisk(DiskGraph& graph, Embedder& embedder, Disk& disk)
+{
+	if (disk.embedded)
+		return; // nothing to do
+
+	// ensure that parent is embedded
+	Disk* parent = graph.findDisk(disk.parent);
+	if (parent != nullptr) {
+		embedDisk(graph, embedder, *parent);
+	}
+
+	embedder.embed(disk);
+	disk.embedded = true;
+}
+
+}
+
+using EmbedOrder = Configuration::EmbedOrder;
+
+void embed(DiskGraph& graph, Embedder& embedder, EmbedOrder embedOrder)
+{
+	DiskVec *p1, *p2, *p3;
+	std::tie(p1, p2, p3) = decodePriority(graph, embedOrder);
+
+	for (Disk& disk : *p1) embedDisk(graph, embedder, disk);
+	for (Disk& disk : *p2) embedDisk(graph, embedder, disk);
+	for (Disk& disk : *p3) embedDisk(graph, embedder, disk);
 }

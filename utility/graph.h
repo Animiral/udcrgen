@@ -5,6 +5,7 @@
 #include <vector>
 #include <istream>
 #include <ostream>
+#include "geometry.h"
 
 /**
  * A basic representation of a caterpillar graph used for input.
@@ -59,8 +60,8 @@ private:
  */
 struct Edge
 {
-	int from; //!< start vertex number
-	int to; //!< end vertex number
+	DiskId from; //!< start vertex number
+	DiskId to; //!< end vertex number
 };
 
 using EdgeList = std::vector<Edge>;
@@ -99,20 +100,6 @@ EdgeList::iterator separate_leaves(EdgeList::iterator begin, EdgeList::iterator 
  * @return true if the edges describe a path, false otherwise.
  */
 bool recognize_path(EdgeList::iterator begin, EdgeList::iterator end);
-
-/**
- * A single unit-sized disk for the output graph representation.
- *
- * It has a unique vertex number within the graph and
- * 2D coordinates to represent the embedding.
- */
-struct Disk
-{
-	int id; //!< unique vertex number [0..n]
-	int parent; //!< parent vertex number, must be spine vertex or -1
-	float x, y; //!< embedding coordinates
-	bool failure; //!< whether the algorithm failed to place this vertex in UDCR
-};
 
 /**
  * The output graph representation.
@@ -169,7 +156,14 @@ public:
 	 *
 	 * @return a pointer to the disk or nullptr if the id is unknown.
 	 */
-	const Disk* findDisk(int id) const;
+	Disk* findDisk(DiskId id);
+
+	/**
+	 * Get the disk with the given vertex id.
+	 *
+	 * @return a pointer to the disk or nullptr if the id is unknown.
+	 */
+	const Disk* findDisk(DiskId id) const;
 
 	/**
 	 * Create an instance based on the given basic caterpillar representation.

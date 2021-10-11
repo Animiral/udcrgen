@@ -71,7 +71,7 @@ int main(int argc, const char* argv[])
 
 		}
 
-		embed(*graph, *embedder);
+		embed(*graph, *embedder, configuration.embedOrder);
 		delete embedder;
 	}
 	catch (const std::exception& e) {

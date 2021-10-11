@@ -5,6 +5,7 @@
 #include <string>
 #include <numeric>
 #include <type_traits>
+#include <iostream>
 #include <stdexcept>
 #include <cassert>
 
@@ -24,6 +25,12 @@ std::string format(std::string fmt, Arg arg, Args... args)
     else {
         return fmt;
     }
+}
+
+template<typename ...Args>
+void trace(std::string fmt, Args... args)
+{
+    std::cerr << format(fmt, args...) << "\n";
 }
 
 /**

@@ -17,7 +17,8 @@ The following options are available:
 * `-o`, `--output-file` `<FILE>`
 * `-j`, `--input-format` `<FORMAT>`
 * `-f`, `--output-format` `<FORMAT>`
-* `-g`, `--gap` `<GAP>`
+* `-e`, `--embed-order` `[lbs|bls|lsb|bsl|sbl|slb]`
+ `-g`, `--gap` `<GAP>`
 * `--`: end of options
 
 For details on every command line item and synonymous options, please refer to the relevant following subsection.
@@ -71,6 +72,14 @@ Using `-f dump`, the program will output a text file generated from the internal
 * _v_ is the number of an embedded vertex,
 * _p_ is the number of the parent vertex to which _v_ connects and
 * _(x, y)_ is the central coordinate of the embedded unit disk representing _v_.
+
+### Heuristic Options
+
+These options affect the heuristic used for embedding the graphs.
+
+Use `-e lbs` to make the embedder place *l*eaf disks as soon as possible, *b*ranch disks as soon as possible and *s*pine disks as the last priority.
+All other permutations are also valid. For example, with `-e sbl`, the complete spine will be placed before all the branches and finally all leaves.
+Regardless of preference, no disk can ever be embedded before its parent disk.
 
 ## Usage of `gencases`
 

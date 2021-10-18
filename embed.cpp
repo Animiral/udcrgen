@@ -37,12 +37,14 @@ DiskGraph from_edge_list(EdgeList::iterator begin, EdgeList::iterator branches, 
 	spineList[0].id = begin[0].from; // this works even with 1 spine, because begin then connects the first branch
 	spineList[0].parent = -1;
 	spineList[0].depth = 0;
+	spineList[0].children = 0;
 	spineList[0].failure = false;
 
 	for (int i = 1; i < spineCount; i++) {
 		spineList[i].id = begin[i - 1].to;
 		spineList[i].parent = begin[i - 1].from;
 		spineList[i].depth = 0;
+		spineList[i].children = 0;
 		spineList[i].failure = false;
 	}
 
@@ -51,7 +53,9 @@ DiskGraph from_edge_list(EdgeList::iterator begin, EdgeList::iterator branches, 
 	for (int i = 0; i < branchCount; i++) {
 		branchList[i].id = branches[i].to;
 		branchList[i].parent = branches[i].from;
+		graph.findDisk(branchList[i].parent)->children++;
 		branchList[i].depth = 1;
+		branchList[i].children = 0;
 		branchList[i].failure = false;
 	}
 
@@ -69,7 +73,9 @@ DiskGraph from_edge_list(EdgeList::iterator begin, EdgeList::iterator branches, 
 	for (int i = 0; i < leafCount; i++) {
 		leafList[i].id = leaves[i].to;
 		leafList[i].parent = leaves[i].from;
+		graph.findDisk(leafList[i].parent)->children++;
 		leafList[i].depth = 2;
+		leafList[i].children = 0;
 		leafList[i].failure = false;
 	}
 
@@ -228,6 +234,19 @@ Vec2 ProperEmbedder::findLeafPosition(Vec2 constraint) noexcept
 WeakEmbedder::WeakEmbedder(DiskGraph& graph) noexcept :
 	graph_(&graph), grid_{ graph.size() }
 {
+	// sync grid to graph state
+	for (Disk& disk : graph.spines()) {
+		if (disk.embedded)
+			grid_.put({ disk.grid_x, disk.grid_sly }, disk);
+	}
+	for (Disk& disk : graph.branches()) {
+		if (disk.embedded)
+			grid_.put({ disk.grid_x, disk.grid_sly }, disk);
+	}
+	for (Disk& disk : graph.leaves()) {
+		if (disk.embedded)
+			grid_.put({ disk.grid_x, disk.grid_sly }, disk);
+	}
 }
 
 /**
@@ -312,7 +331,10 @@ void WeakEmbedder::putDiskNear(Disk& disk, Coord coord, Affinity affinity) noexc
 	for (int i = 0; i < 6; i++) {
 		Coord target = grid_.step(coord, candidates[i]);
 
-		if (!grid_.at(target)) {
+		if (!grid_.at(target) &&
+			// space heuristic: we must leave space for leaves
+			countFreeNeighbors(target) >= disk.children) {
+
 			putDiskAt(disk, target);
 			return;
 		}
@@ -364,6 +386,21 @@ WeakEmbedder::Affinity WeakEmbedder::determineAffinity(Coord center) noexcept
 	}
 
 	return lowerWeight < upperWeight ? Affinity::DOWN : Affinity::UP;
+}
+
+int WeakEmbedder::countFreeNeighbors(Coord center) noexcept
+{
+	Coord neighbors[] = {
+		grid_.step(center, Rel::BACK),
+		grid_.step(center, Rel::BACK_UP),
+		grid_.step(center, Rel::BACK_DOWN),
+		grid_.step(center, Rel::FWD_UP),
+		grid_.step(center, Rel::FWD_DOWN),
+		grid_.step(center, Rel::FORWARD)
+	};
+
+	return std::count_if(neighbors, neighbors + 6,
+		[this](Coord c) { return !grid_.at(c); });
 }
 
 namespace

@@ -224,3 +224,72 @@ TEST(Embed, embed_weak_sbl)
 	EXPECT_NEAR(leaves[3].x, -1.5, 0.01);   EXPECT_NEAR(leaves[3].y, -0.866f, 0.01);   EXPECT_EQ(leaves[3].grid_x, -1);   EXPECT_EQ(leaves[3].grid_sly, -1);
 	EXPECT_NEAR(leaves[4].x, 0, 0.01);      EXPECT_NEAR(leaves[4].y, 1.732f, 0.01);    EXPECT_EQ(leaves[4].grid_x, -1);   EXPECT_EQ(leaves[4].grid_sly, 2);
 }
+
+// In this lobster, the branch on the second spine must be placed further out.
+DiskGraph make_lobster_for_space_heuristic()
+{
+	DiskGraph graph{ 1, 3, 7 };
+	auto& spines = graph.spines();
+	auto& branches = graph.branches();
+	auto& leaves = graph.leaves();
+	Disk* disk;
+
+	// spine
+	disk = &spines[0];
+	disk->id = 0;
+	disk->parent = -1;
+	disk->children = 3;
+	disk->depth = 0;
+
+	// branches
+	for (DiskId id = 1; id < 4; id++) {
+		disk = &branches[id - 1];
+		disk->id = id;
+		disk->parent = 0;
+		disk->depth = 1;
+	}
+	branches[0].children = 3;
+	branches[2].children = 4;
+
+	// leaves
+	for (DiskId id = 4; id < 11; id++) {
+		disk = &leaves[id - 4];
+		disk->id = id;
+		disk->parent = id > 6 ? 3 : 1;
+		disk->depth = 2;
+	}
+
+	return graph;
+}
+
+// The weak embedder must observe the "space heuristic", i.e. place the next
+// branch with enough leftover room to allow for all child vertices.
+TEST(Embed, space_heuristic)
+{
+	auto graph = make_lobster_for_space_heuristic();
+
+	// fix embedding until we need to apply the space heuristic
+	Disk* d;
+	d = &graph.spines()[0];   d->embedded = true; d->grid_x = 0; d->grid_sly = 0;
+	d = &graph.branches()[0]; d->embedded = true; d->grid_x = -1; d->grid_sly = 0;
+	d = &graph.branches()[1]; d->embedded = true; d->grid_x = -1; d->grid_sly = 1;
+	d = &graph.leaves()[0];   d->embedded = true; d->grid_x = -2; d->grid_sly = 0;
+	d = &graph.leaves()[1];   d->embedded = true; d->grid_x = -2; d->grid_sly = 1;
+	d = &graph.leaves()[2];   d->embedded = true; d->grid_x = -1; d->grid_sly = -1;
+
+	auto embedder = WeakEmbedder{ graph };
+
+	// layout sketch
+	//   (L1). (B1).
+	// (L0)--(B0)--(S0)
+	//   (L2)`
+
+	// Due to affinity, branch 2 will be placed below, not above.
+	// We cannot place it far left next to L2, because it holds 4 leaves.
+	// Therefore it must be placed one space further out.
+	d = &graph.branches()[2];
+	embedder.embed(*d);
+
+	EXPECT_EQ(d->grid_x, 1);
+	EXPECT_EQ(d->grid_sly, -1);
+}

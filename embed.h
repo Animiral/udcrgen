@@ -138,6 +138,7 @@ private:
 	void putDiskNear(Disk& disk, Coord coord, Affinity affinity) noexcept;
 	void putDiskAt(Disk& disk, Coord coord) noexcept;
 	Affinity determineAffinity(Coord center) noexcept;
+	int countFreeNeighbors(Coord center) noexcept;
 
 };
 

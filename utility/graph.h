@@ -152,6 +152,11 @@ public:
 	const std::vector<Disk>& leaves() const noexcept;
 
 	/**
+	 * Return the number of disks in the graph.
+	 */
+	std::size_t size() const noexcept;
+
+	/**
 	 * Get the disk with the given vertex id.
 	 *
 	 * @return a pointer to the disk or nullptr if the id is unknown.

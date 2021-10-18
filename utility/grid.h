@@ -4,6 +4,7 @@
 
 #include "geometry.h"
 #include <vector>
+#include <unordered_map>
 
 /**
  * This triangular grid is used for the weak contact lobster embedding.
@@ -17,21 +18,14 @@ public:
 	/**
 	 * Initialize the grid to support the given size.
 	 *
-	 * @a length specifies the number of center points (spine nodes).
-	 * Any coordinate reachable within @a size hops of a center is
-	 * part of the grid.
+	 * @a size specifies the maximum number of nodes that can be stored.
 	 */
-	Grid(int length, int size);
+	explicit Grid(std::size_t size);
 
 	/**
-	 * Read the value stored at the given coordinates.
+	 * Retrieve the disk stored at the given coordinates.
 	 */
-	DiskId at(Coord coord) const;
-
-	/**
-	 * Return the unique placement location of the given disk.
-	 */
-	Coord find(DiskId id) const;
+	Disk* at(Coord coord) const;
 
 	/**
 	 * Return the coordinate after taking a step in a particular relative direction.
@@ -44,16 +38,15 @@ public:
 	Vec2 vec(Coord coord) const;
 
 	/**
-	 * Store the given disk ID at the specified coordinates.
+	 * Store the given disk reference at the specified coordinates.
 	 */
-	void put(Coord coord, DiskId id);
+	void put(Coord coord, Disk& disk);
 
 private:
 
-	int length_;
-	int size_;
-	std::vector<DiskId> values_;
+	static std::size_t coordHash(Coord coord) noexcept;
 
-	std::size_t coordIndex(Coord coord) const;
+	std::size_t size_;
+	std::unordered_map<Coord, Disk*, decltype(&coordHash)> map_;
 
 };

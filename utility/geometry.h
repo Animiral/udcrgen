@@ -72,6 +72,8 @@ struct Coord
 {
 	int x;   //!< the horizontal x-coordinate
 	int sly; //!< the y-coordinate ("slash-y" for slant)
+
+	bool operator==(Coord c) const noexcept;
 };
 
 /**

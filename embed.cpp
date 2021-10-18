@@ -225,8 +225,8 @@ Vec2 ProperEmbedder::findLeafPosition(Vec2 constraint) noexcept
 	return leafPosition;
 }
 
-WeakEmbedder::WeakEmbedder(int spineCount) noexcept :
-	grid_{ spineCount, 2 }
+WeakEmbedder::WeakEmbedder(DiskGraph& graph) noexcept :
+	graph_(&graph), grid_{ graph.size() }
 {
 }
 
@@ -266,21 +266,18 @@ void WeakEmbedder::embedSpine(Disk& disk) noexcept
 
 	if(-1 != disk.parent)
 	{
-		Coord parentCoord =  grid_.find(disk.parent);
+		const Disk* parent = graph_->findDisk(disk.parent);
+		assert(parent);
+		Coord parentCoord{ parent->grid_x, parent->grid_sly };
 		coord = grid_.step(parentCoord, Rel::FORWARD);
 	}
 
-	if (NODISK == grid_.at(coord)) {
-		putDiskAt(disk, coord);
-	}
-	else {
+	if (grid_.at(coord)) {
 		disk.failure = true;
-	}
-
-	if (disk.failure) {
 		trace("FAIL spine");
 	}
 	else {
+		putDiskAt(disk, coord);
 		trace("Embed spine at ({}/{})", disk.x, disk.y);
 	}
 }
@@ -289,7 +286,9 @@ void WeakEmbedder::embedBranchOrLeaf(Disk& disk) noexcept
 {
 	assert(NODISK != disk.parent); // branches and leaves always have parents
 
-	Coord parentCoord = grid_.find(disk.parent);
+	const Disk* parent = graph_->findDisk(disk.parent);
+	assert(parent);
+	Coord parentCoord{ parent->grid_x, parent->grid_sly };
 	Affinity affinity = determineAffinity(parentCoord); // whether to place disk high or low
 
 	putDiskNear(disk, parentCoord, affinity);
@@ -313,7 +312,7 @@ void WeakEmbedder::putDiskNear(Disk& disk, Coord coord, Affinity affinity) noexc
 	for (int i = 0; i < 6; i++) {
 		Coord target = grid_.step(coord, candidates[i]);
 
-		if (NODISK == grid_.at(target)) {
+		if (!grid_.at(target)) {
 			putDiskAt(disk, target);
 			return;
 		}
@@ -325,7 +324,7 @@ void WeakEmbedder::putDiskNear(Disk& disk, Coord coord, Affinity affinity) noexc
 
 void WeakEmbedder::putDiskAt(Disk& disk, Coord coord) noexcept
 {
-	grid_.put(coord, disk.id);
+	grid_.put(coord, disk);
 	disk.grid_x = coord.x;
 	disk.grid_sly = coord.sly;
 	Vec2 diskVec = grid_.vec(coord);
@@ -360,8 +359,8 @@ WeakEmbedder::Affinity WeakEmbedder::determineAffinity(Coord center) noexcept
 	int lowerWeight = 0;
 
 	for (int i = 0; i < 7; i++) {
-		upperWeight += NODISK != grid_.at(upperArea[i]);
-		lowerWeight += NODISK != grid_.at(lowerArea[i]);
+		upperWeight += nullptr != grid_.at(upperArea[i]);
+		lowerWeight += nullptr != grid_.at(lowerArea[i]);
 	}
 
 	return lowerWeight < upperWeight ? Affinity::DOWN : Affinity::UP;

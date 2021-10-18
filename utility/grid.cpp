@@ -1,32 +1,22 @@
 #include "grid.h"
 #include "geometry.h"
+#include <cassert>
 
-Grid::Grid(int length, int size)
-	: length_(length), size_(size), values_((2*size+length) * (2*size+1), NODISK)
+Grid::Grid(std::size_t size)
+	: size_(size), map_(size, coordHash)
 {
+
 }
 
-DiskId Grid::at(Coord coord) const
+Disk* Grid::at(Coord coord) const
 {
-	std::size_t index = coordIndex(coord);
+	auto it = map_.find(coord);
 
-	if (index >= values_.size())
-		return NODISK; // out of range
-	
-	else
-		return values_.at(index);
-}
-
-Coord Grid::find(DiskId id) const
-{
-	for (int x = -size_; x < length_ + size_; x++) {
-		for (int sly = -size_; sly < size_; sly++) {
-			if (id == values_[coordIndex({ x,sly })])
-				return Coord{ x, sly };
-		}
+	if (map_.end() == it) {
+		return nullptr;
+	} else {
+		return it->second;
 	}
-
-	throw std::exception("Disk not found in grid");
 }
 
 Coord Grid::step(Coord from, Rel rel) const
@@ -48,13 +38,16 @@ Vec2 Grid::vec(Coord coord) const
 	return Vec2{ coord.x + coord.sly * .5f, coord.sly * 0.86602540378443864676372317075294f };
 }
 
-void Grid::put(Coord coord, DiskId id)
+void Grid::put(Coord coord, Disk& disk)
 {
-	values_.at(coordIndex(coord)) = id;
+	auto it_inserted = map_.insert({ coord, &disk });
+
+	if (!it_inserted.second) {
+		throw std::exception("disks cannot overlap in grid");
+	}
 }
 
-std::size_t Grid::coordIndex(Coord coord) const
+std::size_t Grid::coordHash(Coord coord) noexcept
 {
-	const int height = 2 * size_ + 1;
-	return (coord.x + size_) * height + (coord.sly + size_);
+	return (coord.sly << 16) + coord.x;
 }

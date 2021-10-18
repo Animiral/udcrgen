@@ -236,6 +236,11 @@ const std::vector<Disk>& DiskGraph::leaves() const noexcept
 	return leaves_;
 }
 
+std::size_t DiskGraph::size()  const noexcept
+{
+	return spines_.size() + branches_.size() + leaves_.size();
+}
+
 Disk* DiskGraph::findDisk(DiskId id)
 {
 	const auto hasId = [id](const Disk& v) { return v.id == id; };

@@ -74,3 +74,8 @@ Vec2 triangulate(Vec2 point0, float distance0, Vec2 point1, float distance1, Vec
 
 	return result;
 }
+
+bool Coord::operator==(Coord c) const noexcept
+{
+	return x == c.x && sly == c.sly;
+}

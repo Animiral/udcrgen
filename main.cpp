@@ -66,7 +66,7 @@ int main(int argc, const char* argv[])
 			break;
 
 		case Configuration::Algorithm::CLEVE:
-			embedder = new WeakEmbedder(graph->spines().size());
+			embedder = new WeakEmbedder(*graph);
 			break;
 
 		}

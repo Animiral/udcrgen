@@ -174,7 +174,7 @@ DiskGraph make_lobster()
 TEST(Embed, embed_weak)
 {
 	auto graph = make_lobster();
-	auto embedder = WeakEmbedder{ (int) graph.spines().size() };
+	auto embedder = WeakEmbedder{ graph };
 
 	// execute, leaves first
 	embed(graph, embedder, Configuration::EmbedOrder::LBS);
@@ -201,7 +201,7 @@ TEST(Embed, embed_weak)
 TEST(Embed, embed_weak_sbl)
 {
 	auto graph = make_lobster();
-	auto embedder = WeakEmbedder{ (int)graph.spines().size() };
+	auto embedder = WeakEmbedder{ graph };
 
 	// execute, spine first
 	embed(graph, embedder, Configuration::EmbedOrder::SBL);

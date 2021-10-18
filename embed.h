@@ -115,7 +115,7 @@ public:
 	/**
 	 * Construct the embedder.
 	 */
-	explicit WeakEmbedder(int spineCount) noexcept;
+	explicit WeakEmbedder(DiskGraph& graph) noexcept;
 
 	/**
 	 * Place the next disk.
@@ -124,6 +124,7 @@ public:
 
 private:
 
+	DiskGraph* graph_;
 	Grid grid_;
 
 	void embedSpine(Disk& disk) noexcept;

@@ -41,7 +41,7 @@ DiskGraph from_edge_list(EdgeList::iterator begin, EdgeList::iterator branches, 
 
 	for (int i = 1; i < spineCount; i++) {
 		spineList[i].id = begin[i - 1].to;
-		spineList[i].parent = -1;
+		spineList[i].parent = begin[i - 1].from;
 		spineList[i].depth = 0;
 		spineList[i].failure = false;
 	}

@@ -274,11 +274,11 @@ void WeakEmbedder::embedSpine(Disk& disk) noexcept
 
 	if (grid_.at(coord)) {
 		disk.failure = true;
-		trace("FAIL spine");
+		trace("FAIL spine id {}", disk.id);
 	}
 	else {
 		putDiskAt(disk, coord);
-		trace("Embed spine at ({}/{})", disk.x, disk.y);
+		trace("Embed spine id {} at ({}/{})", disk.id, disk.x, disk.y);
 	}
 }
 
@@ -294,10 +294,10 @@ void WeakEmbedder::embedBranchOrLeaf(Disk& disk) noexcept
 	putDiskNear(disk, parentCoord, affinity);
 
 	if (disk.failure) {
-		trace(1 == disk.depth ? "FAIL branch" : "FAIL leaf");
+		trace(1 == disk.depth ? "FAIL branch id {}" : "FAIL leaf id {}", disk.id);
 	}
 	else {
-		trace(1 == disk.depth ? "Embed branch at ({}/{})" : "Embed leaf at ({}/{})", disk.x, disk.y);
+		trace(1 == disk.depth ? "Embed branch id {} at ({}/{})" : "Embed leaf id {} at ({}/{})", disk.id, disk.x, disk.y);
 	}
 }
 

@@ -18,10 +18,16 @@
 \usepackage{subcaption} % Allows the use of subfigures and enables their referencing.
 \usepackage[ruled,linesnumbered,algochapter]{algorithm2e} % Enables the writing of pseudo code.
 \usepackage[usenames,dvipsnames,table]{xcolor} % Allows the definition and use of colors. This package has to be included before tikz.
+\usepackage{pgfplots}
 \usepackage{nag}       % Issues warnings when best practices in writing LaTeX documents are violated.
 \usepackage{todonotes} % Provides tooltip-like todo notes.
 \usepackage{hyperref}  % Enables cross linking in the electronic document version. This package has to be included second to last.
 \usepackage[acronym,toc]{glossaries} % Enables the generation of glossaries and lists fo acronyms. This package has to be included last.
+
+% recommended by https://www.overleaf.com/learn/latex/pgfplots_package
+\pgfplotsset{width=10cm,compat=1.9}
+%\usepgfplotslibrary{external} % does not seem to work in Overleaf?!
+%\tikzexternalize
 
 % Define convenience functions to use the author name and the thesis title in the PDF document properties.
 \newcommand{\authorname}{Peter Neubauer} % The author name without titles.
@@ -54,7 +60,7 @@
 \setadvisor{Univ.Prof. Dipl.-Inform. Dr.rer.nat.}{Martin Nöllenburg}{}{male}
 
 % For bachelor and master theses:
-\setfirstassistant{}{Soeren Nickel}{}{male}
+\setfirstassistant{DI}{Soeren Nickel}{}{male}
 %\setsecondassistant{Pretitle}{Forename Surname}{Posttitle}{male}
 %\setthirdassistant{Pretitle}{Forename Surname}{Posttitle}{male}
 
@@ -92,7 +98,6 @@
 % For dissertations at the PhD School:
 %\setfirstreviewerdata{Affiliation, Country}
 %\setsecondreviewerdata{Affiliation, Country}
-
 
 \begin{document}
 
@@ -132,29 +137,269 @@ The focus lies on disk contact graphs with unit-sized disks, especially on cater
 \mainmatter
 
 \chapter{Introduction}
+
 A disk contact graph is a graph for which there exists a mapping of all vertices to disks on a plane such that two vertices are connected if their respective disks are in contact with each other.
 Since \cite{Koebe1936}, we know that every planar graph is a disk contact graph.
 
 In a “weak” contact representation, the corresponding disks may touch even between unconnected vertices.
-In “strong” contact representations, the disks are in contact if and only if there is an edge.
+In “strict” contact representations, the disks are in contact if and only if there is an edge.
 
 A unit disk contact graph is a graph for which such a mapping exists with the restriction that all disks are of unit size.
 We know that it is NP-hard to decide whether a graph is a unit disk contact graph for planar graphs.
 The same complexity persists even restricting the problem only to trees, as shown in \cite{Cleve2020}.
 
 A caterpillar is a tree which consists only of a string of connected vertices called a “spine” or “backbone”, and an arbitrary number of leaf nodes connected to the spine.
-It is possible to decide the problem for caterpillars in linear time, shown for strong contact in \cite{Klemz2015} and for weak contact in \cite{Cleve2020}.
+It is possible to decide the problem for caterpillars in linear time, shown for strict contact in \cite{Klemz2015} and for weak contact in \cite{Cleve2020}.
 
 A lobster is a tree which, similar to the caterpillar, has a connected vertex string for a spine.
 The spine vertices may further be connected to subtrees with a depth of at most two, i.e. “expanding” the caterpillar concept by one step from the leaves.
 
-The software developed in conjunction with this thesis, and the experimental results obtained from running it, corroborates the knowledge so far and aids in the further research of similar graph classes.
+The \texttt{udcrgen} software developed in conjunction with this thesis, and the experimental results obtained from running it, corroborates the knowledge so far and aids in the further research of similar graph classes.
 
-\chapter{Additional Chapter}
-\todo{Enter your text here.}
+\chapter{Design and Implementation}
+
+The \texttt{udcrgen} program implements two distinct algorithms for realizing a contact representation for a caterpillar graph.
+
+\begin{itemize}
+    \item The first implements \emph{weak contact} based on the proof by Cleve \cite{Cleve2020}.
+    \item The second uses \emph{strict contact} and is based on the proof by Klemz, Nöllenburg and Prutkin \cite{Klemz2015}.
+\end{itemize}
+
+\section{Heuristic Approach}
+
+We examine a fast approach to embed a lobster graph in linear time.
+This algorithm is based on a small set of heuristics.
+It is not guaranteed to find an embedding if one is possible.
+
+The algorithm simply attempts to embed one node after the other into a triangular grid of coordinates.
+
+\subsection{Embed Order}
+
+Parent node are always placed before their children, where
+
+\begin{itemize}
+    \item the parent of every spine node is the previous spine,
+    \item the parent of a branch is a spine and
+    \item the parent of a leaf is a branch.
+\end{itemize}
+
+Beyond that, the heuristic algorithm can be configured with an ``order'' parameter.
+It admits any permutation of the three node classes, \emph{spines}, \emph{branches} and \emph{leaves}, as the order and will prefer to embed the nodes in that priority.
+For example, if the order is \textbf{LBS}, the algorithm will strive to place leaves before (further) branches before (further) spines. In \textbf{SBL}, all spines are placed first, then all branches and finally all the leaves.
+
+(2 diagrams to illustrate)
+
+When it decides on a location to embed a node, the algorithm considers all the adjacent coordinates to the parent node.
+The spine is laid out in a line, initially from left to right.
+When it appends branches or leaves, it leaves as much space as possible in the front for later nodes by preferring to embed them at locations at the back.
+
+(diagram to illustrate preference for back)
+
+\subsection{Space Heuristic}
+
+The heuristic algorithm employs a ``space heuristic'', which applies when it embeds branch nodes.
+For every candidate location for a node, it considers the number of empty slots in its immediate neighborhood. If there are not enough free locations to fit the known number of leaves on that branch, the location is disqualified and the algorithm moves on to the next candidate.
+
+(diagram to illustrate space heuristic)
+
+\subsection{Bend Heuristic}
+
+The ``bend heuristic'' is applied to spine nodes.
+Every spine node has a principal direction, which dictates the meaning of the \emph{relative} directions for its descendent nodes (like the ``back'' and ``front'' in the basic placement heuristic above).
+The next spine node can be attached to its precursor in any of the six cardinal directions of the triangular grid. However, at every step, preference is given to the direction which leaves the most free space in its two-step vicinity.
+If the nodes embedded so far lean ``heavy'' in one direction - above or below the spine - this allows us to introduce a \emph{bend} in the spine towards the direction that will hopefully allow us to place more branches and leaves later on.
+
+(diagram to illustrate bend heuristic)
+
+
+
+\section{Data Structures}
+
+Both algorithms start with a caterpillar in \emph{degree list representation}.
+This is a list of node degrees associated with the spine of the graph.
+The degree of a spine vertex is the number of neighbor spine vertices (1--2) plus the number of attached leaves. Figure~\ref{fig:degree_repr} illustrates the concept.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=240pt]{graphics/degree_repr.png}
+    \caption{Embedding for the caterpillar with degree representation (3, 2, 4, 5).}
+    \label{fig:degree_repr}
+\end{figure}
+
+If the input graph is supplied in one of the other formats understood by the program, it first converts the data into the internal representation. This is possible for any graph in linear time.
+Since a caterpillar is ``a tree for which a path remains after removing all leaves'' \cite{Klemz2015}, the procedure is:
+
+\begin{enumerate}
+    \item Remove all leaves from the input.
+    \item Locate the spine formed by the \emph{inner path} of the original graph --- look for any vertex with remaining degree of 1.
+    \item Count the degrees of every path node in the original graph.
+    \item Remember the original node identifiers of the spine vertices.
+\end{enumerate}
+
+The output data structure (Figure~\ref{fig:output_repr}) accounts for the desired graph layout as well as some practical considerations.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=180pt]{graphics/output_repr.png}
+    \caption{Internal representation of the algorithm's output.}
+    \label{fig:output_repr}
+\end{figure}
+
+\begin{itemize}
+    \item The \texttt{id} attribute maps the vertex to its original identifier in the input graph.
+    \item An association line is drawn in the output from the leaves to their \texttt{parent}s for illustration.
+    \item The \texttt{failure} flag indicates vertices which could not be placed as described below.
+\end{itemize}
+
+\section{Weak Contact Representation}
+
+All vertices in this method are aligned on a triangular grid.
+Place the \emph{spine} $(v_0, \ldots , v_n)$ on the coordinates $(0,0), (1,0), \ldots , (n,0)$.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=180pt]{graphics/slots.png}
+    \caption{Slot positions relative to the current spine vertex.}
+    \label{fig:slots}
+\end{figure}
+
+For each spine vertex in order, assign leaves to the coordinates indicated by the next free \emph{slot}.
+The slot is an ordinal type that can easily be maintained for each leaf placed and when advancing from one spine vertex to the next.
+Figure~\ref{fig:slots} illustrates the available slots.
+
+\section{Strict Contact Representation}
+
+In this algorithm, the placement of spine vertices and leaves is based on a consideration of where there is space available to place them.
+For each spine disk $(D_0, \ldots , D_{n-1})$, it places all the leaves of spine vertex $i-1$ before the disk $D_i$ itself.
+
+The placement of any vertices is generally directed by the concept of the
+
+\begin{quote}
+``bisector of the free space, which we define as the maximum cone with origin in $D_{i-1}$'s center containing no previously inserted neighbors of $D_{i-1}$ or $D_{i-2}$.'' \cite{Klemz2015}.
+\end{quote}
+
+Spine vertices are placed in the center of this bisector, while leaves are alternatingly placed as far up and as far down as possible.
+The placement of a leaf disk is therefore constrained by the following factors:
+
+\begin{itemize}
+    \item The distance to the current spine disk must be $1$ to implement unit disk contact.
+    \item It must not be placed so far back as to intersect the previous spine vertex.
+    \item It must not intersect the previous leaf disk on the same side either.
+    \item The distance to other disks without contact must consider the \emph{gap} parameter.
+\end{itemize}
+
+The \emph{gap} is an additional feature which extends the original algorithm to provide a visual distinction between disks in contact and disks not in contact with each other. It is available as a configuration parameter to the user of the program.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{graphics/strict_contact.png}
+    \caption{Constraints in placement of the next leaf vertex.}
+    \label{fig:strict_contact}
+\end{figure}
+
+Figure~\ref{fig:strict_contact} illustrates the placement constraints for disks in the strict contact representation algorithm. The blue line of unit length shows the distance to the leaf in contact with the associated spine vertex. The cyan line is the distance from the nearby constraining vertex. Its length is $1 + gap$.
+
+\section{Visualizing Failure}
+
+A disk contact representation exists only for caterpillars which satisfy the constraints on the number of leaves as proven by Cleve \cite{Cleve2020}, Klemz, Nöllenburg and Prutkin \cite{Klemz2015}.
+
+The \texttt{udcrgen} program will accept as input and create embeddings for ``overflowing'' caterpillars with too many leaf vertices.
+It places excess vertices at separate coordinates which do not conform to the disk contact rules and sets them apart with a highlight color as shown later in Figure~\ref{fig:failure}. This shows the user \emph{why} an excessive caterpillar cannot be embedded with unit disk contact.
+
+\section{Performance Measurement}
+
+Cleve \cite{Cleve2020}, Klemz, Nöllenburg and Prutkin \cite{Klemz2015} have shown that both weak and strict contact representations can be decided (and calculated) for caterpillars in linear time. This work corroborates this result empirically with run-time performance measurements of the implemented algorithms on a benchmark set of input graphs.
+
+The benchmark was run on a machine with a consumer-grade Intel Core i5-1035G4@1.10GHz CPU.
 
 % Remove following line for the final thesis.
 %\input{intro.tex} % A short introduction to LaTeX.
+
+\chapter{Evaluation}
+
+\section{Visual Comparison}
+
+The program produces images that resemble the reference images. See Figure~\ref{fig:visual_comparison}, with the illustrations by Cleve \cite{Cleve2020} (top left) and Klemz et al. \cite{Klemz2015} (bottom left), which the authors embedded manually. Compare them with the corresponding \texttt{udcrgen} output on the right. 
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{graphics/visual_comparison.png}
+    \caption{Original papers vs \texttt{udcrgen} output.}
+    \label{fig:visual_comparison}
+\end{figure}
+
+\section{Failure Output}
+
+Figure~\ref{fig:failure} shows how the program visualizes embedding failures for excessive inputs with highlights.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{graphics/failure.png}
+    \caption{Caterpillars without unit disk contact embedding, illustrated.}
+    \label{fig:failure}
+\end{figure}
+
+\section{Run Time Measurements}
+
+% \begin{table}[t]
+%     \centering
+%     \caption{Run time to generate an embedding for a caterpillar.}
+%     \label{tab:runtime_performance}
+%     \begin{tabular}{lll}
+%         \toprule
+%         spine length & time (weak contact) {[}ms{]} & time (strict contact) {[}ms{]} \\
+%         \midrule
+%         100          & -                     & -                       \\
+%         500          & -                     & -                       \\
+%         1000         & -                     & -                       \\
+%         2000         & -                     & -                       \\
+%         5000         & -                     & -                       \\
+%         10000        & -                     & -                       \\
+%         \bottomrule
+%     \end{tabular}
+% \end{table}
+
+% Table~\ref{tab:runtime_performance} shows the run times that were observed on the benchmark inputs. Refer to Figure~\ref{fig:runtime_plot} for a visual plot.
+These results are consistent with our expectation of linear run time.
+
+% \begin{figure}
+%     \begin{tikzpicture}
+%     \begin{axis}[
+%         xlabel={spine length},
+%         ylabel={time (weak embedding) {[}ms{]}},
+%         xmin=0, xmax=10000,
+%         ymin=0, ymax=3000,
+%         xtick={0,2000,4000,6000,8000,10000},
+%         ytick={0,500,1000,1500,2000,2500,3000},
+%         legend pos=north west,
+%         ymajorgrids=true,
+%         grid style=dashed,
+%     ]
+    
+%     \addplot[
+%         color=blue,
+%         mark=square,
+%         ]
+%         coordinates {
+%         (100,24)(500,102)(1000,244)(2000,483)(5000,1210)(10000,2441)
+%         };
+        
+%     \addplot[
+%         color=red,
+%         mark=square,
+%         ]
+%         coordinates {
+%         (100,30)(500,148)(1000,291)(2000,612)(5000,1499)(10000,2967)
+%         };
+        
+%         \legend{weak contact, strict contact}
+        
+%     \end{axis}
+%     \end{tikzpicture}
+%     \centering
+%     \caption{Plot of algorithm run time performance.}
+%     \label{fig:runtime_plot}
+% \end{figure}
 
 \backmatter
 
@@ -177,6 +422,6 @@ The software developed in conjunction with this thesis, and the experimental res
 
 % Add a bibliography.
 \bibliographystyle{alpha}
-%\bibliography{intro}
+\bibliography{bsc_thesis}
 
 \end{document}

@@ -1,0 +1,55 @@
+
+\documentclass{article}
+
+
+
+\begin{document}
+
+\section{Heuristic Approach}
+
+We examine a fast approach to embed a lobster graph in linear time.
+This algorithm is based on a small set of heuristics.
+It is not guaranteed to find an embedding if one is possible.
+
+The algorithm simply attempts to embed one node after the other into a triangular grid of coordinates.
+
+\subsection{Embed Order}
+
+Parent node are always placed before their children, where
+
+\begin{itemize}
+    \item the parent of every spine node is the previous spine,
+    \item the parent of a branch is a spine and
+    \item the parent of a leaf is a branch.
+\end{itemize}
+
+Beyond that, the heuristic algorithm can be configured with an ``order'' parameter.
+It admits any permutation of the three node classes, \emph{spines}, \emph{branches} and \emph{leaves}, as the order and will prefer to embed the nodes in that priority.
+For example, if the order is \textbf{LBS}, the algorithm will strive to place leaves before (further) branches before (further) spines. In \textbf{SBL}, all spines are placed first, then all branches and finally all the leaves.
+
+(2 diagrams to illustrate)
+
+When it decides on a location to embed a node, the algorithm considers all the adjacent coordinates to the parent node.
+The spine is laid out in a line, initially from left to right.
+When it appends branches or leaves, it leaves as much space as possible in the front for later nodes by preferring to embed them at locations at the back.
+
+(diagram to illustrate preference for back)
+
+\subsection{Space Heuristic}
+
+The heuristic algorithm employs a ``space heuristic'', which applies when it embeds branch nodes.
+For every candidate location for a node, it considers the number of empty slots in its immediate neighborhood. If there are not enough free locations to fit the known number of leaves on that branch, the location is disqualified and the algorithm moves on to the next candidate.
+
+(diagram to illustrate space heuristic)
+
+\subsection{Bend Heuristic}
+
+The ``bend heuristic'' is applied to spine nodes.
+Every spine node has a principal direction, which dictates the meaning of the \emph{relative} directions for its descendent nodes (like the ``back'' and ``front'' in the basic placement heuristic above).
+The next spine node can be attached to its precursor in any of the six cardinal directions of the triangular grid. However, at every step, preference is given to the direction which leaves the most free space in its two-step vicinity.
+If the nodes embedded so far lean ``heavy'' in one direction - above or below the spine - this allows us to introduce a \emph{bend} in the spine towards the direction that will hopefully allow us to place more branches and leaves later on.
+
+(diagram to illustrate bend heuristic)
+
+
+\end{document}

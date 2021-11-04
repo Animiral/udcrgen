@@ -88,15 +88,16 @@ constexpr DiskId NODISK = -1;
 /**
  * @brief A single unit-sized disk for the output graph representation.
  *
- * It has a unique vertex number within the graph and
+ * It has a unique node number within the graph and
  * 2D coordinates to represent the embedding.
  */
 struct Disk
 {
 	// graph info, filled in the classification step - see classify()
-	DiskId id; //!< unique vertex number [0..n]
-	DiskId parent; //!< parent vertex number, must be spine vertex or -1
+	DiskId id; //!< unique node number [0..n]
+	DiskId parent; //!< parent node number, must be spine vertex or -1
 	int depth; //!< distance from the spine (0 for spine vertices)
+	int children; //!< counter of direct descendant nodes
 
 	// embedding info, filled in the embedding step - see embed()
 	bool embedded; //!< whether the disk has coordinates or failure
@@ -104,5 +105,5 @@ struct Disk
 	int grid_sly; //!< triangular grid "slash-y"-coordinate (weak embedding only)
 	float x; //!< canvas x-coordinate
 	float y; //!< canvas y-coordinate
-	bool failure; //!< whether the algorithm failed to place this vertex in UDCR
+	bool failure; //!< whether the algorithm failed to place this node in UDCR
 };

@@ -124,7 +124,7 @@ TEST(Embed, embed_proper)
 	auto embedder = ProperEmbedder{};
 
 	// execute
-	embed(graph, embedder, Configuration::EmbedOrder::LBS);
+	embed(graph, embedder, Configuration::EmbedOrder::DEPTH_FIRST);
 
 	auto& spines = graph.spines();
 	auto& branches = graph.branches();
@@ -177,7 +177,7 @@ TEST(Embed, embed_weak)
 	auto embedder = WeakEmbedder{ graph };
 
 	// execute, leaves first
-	embed(graph, embedder, Configuration::EmbedOrder::LBS);
+	embed(graph, embedder, Configuration::EmbedOrder::DEPTH_FIRST);
 
 	auto& spines = graph.spines();
 	auto& branches = graph.branches();
@@ -198,13 +198,13 @@ TEST(Embed, embed_weak)
 	EXPECT_NEAR(leaves[4].x, 0, 0.01);      EXPECT_NEAR(leaves[4].y, 1.732f, 0.01);    EXPECT_EQ(leaves[4].grid_x, -1);   EXPECT_EQ(leaves[4].grid_sly, 2);
 }
 
-TEST(Embed, embed_weak_sbl)
+TEST(Embed, embed_weak_breadthfirst)
 {
 	auto graph = make_lobster();
 	auto embedder = WeakEmbedder{ graph };
 
 	// execute, spine first
-	embed(graph, embedder, Configuration::EmbedOrder::SBL);
+	embed(graph, embedder, Configuration::EmbedOrder::BREADTH_FIRST);
 
 	auto& spines = graph.spines();
 	auto& branches = graph.branches();

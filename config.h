@@ -42,18 +42,17 @@ public:
     /**
      * Heuristic preference for order of embedding.
      *
-     * L ... Leaf
-     * B ... Branch
-     * S ... Spine
+     * DEPTH_FIRST ... embed leaves before the next branch
+     * BREADTH_FIRST ... embed all branches before leaves
      */
-    enum class EmbedOrder { LBS, BLS, LSB, BSL, SBL, SLB };
+    enum class EmbedOrder { DEPTH_FIRST, BREADTH_FIRST };
 
     Algorithm algorithm = Algorithm::KLEMZ_NOELLENBURG_PRUTKIN;
     path inputFile; //!< only one supported at this time
     path outputFile; //!< only one supported at this time
     InputFormat inputFormat = InputFormat::EDGELIST;
     OutputFormat outputFormat = OutputFormat::SVG;
-    EmbedOrder embedOrder = EmbedOrder::LBS;
+    EmbedOrder embedOrder = EmbedOrder::DEPTH_FIRST;
     float gap = .1f; //!< size of gap between non-contact disks in strong UDCRs
 
     /**

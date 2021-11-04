@@ -137,12 +137,8 @@ struct Parser
 
         const auto opt = next();
 
-        if ("lbs"s == opt)  return Configuration::EmbedOrder::LBS;
-        if ("bls"s == opt)  return Configuration::EmbedOrder::BLS;
-        if ("lsb"s == opt)  return Configuration::EmbedOrder::LSB;
-        if ("bsl"s == opt)  return Configuration::EmbedOrder::BSL;
-        if ("sbl"s == opt)  return Configuration::EmbedOrder::SBL;
-        if ("slb"s == opt)  return Configuration::EmbedOrder::SLB;
+        if ("dfs"s == opt || "depth-first"s == opt)    return Configuration::EmbedOrder::DEPTH_FIRST;
+        if ("bfs"s == opt || "breadth-first"s == opt)  return Configuration::EmbedOrder::BREADTH_FIRST;
 
         throw std::out_of_range("Unknown embed order: "s + opt);
     }
@@ -276,12 +272,8 @@ void Configuration::dump(std::ostream& stream) const
 
     stream << "\tEmbed Order: ";
     switch (embedOrder) {
-    case EmbedOrder::LBS: stream << "lbs"; break;
-    case EmbedOrder::BLS: stream << "bls"; break;
-    case EmbedOrder::LSB: stream << "lsb"; break;
-    case EmbedOrder::BSL: stream << "bsl"; break;
-    case EmbedOrder::SBL: stream << "sbl"; break;
-    case EmbedOrder::SLB: stream << "slb"; break;
+    case EmbedOrder::DEPTH_FIRST: stream << "depth-first"; break;
+    case EmbedOrder::BREADTH_FIRST: stream << "breadth-first"; break;
     }
     stream << "\n";
 

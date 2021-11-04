@@ -183,9 +183,12 @@ Parent node are always placed before their children, where
     \item the parent of a leaf is a branch.
 \end{itemize}
 
-Beyond that, the heuristic algorithm can be configured with an ``order'' parameter.
-It admits any permutation of the three node classes, \emph{spines}, \emph{branches} and \emph{leaves}, as the order and will prefer to embed the nodes in that priority.
-For example, if the order is \textbf{LBS}, the algorithm will strive to place leaves before (further) branches before (further) spines. In \textbf{SBL}, all spines are placed first, then all branches and finally all the leaves.
+Beyond that, the heuristic algorithm can be configured with an ``order'' parameter, which is one of the following:
+
+\begin{itemize}
+    \item \emph{depth-first}: place all leaves on a branch before placing the next branch,
+    \item \emph{breadth-first}: place all branches on the current spine node, then all their leaves.
+\end{itemize}
 
 (2 diagrams to illustrate)
 

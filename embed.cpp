@@ -410,28 +410,6 @@ namespace
 using EmbedOrder = Configuration::EmbedOrder;
 using DiskVec = std::vector<Disk>;
 
-/**
- * Return the disk vectors to embed by their priority according to the given embed order.
- */
-std::tuple<DiskVec*, DiskVec*, DiskVec*> decodePriority(DiskGraph& graph, EmbedOrder embedOrder)
-{
-	auto* spines = &graph.spines(); // branches are ordered by parent spine
-	auto* branches = &graph.branches(); // branches are ordered by parent spine
-	auto* leaves = &graph.leaves(); // leaves are ordered by parent branch
-
-	using std::tie;
-
-	switch (embedOrder) {
-	case EmbedOrder::LBS: return tie(leaves, branches, spines);
-	case EmbedOrder::BLS: return tie(branches, leaves, spines);
-	case EmbedOrder::LSB: return tie(leaves, spines, branches);
-	case EmbedOrder::BSL: return tie(branches, spines, leaves);
-	case EmbedOrder::SBL: return tie(spines, branches, leaves);
-	case EmbedOrder::SLB: return tie(spines, leaves, branches);
-	default: assert(0); return {};
-	}
-}
-
 void embedDisk(DiskGraph& graph, Embedder& embedder, Disk& disk)
 {
 	if (disk.embedded)
@@ -453,10 +431,43 @@ using EmbedOrder = Configuration::EmbedOrder;
 
 void embed(DiskGraph& graph, Embedder& embedder, EmbedOrder embedOrder)
 {
-	DiskVec *p1, *p2, *p3;
-	std::tie(p1, p2, p3) = decodePriority(graph, embedOrder);
+	auto& spines = graph.spines();
+	auto& branches = graph.branches(); // branches are ordered by parent spine
+	auto& leaves = graph.leaves(); // leaves are ordered by parent branch
 
-	for (Disk& disk : *p1) embedDisk(graph, embedder, disk);
-	for (Disk& disk : *p2) embedDisk(graph, embedder, disk);
-	for (Disk& disk : *p3) embedDisk(graph, embedder, disk);
+	auto spineIt = spines.begin();
+	auto branchIt = branches.begin();
+	auto leafIt = leaves.begin();
+
+	for (; spineIt != spines.end(); ++spineIt) {
+		embedDisk(graph, embedder, *spineIt);
+
+		for (; branchIt != branches.end(); ++branchIt) {
+			if (branchIt->parent != spineIt->id)
+				break; // skip to next spine
+
+			embedDisk(graph, embedder, *branchIt);
+
+			if (EmbedOrder::DEPTH_FIRST == embedOrder) {
+				for (; leafIt != leaves.end(); ++leafIt) {
+					if (leafIt->parent != branchIt->id)
+						break; // skip to next branch
+
+					embedDisk(graph, embedder, *leafIt);
+				}
+			}
+		}
+
+		if (EmbedOrder::BREADTH_FIRST == embedOrder) {
+			for (; leafIt != leaves.end(); ++leafIt) {
+				const Disk* branch = graph.findDisk(leafIt->parent);
+				assert(branch);
+
+				if (branch->parent != spineIt->id)
+					break; // skip to next spine
+
+				embedDisk(graph, embedder, *leafIt);
+			}
+		}
+	}
 }

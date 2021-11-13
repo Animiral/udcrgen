@@ -293,3 +293,56 @@ TEST(Embed, space_heuristic)
 	EXPECT_EQ(d->grid_x, 1);
 	EXPECT_EQ(d->grid_sly, -1);
 }
+
+// The weak embedder must correctly lay out nodes in the general direction of
+// its "principal direction" attribute. This is the basis for the "bend heuristic".
+TEST(Embed, bend_direction)
+{
+	auto embedder = GridEmbedImpl{ 5 };
+	Disk disk[5] = { Disk{ 0, 0, 0, 0, false } };
+	embedder.putDiskAt(disk[0], { 0, 0 });
+
+	embedder.principalDirection = Dir::RIGHT_DOWN;
+	embedder.putDiskNear(disk[1], { 0, 0 }, GridEmbedImpl::Affinity::UP);
+	EXPECT_EQ(disk[1].grid_x, 1);
+	EXPECT_EQ(disk[1].grid_sly, -1);
+
+	embedder.principalDirection = Dir::LEFT_DOWN;
+	embedder.putDiskNear(disk[2], { 0, 0 }, GridEmbedImpl::Affinity::UP);
+	EXPECT_EQ(disk[2].grid_x, 0);
+	EXPECT_EQ(disk[2].grid_sly, -1);
+
+	embedder.principalDirection = Dir::RIGHT;
+	embedder.putDiskNear(disk[3], { 0, 0 }, GridEmbedImpl::Affinity::UP);
+	EXPECT_EQ(disk[3].grid_x, 1);
+	EXPECT_EQ(disk[3].grid_sly, 0);
+
+	embedder.principalDirection = Dir::RIGHT_UP;
+	embedder.putDiskNear(disk[4], { 0, 0 }, GridEmbedImpl::Affinity::UP);
+	EXPECT_EQ(disk[4].grid_x, 0);
+	EXPECT_EQ(disk[4].grid_sly, 1);
+}
+
+// The embedder must correctly evaluate the most appropriate bend direction.
+TEST(Embed, determinate_principal)
+{
+	auto embedder = GridEmbedImpl{ 5 };
+	Disk disk[5] = { Disk{ 0, 0, 0, 0, false } };
+	embedder.putDiskAt(disk[0], { 0, 0 });
+	embedder.putDiskAt(disk[1], { 1, 0 });
+
+	// must be biased towards preserving previous principal dir
+	Dir actual = embedder.determinePrincipal({ 1, 0 });
+	EXPECT_EQ(actual, Dir::RIGHT);
+
+	// must be biased in the general direction of the previous principal dir
+	embedder.putDiskAt(disk[2], { 2, -2 });
+	actual = embedder.determinePrincipal({ 1, 0 });
+	EXPECT_EQ(actual, Dir::RIGHT_UP);
+
+	// must be biased against blocked branches
+	embedder.putDiskAt(disk[3], { 2, 0 });
+	embedder.putDiskAt(disk[4], { 2, 1 });
+	actual = embedder.determinePrincipal({ 1, 0 });
+	EXPECT_EQ(actual, Dir::LEFT_UP);
+}

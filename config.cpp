@@ -2,6 +2,7 @@
 #include <string>
 #include <iomanip>
 #include <functional>
+#include <filesystem>
 #include <stdexcept>
 #include <cassert>
 #include "utility/util.h"
@@ -247,6 +248,8 @@ void Configuration::readArgv(int argc, const char* argv[])
 void Configuration::dump(std::ostream& stream) const
 {
     stream << "Configuration:\n\n";
+
+    stream << "(Running from: " << std::filesystem::current_path() << ")\n";
 
     stream << "\tAlgorithm: ";
     switch (algorithm) {

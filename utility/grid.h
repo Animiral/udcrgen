@@ -28,9 +28,13 @@ public:
 	Disk* at(Coord coord) const;
 
 	/**
-	 * Return the coordinate after taking a step in a particular relative direction.
+	 * @brief Return the coordinate after taking a step in a particular relative direction.
+	 *
+	 * @param from origin coordinate to step from
+	 * @param dir principal step direction ("FORWARD")
+	 * @param rel actual step direction relative to the principal
 	 */
-	Coord step(Coord from, Rel rel) const;
+	Coord step(Coord from, Dir dir, Rel rel) const;
 
 	/**
 	 * Turn the given coordinates into a 2D Euclidean plane vector.

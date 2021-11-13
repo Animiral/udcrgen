@@ -231,41 +231,136 @@ Vec2 ProperEmbedder::findLeafPosition(Vec2 constraint) noexcept
 	return leafPosition;
 }
 
+
+GridEmbedImpl::GridEmbedImpl(size_t size) noexcept
+	: principalDirection(Dir::RIGHT), grid_(size)
+{
+}
+
+const Grid& GridEmbedImpl::grid() const noexcept
+{
+	return grid_;
+}
+
+GridEmbedImpl::Affinity GridEmbedImpl::determineAffinity(Coord center) const noexcept
+{
+	// affinity is based on the available free space in the vicinity
+	Coord upperArea[] = {
+		grid_.step(center, principalDirection, Rel::BACK_UP),
+		grid_.step(grid_.step(center, principalDirection, Rel::BACK_UP), principalDirection, Rel::BACK),
+		grid_.step(grid_.step(center, principalDirection, Rel::BACK_UP), principalDirection, Rel::BACK_UP),
+		grid_.step(grid_.step(center, principalDirection, Rel::BACK_UP), principalDirection, Rel::FWD_UP),
+		grid_.step(center, principalDirection, Rel::FWD_UP),
+		grid_.step(grid_.step(center, principalDirection, Rel::FWD_UP), principalDirection, Rel::FWD_UP),
+		grid_.step(grid_.step(center, principalDirection, Rel::FWD_UP), principalDirection, Rel::FORWARD)
+	};
+
+	Coord lowerArea[] = {
+		grid_.step(center, principalDirection, Rel::BACK_DOWN),
+		grid_.step(grid_.step(center, principalDirection, Rel::BACK_DOWN), principalDirection, Rel::BACK),
+		grid_.step(grid_.step(center, principalDirection, Rel::BACK_DOWN), principalDirection, Rel::BACK_DOWN),
+		grid_.step(grid_.step(center, principalDirection, Rel::BACK_DOWN), principalDirection, Rel::FWD_DOWN),
+		grid_.step(center, principalDirection, Rel::FWD_DOWN),
+		grid_.step(grid_.step(center, principalDirection, Rel::FWD_DOWN), principalDirection, Rel::FWD_DOWN),
+		grid_.step(grid_.step(center, principalDirection, Rel::FWD_DOWN), principalDirection, Rel::FORWARD)
+	};
+
+	int upperWeight = 0;
+	int lowerWeight = 0;
+
+	for (int i = 0; i < 7; i++) {
+		upperWeight += nullptr != grid_.at(upperArea[i]);
+		lowerWeight += nullptr != grid_.at(lowerArea[i]);
+	}
+
+	return lowerWeight < upperWeight ? Affinity::DOWN : Affinity::UP;
+}
+
+Dir GridEmbedImpl::determinePrincipal(Coord tip) const noexcept
+{
+	return Dir::RIGHT;
+}
+
+int GridEmbedImpl::countFreeNeighbors(Coord center) const noexcept
+{
+	Coord neighbors[] = {
+		grid_.step(center, principalDirection, Rel::BACK),
+		grid_.step(center, principalDirection, Rel::BACK_UP),
+		grid_.step(center, principalDirection, Rel::BACK_DOWN),
+		grid_.step(center, principalDirection, Rel::FWD_UP),
+		grid_.step(center, principalDirection, Rel::FWD_DOWN),
+		grid_.step(center, principalDirection, Rel::FORWARD)
+	};
+
+	return std::count_if(neighbors, neighbors + 6,
+		[this](Coord c) { return !grid_.at(c); });
+}
+
+void GridEmbedImpl::putDiskNear(Disk& disk, Coord coord, Affinity affinity) noexcept
+{
+	static const Rel upCandidates[6] = { Rel::BACK, Rel::BACK_UP, Rel::FWD_UP, Rel::FORWARD, Rel::FWD_DOWN, Rel::BACK_DOWN };
+	static const Rel downCandidates[6] = { Rel::BACK, Rel::BACK_DOWN, Rel::FWD_DOWN, Rel::FORWARD, Rel::FWD_UP, Rel::BACK_UP };
+
+	const Rel *candidates, *end;
+	
+	if (0 == disk.depth) {
+		static const Rel spineRel = Rel::FORWARD;
+		candidates = &spineRel;
+		end = candidates + 1;
+	}
+	else {
+		if (Affinity::UP == affinity)
+			candidates = upCandidates;
+		else
+			candidates = downCandidates;
+
+		end = candidates + 6;
+	}
+
+	for (; candidates != end; ++candidates) {
+		Coord target = grid_.step(coord, principalDirection, *candidates);
+
+		if (!grid_.at(target) &&
+			// space heuristic: we must leave space for leaves
+			countFreeNeighbors(target) >= disk.children) {
+
+			putDiskAt(disk, target);
+			return;
+		}
+	}
+
+	// no free coordinate found
+	disk.failure = true;
+}
+
+void GridEmbedImpl::putDiskAt(Disk& disk, Coord coord) noexcept
+{
+	grid_.put(coord, disk);
+	disk.grid_x = coord.x;
+	disk.grid_sly = coord.sly;
+	Vec2 diskVec = grid_.vec(coord);
+	disk.x = diskVec.x;
+	disk.y = diskVec.y;
+}
+
+
 WeakEmbedder::WeakEmbedder(DiskGraph& graph) noexcept :
-	graph_(&graph), grid_{ graph.size() }
+	graph_(&graph), impl_{ graph.size() }
 {
 	// sync grid to graph state
 	for (Disk& disk : graph.spines()) {
 		if (disk.embedded)
-			grid_.put({ disk.grid_x, disk.grid_sly }, disk);
+			impl_.putDiskAt(disk, { disk.grid_x, disk.grid_sly });
 	}
 	for (Disk& disk : graph.branches()) {
 		if (disk.embedded)
-			grid_.put({ disk.grid_x, disk.grid_sly }, disk);
+			impl_.putDiskAt(disk, { disk.grid_x, disk.grid_sly });
 	}
 	for (Disk& disk : graph.leaves()) {
 		if (disk.embedded)
-			grid_.put({ disk.grid_x, disk.grid_sly }, disk);
+			impl_.putDiskAt(disk, { disk.grid_x, disk.grid_sly });
 	}
 }
-
-/**
- * Neighbors are placed in-between in the rows above and below.
- */
-const float Y_HIGH = std::sqrt(3.f) / 2;
-
-/**
- * Relative positions by slot name.
- */
-const Vec2 relativeSlots[] = {
-	Vec2{ -1, 0 },         // BEHIND
-	Vec2{ -.5, Y_HIGH },   // UP
-	Vec2{ -.5, -Y_HIGH },  // DOWN
-	Vec2{ .5, Y_HIGH },    // FWD_UP
-	Vec2{ .5, -Y_HIGH },   // FWD_DOWN
-	Vec2{ 1, 0 },          // FRONT
-	Vec2{ 0, Y_FAIL }      // FAIL
-};
 
 void WeakEmbedder::embed(Disk& disk)
 {
@@ -288,15 +383,15 @@ void WeakEmbedder::embedSpine(Disk& disk) noexcept
 		const Disk* parent = graph_->findDisk(disk.parent);
 		assert(parent);
 		Coord parentCoord{ parent->grid_x, parent->grid_sly };
-		coord = grid_.step(parentCoord, Rel::FORWARD);
+		coord = impl_.grid().step(parentCoord, impl_.principalDirection, Rel::FORWARD);
 	}
 
-	if (grid_.at(coord)) {
+	if (impl_.grid().at(coord)) {
 		disk.failure = true;
 		trace("FAIL spine id {}", disk.id);
 	}
 	else {
-		putDiskAt(disk, coord);
+		impl_.putDiskAt(disk, coord);
 		trace("Embed spine id {} at ({}/{})", disk.id, disk.x, disk.y);
 	}
 }
@@ -308,9 +403,9 @@ void WeakEmbedder::embedBranchOrLeaf(Disk& disk) noexcept
 	const Disk* parent = graph_->findDisk(disk.parent);
 	assert(parent);
 	Coord parentCoord{ parent->grid_x, parent->grid_sly };
-	Affinity affinity = determineAffinity(parentCoord); // whether to place disk high or low
+	GridEmbedImpl::Affinity affinity = impl_.determineAffinity(parentCoord); // whether to place disk high or low
 
-	putDiskNear(disk, parentCoord, affinity);
+	impl_.putDiskNear(disk, parentCoord, affinity);
 
 	if (disk.failure) {
 		trace(1 == disk.depth ? "FAIL branch id {}" : "FAIL leaf id {}", disk.id);
@@ -318,89 +413,6 @@ void WeakEmbedder::embedBranchOrLeaf(Disk& disk) noexcept
 	else {
 		trace(1 == disk.depth ? "Embed branch id {} at ({}/{})" : "Embed leaf id {} at ({}/{})", disk.id, disk.x, disk.y);
 	}
-}
-
-void WeakEmbedder::putDiskNear(Disk& disk, Coord coord, Affinity affinity) noexcept
-{
-	static const Rel upCandidates[6] = { Rel::BACK, Rel::BACK_UP, Rel::FWD_UP, Rel::FORWARD, Rel::FWD_DOWN, Rel::BACK_DOWN };
-	static const Rel downCandidates[6] = { Rel::BACK, Rel::BACK_DOWN, Rel::FWD_DOWN, Rel::FORWARD, Rel::FWD_UP, Rel::BACK_UP };
-
-	auto* const candidates = Affinity::UP == affinity ? upCandidates : downCandidates;
-	auto* const end = candidates + 6;
-
-	for (int i = 0; i < 6; i++) {
-		Coord target = grid_.step(coord, candidates[i]);
-
-		if (!grid_.at(target) &&
-			// space heuristic: we must leave space for leaves
-			countFreeNeighbors(target) >= disk.children) {
-
-			putDiskAt(disk, target);
-			return;
-		}
-	}
-
-	// no free coordinate found
-	disk.failure = true;
-}
-
-void WeakEmbedder::putDiskAt(Disk& disk, Coord coord) noexcept
-{
-	grid_.put(coord, disk);
-	disk.grid_x = coord.x;
-	disk.grid_sly = coord.sly;
-	Vec2 diskVec = grid_.vec(coord);
-	disk.x = diskVec.x;
-	disk.y = diskVec.y;
-}
-
-WeakEmbedder::Affinity WeakEmbedder::determineAffinity(Coord center) noexcept
-{
-	// affinity is based on the available free space in the vicinity
-	Coord upperArea[] = {
-		grid_.step(center, Rel::BACK_UP),
-		grid_.step(grid_.step(center, Rel::BACK_UP), Rel::BACK),
-		grid_.step(grid_.step(center, Rel::BACK_UP), Rel::BACK_UP),
-		grid_.step(grid_.step(center, Rel::BACK_UP), Rel::FWD_UP),
-		grid_.step(center, Rel::FWD_UP),
-		grid_.step(grid_.step(center, Rel::FWD_UP), Rel::FWD_UP),
-		grid_.step(grid_.step(center, Rel::FWD_UP), Rel::FORWARD)
-	};
-
-	Coord lowerArea[] = {
-		grid_.step(center, Rel::BACK_DOWN),
-		grid_.step(grid_.step(center, Rel::BACK_DOWN), Rel::BACK),
-		grid_.step(grid_.step(center, Rel::BACK_DOWN), Rel::BACK_DOWN),
-		grid_.step(grid_.step(center, Rel::BACK_DOWN), Rel::FWD_DOWN),
-		grid_.step(center, Rel::FWD_DOWN),
-		grid_.step(grid_.step(center, Rel::FWD_DOWN), Rel::FWD_DOWN),
-		grid_.step(grid_.step(center, Rel::FWD_DOWN), Rel::FORWARD)
-	};
-
-	int upperWeight = 0;
-	int lowerWeight = 0;
-
-	for (int i = 0; i < 7; i++) {
-		upperWeight += nullptr != grid_.at(upperArea[i]);
-		lowerWeight += nullptr != grid_.at(lowerArea[i]);
-	}
-
-	return lowerWeight < upperWeight ? Affinity::DOWN : Affinity::UP;
-}
-
-int WeakEmbedder::countFreeNeighbors(Coord center) noexcept
-{
-	Coord neighbors[] = {
-		grid_.step(center, Rel::BACK),
-		grid_.step(center, Rel::BACK_UP),
-		grid_.step(center, Rel::BACK_DOWN),
-		grid_.step(center, Rel::FWD_UP),
-		grid_.step(center, Rel::FWD_DOWN),
-		grid_.step(center, Rel::FORWARD)
-	};
-
-	return std::count_if(neighbors, neighbors + 6,
-		[this](Coord c) { return !grid_.at(c); });
 }
 
 namespace

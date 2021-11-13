@@ -77,10 +77,20 @@ struct Coord
 };
 
 /**
- * Relative step directions on the triangular grid.
- * The direction is not fixed along a particular axis, but oriented along the spine.
+ * Absolute step directions on the triangular grid.
  */
-enum class Rel { HERE, BACK, BACK_UP, BACK_DOWN, FWD_UP, FWD_DOWN, FORWARD };
+enum class Dir { LEFT_DOWN = 0, LEFT = 1, LEFT_UP = 2, RIGHT_UP = 3, RIGHT = 4, RIGHT_DOWN = 5 };
+
+/**
+ * @brief Relative step directions on the triangular grid.
+ *
+ * The direction is not fixed along a particular axis, but oriented along the spine.
+ * The naming refers to the orientation under the default principal
+ * (right) direction. More precisely, UP = counter-clockwise,
+ * DOWN = clockwise.
+ */
+enum class Rel { FORWARD = 0, FWD_DOWN = 1, BACK_DOWN = 2,
+	BACK = 3, BACK_UP = 4, FWD_UP = 5, HERE = 6 };
 
 using DiskId = int;
 constexpr DiskId NODISK = -1;

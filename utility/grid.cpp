@@ -19,17 +19,21 @@ Disk* Grid::at(Coord coord) const
 	}
 }
 
-Coord Grid::step(Coord from, Rel rel) const
+Coord Grid::step(Coord from, Dir dir, Rel rel) const
 {
-	switch (rel) {
+	if (Rel::HERE == rel)
+		return from;
+
+	Dir absolute = static_cast<Dir>((static_cast<int>(dir) + static_cast<int>(rel)) % 6);
+
+	switch (absolute) {
 	default:
-	case Rel::HERE:      return from;
-	case Rel::BACK:      return { from.x - 1, from.sly };
-	case Rel::BACK_UP:   return { from.x - 1, from.sly + 1 };
-	case Rel::BACK_DOWN: return { from.x, from.sly - 1 };
-	case Rel::FWD_UP:    return { from.x, from.sly + 1 };
-	case Rel::FWD_DOWN:  return { from.x + 1, from.sly - 1 };
-	case Rel::FORWARD:   return { from.x + 1, from.sly };
+	case Dir::LEFT:       return { from.x - 1, from.sly };
+	case Dir::LEFT_UP:    return { from.x - 1, from.sly + 1 };
+	case Dir::LEFT_DOWN:  return { from.x, from.sly - 1 };
+	case Dir::RIGHT_UP:   return { from.x, from.sly + 1 };
+	case Dir::RIGHT_DOWN: return { from.x + 1, from.sly - 1 };
+	case Dir::RIGHT:      return { from.x + 1, from.sly };
 	}
 }
 

@@ -435,11 +435,15 @@ void WeakEmbedder::embedSpine(Disk& disk) noexcept
 {
 	Coord coord{ 0, 0 };
 
-	if(-1 != disk.parent)
+	if (-1 != disk.parent)
 	{
 		const Disk* parent = graph_->findDisk(disk.parent);
 		assert(parent);
 		Coord parentCoord{ parent->grid_x, parent->grid_sly };
+
+		// bend heuristic
+		impl_.principalDirection = impl_.determinePrincipal(parentCoord);
+
 		coord = impl_.grid().step(parentCoord, impl_.principalDirection, Rel::FORWARD);
 	}
 

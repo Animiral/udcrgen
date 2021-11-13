@@ -24,9 +24,7 @@ Coord Grid::step(Coord from, Dir dir, Rel rel) const
 	if (Rel::HERE == rel)
 		return from;
 
-	Dir absolute = static_cast<Dir>((static_cast<int>(dir) + static_cast<int>(rel)) % 6);
-
-	switch (absolute) {
+	switch (dir + rel) {
 	default:
 	case Dir::LEFT:       return { from.x - 1, from.sly };
 	case Dir::LEFT_UP:    return { from.x - 1, from.sly + 1 };

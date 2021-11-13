@@ -92,6 +92,8 @@ enum class Dir { LEFT_DOWN = 0, LEFT = 1, LEFT_UP = 2, RIGHT_UP = 3, RIGHT = 4, 
 enum class Rel { FORWARD = 0, FWD_DOWN = 1, BACK_DOWN = 2,
 	BACK = 3, BACK_UP = 4, FWD_UP = 5, HERE = 6 };
 
+Dir operator+(Dir dir, Rel rel) noexcept;
+
 using DiskId = int;
 constexpr DiskId NODISK = -1;
 

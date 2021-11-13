@@ -322,3 +322,27 @@ TEST(Embed, bend_direction)
 	EXPECT_EQ(disk[4].grid_x, 0);
 	EXPECT_EQ(disk[4].grid_sly, 1);
 }
+
+// The embedder must correctly evaluate the most appropriate bend direction.
+TEST(Embed, determinate_principal)
+{
+	auto embedder = GridEmbedImpl{ 5 };
+	Disk disk[5] = { Disk{ 0, 0, 0, 0, false } };
+	embedder.putDiskAt(disk[0], { 0, 0 });
+	embedder.putDiskAt(disk[1], { 1, 0 });
+
+	// must be biased towards preserving previous principal dir
+	Dir actual = embedder.determinePrincipal({ 1, 0 });
+	EXPECT_EQ(actual, Dir::RIGHT);
+
+	// must be biased in the general direction of the previous principal dir
+	embedder.putDiskAt(disk[2], { 2, -2 });
+	actual = embedder.determinePrincipal({ 1, 0 });
+	EXPECT_EQ(actual, Dir::RIGHT_UP);
+
+	// must be biased against blocked branches
+	embedder.putDiskAt(disk[3], { 2, 0 });
+	embedder.putDiskAt(disk[4], { 2, 1 });
+	actual = embedder.determinePrincipal({ 1, 0 });
+	EXPECT_EQ(actual, Dir::LEFT_UP);
+}

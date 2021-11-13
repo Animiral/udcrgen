@@ -278,7 +278,64 @@ GridEmbedImpl::Affinity GridEmbedImpl::determineAffinity(Coord center) const noe
 
 Dir GridEmbedImpl::determinePrincipal(Coord tip) const noexcept
 {
-	return Dir::RIGHT;
+	// bias candidates towards preserving current principal
+	Dir dir = principalDirection;
+	Dir candidates[6] = { dir + Rel::FORWARD, dir + Rel::FWD_DOWN, dir + Rel::FWD_UP,
+		dir + Rel::BACK_DOWN, dir + Rel::BACK_UP, dir + Rel::BACK };
+
+	Dir principal; // best candidate
+	int bestValue = 200; // higher value = more blocked spaces, less desirable
+
+	for (int i = 0; i < 6; i++) {
+		Coord center = grid_.step(tip, candidates[i], Rel::FORWARD);
+
+		// affinity is based on the available free space in the vicinity
+		Coord branchPoints[] = {
+			grid_.step(center, principalDirection, Rel::FORWARD),
+			grid_.step(center, principalDirection, Rel::BACK),
+			grid_.step(center, principalDirection, Rel::BACK_UP),
+			grid_.step(center, principalDirection, Rel::FWD_UP),
+			grid_.step(center, principalDirection, Rel::BACK_DOWN),
+			grid_.step(center, principalDirection, Rel::FWD_DOWN)
+		};
+
+		Coord leafPoints[] = {
+			grid_.step(grid_.step(center, principalDirection, Rel::FORWARD), principalDirection, Rel::FORWARD),
+			grid_.step(grid_.step(center, principalDirection, Rel::FORWARD), principalDirection, Rel::FWD_UP),
+			grid_.step(grid_.step(center, principalDirection, Rel::FORWARD), principalDirection, Rel::FWD_DOWN),
+			grid_.step(grid_.step(center, principalDirection, Rel::FWD_UP), principalDirection, Rel::FWD_UP),
+			grid_.step(grid_.step(center, principalDirection, Rel::FWD_DOWN), principalDirection, Rel::FWD_DOWN),
+			grid_.step(grid_.step(center, principalDirection, Rel::BACK_UP), principalDirection, Rel::FWD_UP),
+			grid_.step(grid_.step(center, principalDirection, Rel::BACK_UP), principalDirection, Rel::BACK_UP),
+			grid_.step(grid_.step(center, principalDirection, Rel::BACK_DOWN), principalDirection, Rel::FWD_DOWN),
+			grid_.step(grid_.step(center, principalDirection, Rel::BACK_DOWN), principalDirection, Rel::BACK_DOWN),
+			grid_.step(grid_.step(center, principalDirection, Rel::BACK), principalDirection, Rel::BACK),
+			grid_.step(grid_.step(center, principalDirection, Rel::BACK), principalDirection, Rel::BACK_UP),
+			grid_.step(grid_.step(center, principalDirection, Rel::BACK), principalDirection, Rel::BACK_DOWN)
+		};
+
+		int value = 0;
+
+		if (grid_.at(center))
+			value += 100;
+
+		for (int j = 0; j < 6; j++) {
+			if (grid_.at(branchPoints[j]))
+				value += 2;
+		}
+
+		for (int j = 0; j < 12; j++) {
+			if (grid_.at(leafPoints[j]))
+				value += 1;
+		}
+
+		if (value < bestValue) {
+			bestValue = value;
+			principal = candidates[i];
+		}
+	}
+
+	return principal;
 }
 
 int GridEmbedImpl::countFreeNeighbors(Coord center) const noexcept

@@ -79,3 +79,11 @@ bool Coord::operator==(Coord c) const noexcept
 {
 	return x == c.x && sly == c.sly;
 }
+
+Dir operator+(Dir dir, Rel rel) noexcept
+{
+	if (Rel::HERE == rel)
+		return dir;
+
+	return static_cast<Dir>((static_cast<int>(dir) + static_cast<int>(rel)) % 6);
+}

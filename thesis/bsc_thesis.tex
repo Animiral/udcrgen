@@ -29,6 +29,10 @@
 %\usepgfplotslibrary{external} % does not seem to work in Overleaf?!
 %\tikzexternalize
 
+% CUSTOM DEFINITIONS
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+
 % Define convenience functions to use the author name and the thesis title in the PDF document properties.
 \newcommand{\authorname}{Peter Neubauer} % The author name without titles.
 \newcommand{\thesistitle}{Practical Examination of Unit Disk Contact Representations} % The title of the thesis. The English version should be used, if it exists.
@@ -158,12 +162,178 @@ The \texttt{udcrgen} software developed in conjunction with this thesis, and the
 
 \chapter{Design and Implementation}
 
-The \texttt{udcrgen} program implements two distinct algorithms for realizing a contact representation for a caterpillar graph.
+The \texttt{udcrgen} program implements two distinct algorithms for realizing a contact representation for a caterpillar.
 
 \begin{itemize}
     \item The first implements \emph{weak contact} based on the proof by Cleve \cite{Cleve2020}.
     \item The second uses \emph{strict contact} and is based on the proof by Klemz, Nöllenburg and Prutkin \cite{Klemz2015}.
 \end{itemize}
+
+The \texttt{udcrgen} program implements two distinct algorithms for realizing a weak contact representation for a lobster.
+
+\begin{itemize}
+    \item The first uses the exact dynamic programming approach described in \cite{DBLP:journals/corr/abs-2103-08416}.
+    \item The second uses a new, fast heuristic and is described in this work.
+\end{itemize}
+
+\section{Dynamic Programming Approach}
+
+Dynamic programming is a technique whereby a problem is solved by dividing it into smaller sub-problems and combining their solutions.
+A key feature of this approach is the reuse of solutions to sub-problems which emerge in different problem divisions or \emph{branches}.
+
+The weak embedding problem for lobsters lends itself to this approach due to the following properties.
+
+\begin{theorem}[Grid Layout]
+If a weak unit disk embedding exists for a spine tree graph $G$ of depth $d<8$, then there exists a weak embedding of $G$ on the triangular grid.
+\end{theorem}
+
+\begin{theorem}[X-Monotonicity]
+If a weak unit disk embedding exists for a lobster $G$, then there exists a weak embedding of $G$ in which the x-coordinates of the spine disks are strictly monotone increasing.
+\end{theorem}
+
+Therefore we restrict our approach to find a weak embedding on a triangular grid in which the x-coordinates of the spine disks are strictly monotone increasing. We call this a \emph{tri-grid x-monotone} embedding.
+
+Using dynamic programming, we can construct an embedding for a lobster of size $n$ in time linear in $n$.
+
+\subsection{Problem Definition}
+
+\begin{definition}[Partial Embedding Problem]
+The partial embedding problem is the search problem of finding a tri-grid x-monotone embedding from an ``intermediate state''. The answer, if a solution exists, is an embedding $\mathcal E(\mathcal G_0)$, where $\mathcal G_0$ is a whole lobster.
+\end{definition}
+
+The intermediate state consists of the following components.
+
+\begin{itemize}
+    \item The \emph{fundament} $F$, relevant grid locations which are occupied by previously placed disks,
+    \item a \emph{partial lobster} $\mathcal G$ yet to be embedded adjacent to a \emph{spine head} $d_s$,
+    \item a set of \emph{loose branches} $\mathcal B$ to be embedded also adjacent to the same \emph{spine head},
+    \item a set of \emph{loose leaves} $\mathcal L$ to be embedded adjacent to a \emph{branch head} $d_b$ and
+    \item an \emph{order} $\leq_{\mathcal G_0}$ over all disks (notably those yet to be placed).
+\end{itemize}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics{graphics/dp-problem.pdf}
+    \caption{Illustration of an instance of the partial embedding problem.}
+    \label{fig:dp-problem}
+\end{figure}
+
+To elaborate:
+
+\begin{itemize}
+    \item The spine head $d_s$ and branch head $d_b$ are the most-recently placed spine and branch disks, respectively.
+    \item If the set of loose leaves $\mathcal L$ is non-empty, $d_b$ is always adjacent to $d_s$.
+    \item The \emph{order} $\leq_{\mathcal G_0}$ is constant over all descendant problem instances. At any point, all $d_\ell \in \mathcal L$ are ordered before $d_b \in \mathcal B$ before $d_p \in \mathcal G$, with near spine disks before far spine disks. This order ensures that we always consistently choose the next disk to embed.
+    \item Given a particular \emph{initial lobster} $\mathcal G_0$, there exists a unique \emph{initial partial embedding problem} in which $S = \mathcal B = \mathcal L = \emptyset$, $\mathcal G = \mathcal G_0$ and $\leq_{\mathcal G_0}$ is deterministically defined based on $\mathcal G_0$.
+\end{itemize}
+
+\medskip
+
+We construct the sub-instances of the partial embedding problem instance as follows:
+
+\begin{enumerate}
+    \item Let $d$ be the next disk to embed in order.
+    \item If there is no place available on the grid for $d$, abort. The instance has no solution.
+    \item Let $p$ be one of the possible ($\leq 5$) grid coordinates for embedding $d$.
+    \item Construct the fundament of the new sub-instance $F' = F \cup p$.
+    \item Remove $d$ from the partial input.
+    \begin{itemize}
+        \item If $d \in \mathcal L$, let $\mathcal L' = \mathcal L \setminus d$.
+        \item If $d \in \mathcal B$, let $\mathcal B' = \mathcal B \setminus d$ and $\mathcal L' = \Gamma^+(d)$ (leaves on this branch). Let $d_b' = d$ be the new branch head.
+        \item If $d \in \mathcal G$, let $\mathcal G' = \mathcal G \setminus \Gamma^*(d)$ (remove $d$ with all branches and leaves). Let $\mathcal B' = \Gamma^+(d)$ (branches on this spine). Let $d_s' = d$ be the new spine head.
+    \end{itemize}
+\end{enumerate}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{graphics/dp-subproblems.pdf}
+    \caption{Sub-instances of an instance.}
+    \label{fig:my_label}
+\end{figure}
+
+The solution to any of the thus constructed sub-instances is then also a solution to the whole \emph{partial embedding instance}.
+
+\subsection{Instance Equivalence}
+
+The limited branching factor and x-monotonicity property of lobsters ensure that the dynamic programming approach can theoretically find a solution in time linear in the size $n$ of the lobster.
+
+However, to estimate real-world tractability, we must examine the number of concurrent partial embedding instances that can emerge in this approach.
+
+This amounts to enumerating all the possible configurations of the \emph{local fundament}, which is restricted to the area where the \emph{fundament} may overlap and thus interfere with future disk placement.
+
+(figure illustrating locality = fundament cap reach)
+
+We generally consider or expand the partial instances in a breadth-first-search manner, that is, in order of increasing size of the fundament. The number of instances at any given size is bounded by a (large) constant. We can ``forget'' about partial instances once expanded, because their solution will be given in entirety by the solution of some descendant problem. Therefore the question of equivalence of two partial instances can also ignore the size aspect.
+
+\begin{definition}[Comparability]
+Two partial embedding problem instances are \emph{comparable} if they are same-sized and based on the same $\mathcal G_0$.
+\end{definition}
+
+This implies that the order $\leq_{\mathcal G_0}$ of two comparable instances is the same as well.
+We are only ever interested in comparing comparable instances and will from here on assume by convention that, whenever we talk about two instances in the same context, that they are comparable.
+
+This brings us to the key definitions for determining the worst-case cost of the dynamic programming approach.
+
+\begin{definition}[Equivalence]
+Let $\mathbf P_1$ and $\mathbf P_2$ be two comparable partial embedding problem instances. $\mathbf P_1$ and $\mathbf P_2$ are \emph{equivalent} if and only if for any embedding $\mathcal E(\mathcal G_0)$ that solves $\mathbf P_1$, we can construct a not necessarily different embedding $\mathcal E'(\mathcal G_0)$ that solves $\mathbf P_2$.
+\end{definition}
+
+\subsection{Towards an Upper Complexity Bound}
+
+\begin{definition}[Breadth]
+The \emph{breadth} $\overline{m}$ of the partial embedding problem is the maximum number of equivalence classes that may emerge among comparable problem instances.
+\end{definition}
+
+The breadth $\overline{m}$ is the above-mentioned ``number of concurrent partial embedding instances'' that we are interested in.
+We now determine an upper bound for $\overline{m}$.
+
+\begin{definition}[Reach]
+The \emph{reach} $R(P)$ of the partial lobster $P$ is the set of possible grid coordinates where future disks may yet be embedded, disregarding the fundament.
+\end{definition}
+
+\begin{definition}[Local Fundament]
+The \emph{local fundament} $F_L \subseteq F$ of a partial embedding instance is the subset of the fundament which intersects the reach area.
+\end{definition}
+
+The shape of the local fundament of an instance, relative to its spine head $d_s$ and together with its branch head $d_b$, determines the equivalence class of the instance.
+
+This allows us to make a first attempt at an upper bound.
+
+Since every grid coordinate $p$ in the worst-case (maximally reach-overlapping) local fundament can be occupied ($p \in F$) or not ($p \not\in F$), the breadth value may double accordingly.
+
+Additionally, there are at most 6 possible positions of $d_b$.
+
+(figure depicting worst-case fundament)
+
+In formal terms:
+
+\begin{equation}
+    \overline m \leq 2^{\left\lvert \bigcup\limits_{\forall F_L \forall P} F_L \cap R(P) \right\rvert} * 6.
+\end{equation}
+
+Figure~\ref{} shows that the size of the area that we must consider under this approach is 24 coordinates. There are therefore less than $2^{24}*6$ concurrent instances.
+
+\subsection{Refinement of the Upper Complexity Bound}
+
+On closer consideration of the \emph{equivalence} definition above, there are many more instances with different fundaments which are also equivalent. We can improve our estimate of an upper bound by applying the following rules.
+
+\begin{theorem}
+Two comparable instances $\mathbf P_1$ and $\mathbf P_2$ are equivalent if the fundament and $d_b$ coordinate of $P_1$ is the mirrored fundament and $d_b$ coordinate of $P_2$.
+\end{theorem}
+
+\begin{theorem}
+Two comparable instances $\mathbf P_1$ and $\mathbf P_2$ are equivalent if their fundament and $d_b$ coordinate can be matched by applying a rotation (around $d_s$).
+\end{theorem}
+
+\begin{theorem}
+The $d_b$ coordinate is irrelevant to equivalence if the set of loose leaves $\mathcal L$ is empty.
+\end{theorem}
+
+\begin{theorem}
+A grid coordinate $p \in F_L$ is irrelevant to equivalence if it is \emph{occluded}, i.e. not reachable from future disks in any scenario.
+\end{theorem}
+
+To be continued.
 
 \section{Heuristic Approach}
 
@@ -208,13 +378,11 @@ For every candidate location for a node, it considers the number of empty slots 
 \subsection{Bend Heuristic}
 
 The ``bend heuristic'' is applied to spine nodes.
-Every spine node has a principal direction, which dictates the meaning of the \emph{relative} directions for its descendent nodes (like the ``back'' and ``front'' in the basic placement heuristic above).
+Every spine node has a principal direction, which dictates the meaning of the \emph{relative} directions for its descendant nodes (like the ``back'' and ``front'' in the basic placement heuristic above).
 The next spine node can be attached to its precursor in any of the six cardinal directions of the triangular grid. However, at every step, preference is given to the direction which leaves the most free space in its two-step vicinity.
 If the nodes embedded so far lean ``heavy'' in one direction - above or below the spine - this allows us to introduce a \emph{bend} in the spine towards the direction that will hopefully allow us to place more branches and leaves later on.
 
 (diagram to illustrate bend heuristic)
-
-
 
 \section{Data Structures}
 

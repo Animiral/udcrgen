@@ -46,11 +46,14 @@ public:
 	 */
 	void put(Coord coord, Disk& disk);
 
+	/**
+	 * @brief Return the number of disk entries in the grid.
+	 */
+	std::size_t size() const noexcept;
+
 private:
 
 	static std::size_t coordHash(Coord coord) noexcept;
-
-	std::size_t size_;
 	std::unordered_map<Coord, Disk*, decltype(&coordHash)> map_;
 
 };

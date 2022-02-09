@@ -3,7 +3,7 @@
 #include <cassert>
 
 Grid::Grid(std::size_t size)
-	: size_(size), map_(size, coordHash)
+	: map_(size, coordHash)
 {
 
 }
@@ -52,4 +52,9 @@ void Grid::put(Coord coord, Disk& disk)
 std::size_t Grid::coordHash(Coord coord) noexcept
 {
 	return (coord.sly << 16) + coord.x;
+}
+
+std::size_t Grid::size() const noexcept
+{
+	return map_.size();
 }

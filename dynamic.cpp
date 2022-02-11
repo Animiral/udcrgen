@@ -1,27 +1,61 @@
 #include "dynamic.h"
 #include <algorithm>
 
+Fundament::Fundament() noexcept = default;
+
+Fundament::Fundament(const Fundament& rhs) noexcept = default;
+
+Fundament::Fundament(const Grid& grid, Coord spineHead) noexcept
+{
+	for (int x = -2; x <= 2; x++) {
+		for (int sly = -x-2; sly <= 2-x; sly++) {
+			Coord c{ spineHead.x + x, spineHead.sly + sly };
+			bool blocked = grid.at(c) != nullptr;
+			int n = (sly + x + 2) * 5 + (x + 2);
+			mask.set(n, blocked);
+		}
+	}
+}
+
+bool Fundament::operator==(const Fundament& rhs) const noexcept = default;
+
 bool Fundament::blocked(Coord c) const noexcept
 {
 	int n = (c.sly + c.x + 2) * 5 + (c.x + 2);
 	return mask.test(n);
 }
 
-Fundament makeFundament(Grid grid, Coord head)
-{
-	Fundament fundament;
+#include <iostream>
 
-	for (int x = -2; x <= 2; x++) {
-		for (int sly = -x-2; sly <= 2-x; sly++) {
-			Coord c{ head.x + x, head.sly + sly };
-			bool blocked = grid.at(c) != nullptr;
+[[maybe_unused]]
+void Fundament::print() const
+{
+	for (int sly = 4; sly > 0; sly--) {
+		if(sly % 2) std::cout << " ";
+		for(int i = 0; i < sly/2; i++) std::cout << "  ";
+
+		for (int x = -2; x < 2 - sly; x++) {
 			int n = (sly + x + 2) * 5 + (x + 2);
-			fundament.mask.set(n, blocked);
+			std::cout << (mask.test(n) ? "O " : "- ");
 		}
+
+		std::cout << "\n";
 	}
 
-	return fundament;
+	for (int sly = 0; sly >= -4; sly--) {
+		if (sly % 2) std::cout << " ";
+		for (int i = 0; i < -sly / 2; i++) std::cout << "  ";
+
+		for (int x = -2-sly; x < 2; x++) {
+			int n = (sly + x + 2) * 5 + (x + 2);
+			std::cout << (mask.test(n) ? "O " : "- ");
+		}
+
+		std::cout << "\n";
+	}
 }
+
+bool Signature::operator==(const Signature& rhs) const noexcept = default;
 
 DynamicProblem::DynamicProblem(InputDisks& input)
 	: solution_(input.size()),
@@ -32,7 +66,7 @@ DynamicProblem::DynamicProblem(InputDisks& input)
 {
 }
 
-DynamicProblem::DynamicProblem(InputDisks& input, Grid solution, Coord spineHead, Coord branchHead)
+DynamicProblem::DynamicProblem(InputDisks& input, const Grid& solution, Coord spineHead, Coord branchHead)
 	: solution_(solution),
 	spineHead_(spineHead),
 	branchHead_(branchHead),
@@ -66,7 +100,7 @@ std::vector<DynamicProblem> DynamicProblem::subproblems() const
 	}
 
 	// create map of blocked spaces
-	Fundament fundament = makeFundament(solution_, head);
+	Fundament fundament(solution_, spineHead_);
 
 	// we have up to 6 choices to place the upcoming disk
 	Rel rels[6] = { Rel::FWD_UP, Rel::FORWARD, Rel::FWD_DOWN, Rel::BACK, Rel::BACK_UP, Rel::BACK_DOWN };
@@ -99,7 +133,7 @@ std::vector<DynamicProblem> DynamicProblem::subproblems() const
 	return subproblems;
 }
 
-void DynamicProblem::setSolution(Grid solution, Coord spineHead, Coord branchHead)
+void DynamicProblem::setSolution(const Grid& solution, Coord spineHead, Coord branchHead)
 {
 	solution_ = solution;
 	spineHead_ = spineHead;
@@ -125,4 +159,97 @@ Coord DynamicProblem::branchHead() const noexcept
 int DynamicProblem::depth() const noexcept
 {
 	return depth_;
+}
+
+Signature DynamicProblem::signature() const noexcept
+{
+	Signature signature;
+	signature.depth = static_cast<int>(solution_.size());
+	signature.fundament = Fundament(solution_, spineHead_);
+	signature.head = { branchHead_.x - spineHead_.x, branchHead_.sly - spineHead_.sly };
+
+	// derive transformed alternative from fundament by mirroring, choose one.
+	std::bitset<25> mirrored = signature.fundament.mask;
+
+	for (int x = 0; x < 4; x++) {
+		for (int y = 0; y < 4 - x; y++) {
+			int upper = 5 + x * 6 + y * 5;
+			int lower = 1 + x * 6 + y;
+
+			// swap one bit
+			bool temp = mirrored[upper];
+			mirrored[upper] = mirrored[lower];
+			mirrored[lower] = temp;
+		}
+	}
+
+	// the lesser fundament, viewed as ulong, is the normal one
+	if (mirrored.to_ulong() < signature.fundament.mask.to_ulong()) {
+		signature.fundament.mask = mirrored;
+		signature.head.x += signature.head.sly;
+		signature.head.sly = -signature.head.sly;
+	}
+
+	return signature;
+}
+
+namespace
+{
+	/**
+	 * Return @c true if problem @c rhs should be expanded before problem @c lhs.
+	 */
+	bool priority(const DynamicProblem& lhs, const DynamicProblem& rhs)
+	{
+		return lhs.depth() < rhs.depth();
+	}
+}
+
+ProblemQueue::ProblemQueue()
+	: open_(&priority), closed_(1024, &hash) // arbitrary # of buckets
+{
+}
+
+const DynamicProblem& ProblemQueue::top() const noexcept
+{
+	return open_.top();
+}
+
+void ProblemQueue::push(DynamicProblem problem)
+{
+	auto signature = problem.signature();
+
+	if (closed_.contains(signature))
+		return;
+
+	open_.push(problem);
+	closed_.insert(signature);
+}
+
+void ProblemQueue::pop()
+{
+	open_.pop();
+}
+
+bool ProblemQueue::empty() const noexcept
+{
+	return open_.empty();
+}
+
+std::size_t ProblemQueue::hash(const Signature& signature) noexcept
+{
+	unsigned long long funValue = signature.fundament.mask.to_ullong();
+	unsigned long long depth = signature.depth;
+	unsigned long long headX = signature.head.x;
+	unsigned long long headSly = signature.head.sly;
+
+	// hash layout assuming 64-bit size_t:
+	// 64     56      48      40      32      24      16       8       0
+	// |-------|-------|-------|-------|-------|-------|-------|-------|
+	// |   depth    |   headX    |  headSly   |        funValue        |
+	return (depth << 51) + (headX << 38) + (headSly << 25) + funValue;
+}
+
+bool ProblemQueue::equivalent(const DynamicProblem& lhs, const DynamicProblem& rhs) noexcept
+{
+	return lhs.signature() == rhs.signature();
 }

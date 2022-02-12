@@ -85,6 +85,7 @@ struct Parser
 
         if ("knp"s == opt || "strict"s == opt || "strong"s == opt) return Configuration::Algorithm::KLEMZ_NOELLENBURG_PRUTKIN;
         if ("cleve"s == opt || "weak"s == opt) return Configuration::Algorithm::CLEVE;
+        if ("dp"s == opt || "dynamic-program"s == opt) return Configuration::Algorithm::DYNAMIC_PROGRAM;
 
         throw std::out_of_range("Unknown algorithm: "s + opt);
     }
@@ -255,6 +256,7 @@ void Configuration::dump(std::ostream& stream) const
     switch (algorithm) {
     case Algorithm::KLEMZ_NOELLENBURG_PRUTKIN: stream << "knp"; break;
     case Algorithm::CLEVE: stream << "cleve"; break;
+    case Algorithm::DYNAMIC_PROGRAM: stream << "dynamic-program"; break;
     }
     stream << "\n";
 

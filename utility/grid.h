@@ -47,6 +47,12 @@ public:
 	void put(Coord coord, Disk& disk);
 
 	/**
+	 * @brief Write the key coordinates in every grid entry into the disk
+	 * record pointed to by the entry.
+	 */
+	void apply() const noexcept;
+
+	/**
 	 * @brief Return the number of disk entries in the grid.
 	 */
 	std::size_t size() const noexcept;

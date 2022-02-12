@@ -27,7 +27,7 @@ public:
     /**
      * Enumeration of available generators to run as the main mode of the program.
      */
-    enum class Algorithm { KLEMZ_NOELLENBURG_PRUTKIN, CLEVE };
+    enum class Algorithm { KLEMZ_NOELLENBURG_PRUTKIN, CLEVE, DYNAMIC_PROGRAM };
 
     /**
      * Enumeration of available file formats for input files.
@@ -47,7 +47,7 @@ public:
      */
     enum class EmbedOrder { DEPTH_FIRST, BREADTH_FIRST };
 
-    Algorithm algorithm = Algorithm::KLEMZ_NOELLENBURG_PRUTKIN;
+    Algorithm algorithm = Algorithm::CLEVE;
     path inputFile; //!< only one supported at this time
     path outputFile; //!< only one supported at this time
     InputFormat inputFormat = InputFormat::EDGELIST;

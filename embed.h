@@ -43,6 +43,23 @@ public:
 };
 
 /**
+ * A WholesaleEmbedder embeds disks given in a preordered list.
+ */
+class WholesaleEmbedder
+{
+
+public:
+
+	virtual void embed(std::vector<Disk>& disks) = 0;
+
+};
+
+/**
  * Apply an embedding to the graph using the given embedding strategy.
  */
 void embed(DiskGraph& graph, Embedder& embedder, Configuration::EmbedOrder embedOrder);
+
+/**
+ * Apply an embedding to the graph using the dynamic programming approach.
+ */
+void embedDynamic(DiskGraph& graph, WholesaleEmbedder& embedder);

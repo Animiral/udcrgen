@@ -9,6 +9,7 @@
 #include "utility/grid.h"
 #include "utility/geometry.h"
 #include "config.h"
+#include "embed.h"
 
 /**
  * @brief The (local) fundament describes the relevant surroundings of the spine head.
@@ -123,7 +124,7 @@ public:
 	ProblemQueue();
 
 	const DynamicProblem& top() const noexcept;
-	void push(DynamicProblem problem);
+	void push(const DynamicProblem& problem);
 	void pop();
 	bool empty() const noexcept;
 
@@ -157,5 +158,18 @@ private:
 
 	// set of hashes of already seen problems
 	std::unordered_set<Signature, decltype(&hash)> closed_;
+
+};
+
+/**
+ * This embedder feeds the disks into a dynamic programming problem
+ * and operates the queue to produce the embedding result.
+ */
+class DynamicProblemEmbedder : public WholesaleEmbedder
+{
+
+public:
+
+	virtual void embed(std::vector<Disk>& disks) override;
 
 };

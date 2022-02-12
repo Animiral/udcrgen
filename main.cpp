@@ -55,6 +55,7 @@ int main(int argc, const char* argv[])
 
 	try {
 		Embedder* embedder = nullptr;
+		WholesaleEmbedder* wholeEmbedder = nullptr;
 
 		switch (configuration.algorithm) {
 
@@ -71,10 +72,21 @@ int main(int argc, const char* argv[])
 			embedder = new WeakEmbedder(*graph);
 			break;
 
+		case Configuration::Algorithm::DYNAMIC_PROGRAM:
+			wholeEmbedder = new DynamicProblemEmbedder();
+			break;
+
 		}
 
-		embed(*graph, *embedder, configuration.embedOrder);
+		// weird redundancy/ambiguity to be refactored!
+		if (embedder)
+			embed(*graph, *embedder, configuration.embedOrder);
+
+		if (wholeEmbedder)
+			embedDynamic(*graph, *wholeEmbedder);
+
 		delete embedder;
+		delete wholeEmbedder;
 	}
 	catch (const std::exception& e) {
 		std::cerr << "Failed to determine graph embedding: " << e.what() << "\n";

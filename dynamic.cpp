@@ -103,7 +103,7 @@ std::vector<DynamicProblem> DynamicProblem::subproblems() const
 	Fundament fundament(solution_, spineHead_);
 
 	// we have up to 6 choices to place the upcoming disk
-	Rel rels[6] = { Rel::FWD_UP, Rel::FORWARD, Rel::FWD_DOWN, Rel::BACK, Rel::BACK_UP, Rel::BACK_DOWN };
+	Rel rels[6] = { Rel::BACK, Rel::BACK_UP, Rel::BACK_DOWN, Rel::FORWARD, Rel::FWD_UP, Rel::FWD_DOWN };
 	Coord candidates[6];
 	std::transform(rels, rels + 6, candidates, [this, head](Rel rel)
 		{ return solution_.step(head, Dir::RIGHT, rel); });
@@ -113,7 +113,7 @@ std::vector<DynamicProblem> DynamicProblem::subproblems() const
 
 	// spine is x-monotone -> limit to forward placement options
 	if (0 == disk->depth) {
-		end = candidates + 3;
+		begin = candidates + 3;
 	}
 
 	// do not consider blocked candidate spaces
@@ -214,7 +214,7 @@ const DynamicProblem& ProblemQueue::top() const noexcept
 	return open_.top();
 }
 
-void ProblemQueue::push(DynamicProblem problem)
+void ProblemQueue::push(const DynamicProblem& problem)
 {
 	auto signature = problem.signature();
 
@@ -252,4 +252,33 @@ std::size_t ProblemQueue::hash(const Signature& signature) noexcept
 bool ProblemQueue::equivalent(const DynamicProblem& lhs, const DynamicProblem& rhs) noexcept
 {
 	return lhs.signature() == rhs.signature();
+}
+
+void DynamicProblemEmbedder::embed(std::vector<Disk>& disks)
+{
+	ProblemQueue queue;
+	queue.push(DynamicProblem(disks));
+
+	while (!queue.empty()) {
+		const DynamicProblem& next = queue.top();
+
+		if (next.depth() == disks.size()) {
+			// accept solution - this solves all parent problems
+			next.solution().apply();
+			break;
+		}
+
+		auto subproblems = next.subproblems();
+		queue.pop();
+
+		for (const DynamicProblem& problem : subproblems)
+			queue.push(problem);
+	}
+
+	if (queue.empty()) {
+		// no embedding found - mark all disks failed
+		for (Disk& disk : disks) {
+			disk.failure = true;
+		}
+	}
 }

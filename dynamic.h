@@ -1,3 +1,5 @@
+// Embedding algorithms based on dynamic programming
+
 #pragma once
 
 #include <bitset>

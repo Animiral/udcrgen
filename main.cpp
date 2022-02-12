@@ -1,4 +1,6 @@
 #include "embed.h"
+#include "heuristic.h"
+#include "dynamic.h"
 #include "utility/graph.h"
 #include "output/ipe.h"
 #include "output/svg.h"

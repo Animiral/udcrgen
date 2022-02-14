@@ -33,8 +33,9 @@ namespace
 
 
 Ipe::Ipe(const DiskGraph& graph, std::ostream& stream) noexcept :
-	graph_(&graph), scale_(16.f), translate_(graph, 1.f, scale_), stream_(&stream)
+	graph_(&graph), scale_(16.f), translate_(scale_), stream_(&stream)
 {
+	translate_.setLimits(graph, 1.f);
 }
 
 void Ipe::write()

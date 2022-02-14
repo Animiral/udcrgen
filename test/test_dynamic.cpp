@@ -84,12 +84,12 @@ TEST(Dynamic, subproblem)
 	std::vector<DynamicProblem> result = problem.subproblems();
 	ASSERT_EQ(result.size(), 2);
 
-	Coord expectedCoord{ 0, 1 };
+	Coord expectedCoord{ 1, 0 };
 	EXPECT_EQ(result[0].solution().at(expectedCoord), &disks[5]);
 	EXPECT_EQ(result[0].spineHead(), expectedCoord);
 	EXPECT_EQ(result[0].depth(), 6);
 
-	expectedCoord = { 1, 0 };
+	expectedCoord = { 0, 1 };
 	EXPECT_EQ(result[1].solution().at(expectedCoord), &disks[5]);
 	EXPECT_EQ(result[1].spineHead(), expectedCoord);
 	EXPECT_EQ(result[1].depth(), 6);
@@ -131,7 +131,7 @@ TEST(Dynamic, queue)
 	solution3.put({ 0, 0 }, disks[0]);
 	solution3.put({ -1, 1 }, disks[1]);
 	solution3.put({ -1, 0 }, disks[2]);
-	p3.setSolution(solution3, { 0, 0 }, { -1, 1 });
+	p3.setSolution(solution3, { 0, 0 }, { -1, 0 });
 
 	EXPECT_NE(ProblemQueue::hash(p1.signature()), ProblemQueue::hash(p2.signature()));
 	EXPECT_EQ(ProblemQueue::hash(p1.signature()), ProblemQueue::hash(p3.signature()));

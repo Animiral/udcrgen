@@ -1,5 +1,6 @@
 #include "dynamic.h"
 #include <algorithm>
+#include "utility/util.h"
 
 Fundament::Fundament() noexcept = default;
 
@@ -166,7 +167,15 @@ Signature DynamicProblem::signature() const noexcept
 	Signature signature;
 	signature.depth = static_cast<int>(solution_.size());
 	signature.fundament = Fundament(solution_, spineHead_);
-	signature.head = { branchHead_.x - spineHead_.x, branchHead_.sly - spineHead_.sly };
+
+	// consider branch head only if it is relevant at this point (upcoming leaf)
+	Disk* upcomingDisk = depth_ < input_->size() ? &(*input_)[depth_] : nullptr;
+	if (upcomingDisk != nullptr && 2 == upcomingDisk->depth) {
+		signature.head = { branchHead_.x - spineHead_.x, branchHead_.sly - spineHead_.sly };
+	}
+	else {
+		signature.head = { 0, 0 };
+	}
 
 	// derive transformed alternative from fundament by mirroring, choose one.
 	std::bitset<25> mirrored = signature.fundament.mask;
@@ -256,8 +265,13 @@ bool ProblemQueue::equivalent(const DynamicProblem& lhs, const DynamicProblem& r
 
 void DynamicProblemEmbedder::embed(std::vector<Disk>& disks)
 {
+	// performance counters
+	int pushCounter = 0;
+	int popCounter = 0;
+
 	ProblemQueue queue;
 	queue.push(DynamicProblem(disks));
+	pushCounter++;
 
 	while (!queue.empty()) {
 		const DynamicProblem& next = queue.top();
@@ -270,15 +284,21 @@ void DynamicProblemEmbedder::embed(std::vector<Disk>& disks)
 
 		auto subproblems = next.subproblems();
 		queue.pop();
+		popCounter++;
 
-		for (const DynamicProblem& problem : subproblems)
+		for (const DynamicProblem& problem : subproblems) {
 			queue.push(problem);
+			pushCounter++;
+		}
 	}
+
+	trace("Dynamic Problems: {} generated, {} expanded.", pushCounter, popCounter);
 
 	if (queue.empty()) {
 		// no embedding found - mark all disks failed
 		for (Disk& disk : disks) {
 			disk.failure = true;
 		}
+		trace("No solution found.");
 	}
 }

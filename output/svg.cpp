@@ -2,17 +2,64 @@
 #include <algorithm>
 #include <tuple>
 
-Svg::Svg(float scale) noexcept :
-	scale_(scale), translate_(scale)
+Svg::Svg(std::ostream& stream, float scale) noexcept :
+	stream_(&stream), scale_(scale), translate_(scale), firstContent_(true)
 {
 }
 
-void Svg::write(const DiskGraph& graph, std::ostream& stream)
+void Svg::intro() const
+{
+	*stream_ <<
+		"<html>"
+		"<head>"
+		"<style type=\"text / css\"> "
+		".collapsible {"
+		"  background-color: #eee;"
+		"  color: #444;"
+		"  cursor: pointer;"
+		"  padding: 18px;"
+		"  width: 100%;"
+		"  max-width: 100%;"
+		"  border: none;"
+		"  text-align: left;"
+		"  outline: none;"
+		"  font-size: 15px;"
+		"} "
+		".active, .collapsible:hover {"
+		"  background-color: #ccc;"
+		"} "
+		".content {"
+		"  padding: 0 18px;"
+		"  display: none;"
+		"  overflow: hidden;"
+		"  background-color: #f1f1f1;"
+		"}"
+		"</style>"
+		"<script>"
+		"function doCollapse(btn) {"
+		"	btn.classList.toggle('active');"
+		"	var content = btn.nextElementSibling;"
+		"	if (content.style.display === 'none') {"
+		"	  content.style.display = 'block';"
+		"	} else {"
+		"	  content.style.display = 'none';"
+		"	}"
+		"}"
+		"</script>"
+		"</head>"
+		"<body>\n";
+}
+
+void Svg::outro() const
+{
+	*stream_ << "</body></html>\n";
+}
+
+void Svg::write(const DiskGraph& graph, const std::string& label)
 {
 	translate_.setLimits(graph, 10.f);
-	stream_ = &stream;
 
-	writeIntro();
+	openSvg(label);
 
 	auto writeAllDisks = [this, graph](const std::vector<Disk>& v, Appearance a) {
 		std::for_each(v.begin(), v.end(), [this, graph, a](const Disk& d) { writeDisk(d, graph, a); });
@@ -22,15 +69,16 @@ void Svg::write(const DiskGraph& graph, std::ostream& stream)
 	writeAllDisks(graph.branches(), Appearance::BRANCH);
 	writeAllDisks(graph.leaves(), Appearance::LEAF);
 
-	writeOutro();
+	closeSvg();
+
+	firstContent_ = false;
 }
 
-void Svg::write(const Signature& signature, std::ostream& stream)
+void Svg::write(const Signature& signature, const std::string& label)
 {
 	translate_.setLimits(-4.5, 2.5, 4.5, -2.5, 10.f);
-	stream_ = &stream;
 
-	writeIntro();
+	openSvg(label);
 
 	for (int x = -2; x <= 2; x++) {
 		for (int sly = -x - 2; sly <= 2 - x; sly++) {
@@ -42,19 +90,21 @@ void Svg::write(const Signature& signature, std::ostream& stream)
 		}
 	}
 
-	writeOutro();
+	closeSvg();
+
+	firstContent_ = false;
 }
 
-void Svg::writeIntro() const
+void Svg::openSvg(const std::string& label) const
 {
 	*stream_ <<
-		"<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n"
-		"<svg xmlns=\"http://www.w3.org/2000/svg\" "
+		"<button type=\"button\" class=\"collapsible\" onClick=\"doCollapse(this)\">" << label << "</button>"
+		"<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"content\" style=\"" << (firstContent_ ? "display:block;" : "display:none;") << "\" "
 		"viewBox=\"0 0 " << translate_.width() << " " << translate_.height() << "\">\n"
 		"<g text-anchor=\"middle\">\n";
 }
 
-void Svg::writeOutro() const
+void Svg::closeSvg() const
 {
 	*stream_ << "</g></svg>\n";
 

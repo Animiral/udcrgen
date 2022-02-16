@@ -230,7 +230,7 @@ void Configuration::readArgv(int argc, const char* argv[])
         switch (outputFormat)
         {
         case OutputFormat::SVG:
-            ext = ".svg";
+            ext = ".html";
             break;
         case OutputFormat::IPE:
             ext = ".ipe";

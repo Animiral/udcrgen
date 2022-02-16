@@ -106,8 +106,10 @@ int main(int argc, const char* argv[])
 
 		case Configuration::OutputFormat::SVG:
 		{
-			Svg svg;
-			svg.write(*graph, stream);
+			Svg svg(stream);
+			svg.intro();
+			svg.write(*graph, "Embed Result");
+			svg.outro();
 		}
 			break;
 

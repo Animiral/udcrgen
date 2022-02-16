@@ -263,6 +263,8 @@ bool ProblemQueue::equivalent(const DynamicProblem& lhs, const DynamicProblem& r
 	return lhs.signature() == rhs.signature();
 }
 
+#include "output/svg.h"
+
 void DynamicProblemEmbedder::embed(std::vector<Disk>& disks)
 {
 	// performance counters
@@ -272,6 +274,10 @@ void DynamicProblemEmbedder::embed(std::vector<Disk>& disks)
 	ProblemQueue queue;
 	queue.push(DynamicProblem(disks));
 	pushCounter++;
+
+	std::ofstream stream(format("fun/contours.html"));
+	Svg svg(stream);
+	svg.intro();
 
 	while (!queue.empty()) {
 		const DynamicProblem& next = queue.top();
@@ -289,8 +295,16 @@ void DynamicProblemEmbedder::embed(std::vector<Disk>& disks)
 		for (const DynamicProblem& problem : subproblems) {
 			queue.push(problem);
 			pushCounter++;
+
+			if (disks.size() - problem.depth() <= 2) {
+				std::string label = format("Depth {} Hash {}", problem.depth(), ProblemQueue::hash(problem.signature()));
+				svg.write(problem.signature(), label);
+			}
 		}
 	}
+
+	svg.outro();
+	stream.close();
 
 	trace("Dynamic Problems: {} generated, {} expanded.", pushCounter, popCounter);
 

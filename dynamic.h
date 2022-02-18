@@ -12,10 +12,12 @@
 #include "embed.h"
 
 /**
- * @brief The (local) fundament describes the relevant surroundings of the spine head.
+ * @brief The fundament describes the relevant surroundings of the spine head.
  *
  * It is inherently limited to coordinates reachable from some point on the spine
- * within two steps.
+ * within two steps. These are called <em>local coordinates</em> and their value
+ * is specified relative to the spine head; i.e. <tt>{0, 0}</tt> is the exact
+ * location of the spine head.
  *
  * The representation uses a bitmask in which the bit number <tt>n = (sly+x+2)*5 + (x+2)</tt>
  * is set to @c true if the grid location <tt>(x,sly): (sly+x) &#8712; [-2,2], x &#8712; [-2,2]</tt>
@@ -32,9 +34,34 @@ struct Fundament
 	bool operator==(const Fundament& rhs) const noexcept;
 
 	/**
+	 * Return the index of the mask bit that reflects the blocked
+	 * status of the given local coordinate, or -1 if the coordinate
+	 * is not represented the fundament.
+	 */
+	static int index(Coord c) noexcept;
+
+	/**
+	 * Return the coordinate represented at the given bit index in the mask.
+	 */
+	static Coord at(int bit);
+
+	/**
 	 * @brief Given the relative coordinate @c c, determine whether it is occupied.
 	 */
 	bool blocked(Coord c) const noexcept;
+
+	/**
+	 * Return a Fundament in which the non-blocked coordinates are exactly the
+	 * ones which are reachable in this Fundament, from the given
+	 * local start point, in the given number of steps.
+	 */
+	Fundament reachable(Coord from, int steps) const noexcept;
+
+	/**
+	 * Return the same result as @c reachable, but using only one "spine step",
+	 * i.e. in directions which adhere to x-monotonocity.
+	 */
+	Fundament reachableBySpine(Coord from) const noexcept;
 
 	// print to stdout
 	[[maybe_unused]]

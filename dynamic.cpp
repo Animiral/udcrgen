@@ -12,7 +12,7 @@ Fundament::Fundament(const Grid& grid, Coord spineHead) noexcept
 		for (int sly = -x-2; sly <= 2-x; sly++) {
 			Coord c{ spineHead.x + x, spineHead.sly + sly };
 			bool blocked = grid.at(c) != nullptr;
-			int n = (sly + x + 2) * 5 + (x + 2);
+			int n = index({ x,sly });
 			mask.set(n, blocked);
 		}
 	}
@@ -20,10 +20,77 @@ Fundament::Fundament(const Grid& grid, Coord spineHead) noexcept
 
 bool Fundament::operator==(const Fundament& rhs) const noexcept = default;
 
+int Fundament::index(Coord c) noexcept
+{
+	if (c.x >= -2 && c.x <= 2 && c.sly + c.x >= -2 && c.sly + c.x <= 2) {
+		return (c.sly + c.x + 2) * 5 + (c.x + 2);
+	}
+	else {
+		return -1;
+	}
+}
+
+Coord Fundament::at(int bit)
+{
+	assert(bit >= 0);
+	assert(bit < 25);
+
+	int x = bit % 5 - 2;
+	int sly = bit / 5 - x - 2;
+	return { x, sly };
+}
+
 bool Fundament::blocked(Coord c) const noexcept
 {
-	int n = (c.sly + c.x + 2) * 5 + (c.x + 2);
-	return mask.test(n);
+	return mask.test(index(c));
+}
+
+Fundament Fundament::reachable(Coord from, int steps) const noexcept
+{
+	Fundament result;
+	result.mask.set(); // block everything
+	result.mask.set(index(from), false);
+
+	Coord near[] = { { -1, 0 }, { -1, 1 }, {0, 1}, {1, 0}, {1, -1}, {0, -1} };
+	Coord next[6];
+
+	for (int step = 0; step < steps; step++) {
+		Fundament mid = result;
+
+		for (int bit = 0; bit < 25; bit++) {
+			if (!result.mask.test(bit)) {
+				// expand 1 step from here
+				Coord e = at(bit);
+				std::transform(near, near + 6, next,
+					[e](Coord n) { return Coord{ e.x + n.x, e.sly + n.sly }; });
+
+				for (Coord n : next) {
+					if (index(n) != -1 && !blocked(n))
+						mid.mask.set(index(n), false);
+				}
+			}
+		}
+
+		result = mid;
+	}
+
+	result.mask.set(index(from), true); // from is always blocked
+	return result;
+}
+
+Fundament Fundament::reachableBySpine(Coord from) const noexcept
+{
+	Fundament result;
+	result.mask.set(); // block everything
+
+	Coord tos[] = { {from.x, from.sly + 1}, { from.x + 1, from.sly }, { from.x + 1, from.sly - 1 } };
+	for (Coord to : tos) {
+		int bit = index(to);
+		if (bit >= 0 && !mask.test(bit))
+			result.mask.set(bit, false);
+	}
+
+	return result;
 }
 
 #include <iostream>
@@ -160,6 +227,10 @@ Coord DynamicProblem::branchHead() const noexcept
 int DynamicProblem::depth() const noexcept
 {
 	return depth_;
+}
+
+namespace
+{
 }
 
 Signature DynamicProblem::signature() const noexcept

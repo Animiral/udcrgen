@@ -4,7 +4,7 @@
 #include "dynamic.h"
 #include "utility/grid.h"
 
-TEST(Dynamic, fundament)
+TEST(Dynamic, fundament_blocked)
 {
 	std::vector<Disk> disks = {
 		// id, parent, depth, children, embedded, grid_x, grid_sly
@@ -50,6 +50,68 @@ TEST(Dynamic, fundament)
 	EXPECT_FALSE(fundament.blocked({ 0, -2 }));
 	EXPECT_FALSE(fundament.blocked({ 1, -2 }));
 	EXPECT_FALSE(fundament.blocked({ 2, -2 }));
+}
+
+TEST(Dynamic, fundament_reachable)
+{
+	//     -
+	//    - -
+	//   x - -
+	//  x - * -
+	// x x x x -
+	//  - x - -
+	//   - x -
+	//    - -
+	//     -
+	std::vector<Disk> disks = {
+		// id, parent, depth, children, embedded, grid_x, grid_sly
+		{0, 0, 0, 0, true,  0,  0},
+		{1, 0, 0, 0, true, -1,  0},
+		{2, 0, 0, 0, true, -2,  0},
+		{3, 0, 0, 0, true, -2,  1},
+		{4, 0, 0, 0, true, -2,  2},
+		{5, 0, 0, 0, true,  0, -1},
+		{6, 0, 0, 0, true,  1, -2},
+		{7, 0, 0, 0, true,  1,  0}
+	};
+
+	Grid grid(8);
+	for (std::size_t i = 0; i < 8; i++) {
+		grid.put({ disks[i].grid_x, disks[i].grid_sly }, disks[i]);
+	}
+
+	Coord head{ 0, 0 };
+
+	Fundament fundament(grid, head);
+
+	Coord from{ 0, 1 };
+	Fundament reachable = fundament.reachable(from, 2);
+
+	//     x
+	//    - -
+	//   x - -
+	//  x - * -
+	// x x x x -
+	//  x x x x
+	//   x x x
+	//    x x
+	//     x
+	unsigned long expectedReachable = 0x1e77ff;
+	EXPECT_EQ(expectedReachable, reachable.mask.to_ulong());
+
+	reachable = fundament.reachableBySpine(from);
+
+	//     x
+	//    x x
+	//   x x -
+	//  x x * -
+	// x x x x x
+	//  x x x x
+	//   x x x
+	//    x x
+	//     x
+	expectedReachable = 0x13fffff;
+	EXPECT_EQ(expectedReachable, reachable.mask.to_ulong());
 }
 
 /**

@@ -134,6 +134,23 @@ private:
 };
 
 /**
+ * @brief Determine the normalized base fundament with regards to reachability.
+ *
+ * Starting from the given @c base fundament with the given local @c head,
+ * while embedding the given @c input disks at the given @c depth,
+ * Consider all possible extension layouts and mark all locations as "blocked"
+ * which are irrelevant due to being out of reach for the remaining embedding
+ * problem.
+ *
+ * @param base start from this fundament
+ * @param head local branch head coordinate
+ * @param input list of input disks to embed
+ * @param depth current problem depth
+ * @return a fundament like @c base, but all unreachable coords are blocked
+ */
+Fundament reachableEventually(Fundament base, Coord head, const InputDisks& input, int depth) noexcept;
+
+/**
  * @brief This queue supports the ordered expansion of DynamicProblems
  * from a set of open problems.
  *

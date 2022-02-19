@@ -157,6 +157,58 @@ TEST(Dynamic, subproblem)
 	EXPECT_EQ(result[1].depth(), 6);
 }
 
+TEST(Dynamic, reachableEventually)
+{
+	//     -
+	//    - -
+	//   - 4 -
+	//  - - * -
+	// - 1 0 - -
+	//  - 2 - -
+	//   - - -
+	//    - -
+	//     -
+	std::vector<Disk> disks = {
+		// id, parent, depth, children, embedded, grid_x, grid_sly
+		{0, -1, 0, 3, true,  0,  0},
+		{1,  0, 1, 0, true, -1,  0},
+		{2,  0, 1, 0, true,  0, -1},
+		{3,  0, 1, 2, true,  0,  1},
+		{4,  3, 2, 0, true, -1,  2},
+		{5,  3, 2},
+		{6,  0, 0},
+		{7,  6, 0, 2},
+		{8,  7, 1, 1},
+		{9,  8, 2, 0},
+		{10, 7, 1, 0}
+	};
+
+	int depth = 5;
+
+	// partial solution - cut off not-yet solved disks
+	Grid solution(10);
+	for (std::size_t i = 0; i < depth; i++) {
+		solution.put({ disks[i].grid_x, disks[i].grid_sly }, disks[i]);
+	}
+
+	Fundament base(solution, { 0, 0 });
+	Coord head{ 0, 1 };
+
+	Fundament actual = reachableEventually(base, head, disks, depth);
+
+	//     x
+	//    x -
+	//   x x -
+	//  x - x -
+	// x x x - -
+	//  x x - -
+	//   - - -
+	//    - -
+	//     -
+	unsigned long expected = 0x1394e3;
+	EXPECT_EQ(actual.mask.to_ulong(), expected);
+}
+
 /**
  * Test pushing and popping problems into and out of the dynamic queue.
  */

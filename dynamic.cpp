@@ -229,27 +229,22 @@ int DynamicProblem::depth() const noexcept
 	return depth_;
 }
 
-namespace
-{
-}
-
 Signature DynamicProblem::signature() const noexcept
 {
-	Signature signature;
-	signature.depth = static_cast<int>(solution_.size());
-	signature.fundament = Fundament(solution_, spineHead_);
+	Fundament fundament = Fundament(solution_, spineHead_);
+	Coord head{ 0, 0 };
 
 	// consider branch head only if it is relevant at this point (upcoming leaf)
 	Disk* upcomingDisk = depth_ < input_->size() ? &(*input_)[depth_] : nullptr;
 	if (upcomingDisk != nullptr && 2 == upcomingDisk->depth) {
-		signature.head = { branchHead_.x - spineHead_.x, branchHead_.sly - spineHead_.sly };
-	}
-	else {
-		signature.head = { 0, 0 };
+		head = { branchHead_.x - spineHead_.x, branchHead_.sly - spineHead_.sly };
 	}
 
+	// disregard unreachable spaces
+	fundament = reachableEventually(fundament, head, *input_, depth_);
+
 	// derive transformed alternative from fundament by mirroring, choose one.
-	std::bitset<25> mirrored = signature.fundament.mask;
+	std::bitset<25> mirrored = fundament.mask;
 
 	for (int x = 0; x < 4; x++) {
 		for (int y = 0; y < 4 - x; y++) {
@@ -264,14 +259,79 @@ Signature DynamicProblem::signature() const noexcept
 	}
 
 	// the lesser fundament, viewed as ulong, is the normal one
-	if (mirrored.to_ulong() < signature.fundament.mask.to_ulong()) {
-		signature.fundament.mask = mirrored;
-		signature.head.x += signature.head.sly;
-		signature.head.sly = -signature.head.sly;
+	if (mirrored.to_ulong() < fundament.mask.to_ulong()) {
+		fundament.mask = mirrored;
+		head.x += head.sly;
+		head.sly = -head.sly;
 	}
 
-	return signature;
+	return Signature{ depth_, fundament, head };
 }
+
+
+Fundament reachableEventually(Fundament base, Coord head, const InputDisks& input, int depth) noexcept
+{
+	int d = depth; // input disk index under inspection
+
+	// spaces reachable by placing leaves next to the branch head
+	Fundament leafReach;
+	if (d < input.size() && 2 == input[d].depth) {
+		leafReach = base.reachable(head, 1);
+
+		// advance to next non-leaf
+		while (d < input.size() && 2 <= input[d].depth)
+			d++;
+	}
+	else {
+		leafReach.mask.set(); // nothing reachable by leaves on branch head
+	}
+	d--; // special case: make sure not to skip input[d] later
+
+	// spaces reachable by placing spines and their descendants
+	Fundament extReach;
+	extReach.mask.set();
+
+	// candidate spaces for the next spine
+	Fundament spinePlaces;
+	spinePlaces.mask = 0x1ffeffful; // unblocked center = spine head
+
+	while (d < input.size() && !spinePlaces.mask.all()) {
+		// determine reach = max depth of nodes on current spine
+		int reach = 0;
+		d++; // advance from previous spine (or special case see above)
+		while (d < input.size() && 0 != input[d].depth) {
+			if (input[d].depth > reach)
+				reach = input[d].depth;
+
+			d++;
+		}
+
+		// unblock all within reach from all candidate spine locations
+		for (int bit = 0; bit < 25; bit++) {
+			if (!spinePlaces.mask.test(bit)) {
+				extReach.mask &= base.reachable(Fundament::at(bit), reach).mask;
+			}
+		}
+
+		// determine all successor candidate spine locations
+		Fundament nextSpinePlaces;
+		nextSpinePlaces.mask.set(); // block all
+
+		for (int bit = 0; bit < 25; bit++) {
+			if (!spinePlaces.mask.test(bit)) {
+				nextSpinePlaces.mask &= base.reachableBySpine(Fundament::at(bit)).mask;
+			}
+		}
+
+		extReach.mask &= nextSpinePlaces.mask; // unblock locations reachable by spine alone
+		spinePlaces = nextSpinePlaces;
+	}
+
+	Fundament result;
+	result.mask = leafReach.mask & extReach.mask;
+	return result;
+}
+
 
 namespace
 {

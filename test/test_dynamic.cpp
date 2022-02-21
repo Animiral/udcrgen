@@ -218,7 +218,7 @@ TEST(Dynamic, queue)
 		// id, parent, depth, children, embedded, grid_x, grid_sly
 		{0, -1, 0, 6, true, 0, 0},
 		{1,  0, 1, 0, true, -1, 0},
-		{2,  0, 1, 0, true, 0, -1},
+		{2,  0, 1, 0, true, 1, -1},
 		{3,  0, 0, 0, true, 1, 0},
 		{4,  3, 1, 0, false, 2, 0}
 	};
@@ -229,25 +229,53 @@ TEST(Dynamic, queue)
 	DynamicProblem p1(disks), p2(disks), p3(disks);
 
 	// prepare p1
+	//     -
+	//    - -
+	//   - - -      (0)
+	//  - - - -      |
+	// - 1 0 - -     3
+	//  - - 2 -      |
+	//   - - -       4
+	//    - -
+	//     -
 	Grid solution1(5);
 	for(int i = 0; i < 3; i++)
 		solution1.put({ disks[i].grid_x, disks[i].grid_sly }, disks[i]);
 	p1.setSolution(solution1, { 0, 0 }, { 0, -1 });
 
 	// prepare p2
+	//     -
+	//    - -
+	//   - - -      (3)
+	//  - - - -      |
+	// 1 0 3 - -     |
+	//  - 2 - -      |
+	//   - - -       4
+	//    - -
+	//     -
 	Grid solution2(5);
 	for (int i = 0; i < 4; i++)
 		solution2.put({ disks[i].grid_x, disks[i].grid_sly }, disks[i]);
 	p2.setSolution(solution2, { 1, 0 }, { 1, 0 });
 
 	// prepare p3
+	//     -
+	//    - -
+	//   - - -      (0)
+	//  - 1 2 -      |
+	// - - 0 - -     3
+	//  - - - -      |
+	//   - - -       4
+	//    - -
+	//     -
 	Grid solution3(5);
 	solution3.put({ 0, 0 }, disks[0]);
 	solution3.put({ -1, 1 }, disks[1]);
-	solution3.put({ -1, 0 }, disks[2]);
+	solution3.put({ 0, 1 }, disks[2]);
 	p3.setSolution(solution3, { 0, 0 }, { -1, 0 });
 
 	EXPECT_NE(ProblemQueue::hash(p1.signature()), ProblemQueue::hash(p2.signature()));
+	// p1 and p3 are equal because of mirroring and reachability
 	EXPECT_EQ(ProblemQueue::hash(p1.signature()), ProblemQueue::hash(p3.signature()));
 	EXPECT_FALSE(ProblemQueue::equivalent(p1, p2));
 	EXPECT_TRUE(ProblemQueue::equivalent(p1, p3));

@@ -396,7 +396,7 @@ bool ProblemQueue::equivalent(const DynamicProblem& lhs, const DynamicProblem& r
 
 #include "output/svg.h"
 
-void DynamicProblemEmbedder::embed(std::vector<Disk>& disks)
+bool DynamicProblemEmbedder::embed(std::vector<Disk>& disks)
 {
 	// performance counters
 	int pushCounter = 0;
@@ -446,4 +446,6 @@ void DynamicProblemEmbedder::embed(std::vector<Disk>& disks)
 		}
 		trace("No solution found.");
 	}
+
+	return !queue.empty();
 }

@@ -214,6 +214,6 @@ class DynamicProblemEmbedder : public WholesaleEmbedder
 
 public:
 
-	virtual void embed(std::vector<Disk>& disks) override;
+	virtual bool embed(std::vector<Disk>& disks) override;
 
 };

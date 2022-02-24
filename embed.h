@@ -50,16 +50,25 @@ class WholesaleEmbedder
 
 public:
 
-	virtual void embed(std::vector<Disk>& disks) = 0;
+	/**
+	 * @brief Embed the given ordered disks in the plane.
+	 *
+	 * @return true if an embedding was found, false otherwise.
+	 */
+	virtual bool embed(std::vector<Disk>& disks) = 0;
 
 };
 
 /**
  * Apply an embedding to the graph using the given embedding strategy.
+ *
+ * @return true if an embedding was found, false otherwise.
  */
-void embed(DiskGraph& graph, Embedder& embedder, Configuration::EmbedOrder embedOrder);
+bool embed(DiskGraph& graph, Embedder& embedder, Configuration::EmbedOrder embedOrder);
 
 /**
  * Apply an embedding to the graph using the dynamic programming approach.
+ *
+ * @return true if an embedding was found, false otherwise.
  */
-void embedDynamic(DiskGraph& graph, WholesaleEmbedder& embedder);
+bool embedDynamic(DiskGraph& graph, WholesaleEmbedder& embedder);

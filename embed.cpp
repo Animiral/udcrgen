@@ -131,19 +131,22 @@ namespace
 using EmbedOrder = Configuration::EmbedOrder;
 using DiskVec = std::vector<Disk>;
 
-void embedDisk(DiskGraph& graph, Embedder& embedder, Disk& disk)
+bool embedDisk(DiskGraph& graph, Embedder& embedder, Disk& disk)
 {
 	if (disk.embedded)
-		return; // nothing to do
+		return true; // nothing to do
+
+	bool success = true;
 
 	// ensure that parent is embedded
 	Disk* parent = graph.findDisk(disk.parent);
 	if (parent != nullptr) {
-		embedDisk(graph, embedder, *parent);
+		success &= embedDisk(graph, embedder, *parent);
 	}
 
 	embedder.embed(disk);
 	disk.embedded = true;
+	return success && !disk.failure;
 }
 
 std::vector<Disk> getDisksInOrder(const DiskGraph& graph, EmbedOrder embedOrder)
@@ -198,7 +201,7 @@ std::vector<Disk> getDisksInOrder(const DiskGraph& graph, EmbedOrder embedOrder)
 
 using EmbedOrder = Configuration::EmbedOrder;
 
-void embed(DiskGraph& graph, Embedder& embedder, EmbedOrder embedOrder)
+bool embed(DiskGraph& graph, Embedder& embedder, EmbedOrder embedOrder)
 {
 	auto& spines = graph.spines();
 	auto& branches = graph.branches(); // branches are ordered by parent spine
@@ -208,21 +211,23 @@ void embed(DiskGraph& graph, Embedder& embedder, EmbedOrder embedOrder)
 	auto branchIt = branches.begin();
 	auto leafIt = leaves.begin();
 
+	bool success = true;
+
 	for (; spineIt != spines.end(); ++spineIt) {
-		embedDisk(graph, embedder, *spineIt);
+		success &= embedDisk(graph, embedder, *spineIt);
 
 		for (; branchIt != branches.end(); ++branchIt) {
 			if (branchIt->parent != spineIt->id)
 				break; // skip to next spine
 
-			embedDisk(graph, embedder, *branchIt);
+			success &= embedDisk(graph, embedder, *branchIt);
 
 			if (EmbedOrder::DEPTH_FIRST == embedOrder) {
 				for (; leafIt != leaves.end(); ++leafIt) {
 					if (leafIt->parent != branchIt->id)
 						break; // skip to next branch
 
-					embedDisk(graph, embedder, *leafIt);
+					success &= embedDisk(graph, embedder, *leafIt);
 				}
 			}
 		}
@@ -235,25 +240,31 @@ void embed(DiskGraph& graph, Embedder& embedder, EmbedOrder embedOrder)
 				if (branch->parent != spineIt->id)
 					break; // skip to next spine
 
-				embedDisk(graph, embedder, *leafIt);
+				success &= embedDisk(graph, embedder, *leafIt);
 			}
 		}
 	}
+
+	return success;
 }
 
-void embedDynamic(DiskGraph& graph, WholesaleEmbedder& embedder)
+bool embedDynamic(DiskGraph& graph, WholesaleEmbedder& embedder)
 {
 	std::vector<Disk> disks = getDisksInOrder(graph, EmbedOrder::DEPTH_FIRST);
-	embedder.embed(disks);
+	bool success = embedder.embed(disks);
 
-	// transcribe result to graph
-	for (const Disk& out : disks) {
-		Disk* actual = graph.findDisk(out.id);
-		actual->embedded = out.embedded;
-		actual->failure = out.failure;
-		actual->grid_x = out.grid_x;
-		actual->grid_sly = out.grid_sly;
-		actual->x = out.x;
-		actual->y = out.y;
+	if (success) {
+		// transcribe result to graph
+		for (const Disk& out : disks) {
+			Disk* actual = graph.findDisk(out.id);
+			actual->embedded = out.embedded;
+			actual->failure = out.failure;
+			actual->grid_x = out.grid_x;
+			actual->grid_sly = out.grid_sly;
+			actual->x = out.x;
+			actual->y = out.y;
+		}
 	}
+
+	return success;
 }

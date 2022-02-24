@@ -35,7 +35,7 @@ TEST(Embed, embed_proper)
 	auto embedder = ProperEmbedder{};
 
 	// execute
-	embed(graph, embedder, Configuration::EmbedOrder::DEPTH_FIRST);
+	ASSERT_TRUE(embed(graph, embedder, Configuration::EmbedOrder::DEPTH_FIRST));
 
 	auto& spines = graph.spines();
 	auto& branches = graph.branches();
@@ -88,7 +88,7 @@ TEST(Embed, embed_weak)
 	auto embedder = WeakEmbedder{ graph };
 
 	// execute, leaves first
-	embed(graph, embedder, Configuration::EmbedOrder::DEPTH_FIRST);
+	ASSERT_TRUE(embed(graph, embedder, Configuration::EmbedOrder::DEPTH_FIRST));
 
 	auto& spines = graph.spines();
 	auto& branches = graph.branches();
@@ -115,7 +115,7 @@ TEST(Embed, embed_weak_breadthfirst)
 	auto embedder = WeakEmbedder{ graph };
 
 	// execute, spine first
-	embed(graph, embedder, Configuration::EmbedOrder::BREADTH_FIRST);
+	ASSERT_TRUE(embed(graph, embedder, Configuration::EmbedOrder::BREADTH_FIRST));
 
 	auto& spines = graph.spines();
 	auto& branches = graph.branches();

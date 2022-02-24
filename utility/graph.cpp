@@ -57,6 +57,29 @@ Caterpillar Caterpillar::fromText(std::istream& stream)
 	return caterpillar;
 }
 
+Lobster::Lobster() noexcept = default;
+
+Lobster::Lobster(std::vector<Spine> spine) noexcept
+	: spine_(move(spine))
+{
+}
+
+int Lobster::countVertices() const noexcept
+{
+	int count = countSpine();
+
+	for (int i = 0; i < spine_.size(); i++) {
+		count += std::accumulate(spine_[i].begin(), spine_[i].end(), 5);
+	}
+
+	return count;
+}
+
+int Lobster::countSpine() const noexcept
+{
+	return spine_.size();
+}
+
 EdgeList edges_from_text(std::istream& stream)
 {
 	std::vector<Edge> edges;
@@ -298,6 +321,12 @@ DiskGraph DiskGraph::fromCaterpillar(const Caterpillar& caterpillar)
 	}
 
 	return result;
+}
+
+static DiskGraph fromLobster(const Lobster& lobster)
+{
+	// TODO
+	return DiskGraph(1, 0, 0);
 }
 
 EdgeList DiskGraph::toEdgeList() const

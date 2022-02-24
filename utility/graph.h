@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <array>
 #include <vector>
 #include <istream>
 #include <ostream>
@@ -48,6 +49,43 @@ public:
 private:
 
 	std::vector<int> leaves_;
+
+};
+
+/**
+ * A basic representation of a lobster graph.
+ *
+ * The lobster graph is a string of spine vertices. For every spine vertex, it stores
+ * up to five branches, to each of which up to five leaves may be attached.
+ *
+ * The representation of a branch is simply the number of attached leaves (0-5).
+ * Spines are represented by a 5-element list of branches, in which excess
+ * elements at the back are marked by a special NO_BRANCH value.
+ */
+class Lobster
+{
+
+public:
+
+	using Spine = std::array<int, 5>; // single spine node
+	static const int NO_BRANCH = -1;
+
+	Lobster() noexcept;
+	explicit Lobster(std::vector<Spine> spine) noexcept;
+
+	/**
+	 * Count the total number of vertices (spine + branches + leaves).
+	 */
+	int countVertices() const noexcept;
+
+	/**
+	 * Get the number of nodes in the spine.
+	 */
+	int countSpine() const noexcept;
+
+private:
+
+	std::vector<Spine> spine_;
 
 };
 
@@ -171,11 +209,20 @@ public:
 	const Disk* findDisk(DiskId id) const;
 
 	/**
-	 * Create an instance based on the given basic caterpillar representation.
+	 * @brief Create an instance based on the given basic caterpillar representation.
 	 *
-	 * The embedding coordinates of the resulting disks are unspecified.
+	 * The resulting graph is not embedded, thus the embedding coordinates of
+	 * the disks and related fields are unspecified.
 	 */
 	static DiskGraph fromCaterpillar(const Caterpillar& caterpillar);
+
+	/**
+	 * @brief Create an instance based on the given basic lobster representation.
+	 *
+	 * The resulting graph is not embedded, thus the embedding coordinates of
+	 * the disks and related fields are unspecified.
+	 */
+	static DiskGraph fromLobster(const Lobster& lobster);
 
 	/**
 	 * Return the edge list representation of this graph.

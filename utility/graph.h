@@ -71,7 +71,7 @@ public:
 	static const int NO_BRANCH = -1;
 
 	Lobster() noexcept;
-	explicit Lobster(std::vector<Spine> spine) noexcept;
+	Lobster(std::vector<Spine> spine) noexcept;
 
 	/**
 	 * Count the total number of vertices (spine + branches + leaves).
@@ -82,6 +82,16 @@ public:
 	 * Get the number of nodes in the spine.
 	 */
 	int countSpine() const noexcept;
+
+	/**
+	 * Read access to the underlying spine data.
+	 */
+	const std::vector<Spine>& spine() const noexcept;
+
+	/**
+	 * Full access to the underlying spine data.
+	 */
+	std::vector<Spine>& spine() noexcept;
 
 private:
 

@@ -29,7 +29,7 @@ private:
 
 	const DiskGraph* graph_; //!< output object
 	float scale_; //!< size of a unit disk in output
-	const Translate translate_; //!< coordinate translator
+	Translate translate_; //!< coordinate translator
 	std::ostream* stream_; //!< output stream
 
 	/**

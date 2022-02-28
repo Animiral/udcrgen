@@ -1,22 +1,10 @@
 #include "translate.h"
 #include <algorithm>
+#include <cassert>
 
-namespace
+Translate::Translate(float scale) noexcept
+	: left_(0), right_(0), top_(0), bottom_(0), margin_(0), scale_(scale)
 {
-
-// Find the least disk object according to the given comparator, or an all-0 disk.
-template<typename Iterator, typename Compare>
-Disk min_disk(Iterator begin, Iterator end, Compare compare);
-
-// Find the limits of the graph in layout units
-void calculateExtents(const DiskGraph& graph, float& left, float& right, float& top, float& bottom) noexcept;
-
-}
-
-Translate::Translate(const DiskGraph& graph, float margin, float scale) noexcept
-	: margin_(margin), scale_(scale)
-{
-	calculateExtents(graph, left_, right_, top_, bottom_);
 }
 
 Vec2 Translate::translate(Vec2 v) const noexcept
@@ -25,17 +13,32 @@ Vec2 Translate::translate(Vec2 v) const noexcept
 	return v * scale_ + offset;
 }
 
+void Translate::setLimits(float top, float right, float bottom, float left, float margin) noexcept
+{
+	assert(top < bottom);
+	assert(left < right);
+
+	top_ = top;
+	right_ = right;
+	bottom_ = bottom;
+	left_ = left;
+	margin_ = margin;
+}
+
 namespace
 {
 
-template<typename Iterator, typename Compare>
-Disk min_disk(Iterator begin, Iterator end, Compare compare)
-{
-	auto min_elem = std::min_element(begin, end, compare);
-	return min_elem == end ? Disk{ 0, 0, 0, 0 } : *min_elem;
+	// Find the least disk object according to the given comparator, or an all-0 disk.
+	template<typename Iterator, typename Compare>
+	Disk min_disk(Iterator begin, Iterator end, Compare compare)
+	{
+		auto min_elem = std::min_element(begin, end, compare);
+		return min_elem == end ? Disk{ 0, 0, 0, 0 } : *min_elem;
+	}
+
 }
 
-void calculateExtents(const DiskGraph& graph, float& left, float& right, float& top, float& bottom) noexcept
+void Translate::setLimits(const DiskGraph& graph, float margin) noexcept
 {
 	const auto lessX = [](Disk a, Disk b) { return a.x < b.x; };
 
@@ -56,19 +59,28 @@ void calculateExtents(const DiskGraph& graph, float& left, float& right, float& 
 	const Disk& maxxSpine = min_disk(graph.spines().begin(), graph.spines().end(), greaterX);
 	const Disk& maxxBranch = min_disk(graph.branches().begin(), graph.branches().end(), greaterX);
 	const Disk& maxxLeaf = min_disk(graph.leaves().begin(), graph.leaves().end(), greaterX);
-	const Disk& maxxDisk = std::min({ minxSpine, minxBranch, minxLeaf }, greaterX);
+	const Disk& maxxDisk = std::min({ maxxSpine, maxxBranch, maxxLeaf }, greaterX);
 
-	const auto greaterY = [](Disk a, Disk b) { return a.y < b.y; };
+	const auto greaterY = [](Disk a, Disk b) { return a.y > b.y; };
 
 	const Disk& maxySpine = min_disk(graph.spines().begin(), graph.spines().end(), greaterY);
 	const Disk& maxyBranch = min_disk(graph.branches().begin(), graph.branches().end(), greaterY);
 	const Disk& maxyLeaf = min_disk(graph.leaves().begin(), graph.leaves().end(), greaterY);
-	const Disk& maxyDisk = std::min({ minySpine, minyBranch, minyLeaf }, greaterY);
+	const Disk& maxyDisk = std::min({ maxySpine, maxyBranch, maxyLeaf }, greaterY);
 
-	left = minxDisk.x - .5f;
-	right = maxxDisk.x + .5f;
-	top = minyDisk.y - .5f;
-	bottom = maxyDisk.y + .5f;
+	left_ = minxDisk.x - .5f;
+	right_ = maxxDisk.x + .5f;
+	top_ = minyDisk.y - .5f;
+	bottom_ = maxyDisk.y + .5f;
+	margin_ = margin;
 }
 
+float Translate::width() const noexcept
+{
+	return scale_ * (right_ - left_) + 2 * margin_;
+}
+
+float Translate::height() const noexcept
+{
+	return scale_ * (bottom_ - top_) + 2 * margin_;
 }

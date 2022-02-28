@@ -10,14 +10,18 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 # All implementation details of the recognition algorithm, generator etc.
 # are compiled in this library, on which all the executables depend.
 add_library(udcr STATIC
+	"dynamic.cpp" "dynamic.h"
+	"heuristic.cpp" "heuristic.h"
 	"embed.cpp" "embed.h"
+	"enumerate.cpp" "enumerate.h"
 	"config.cpp" "config.h"
 	"output/svg.cpp" "output/svg.h"
 	"output/ipe.cpp" "output/ipe.h"
 	"output/translate.cpp" "output/translate.h"
-	"utility/graph.cpp" "utility/graph.h"
 	"utility/geometry.cpp" "utility/geometry.h"
-	"utility/util.cpp" "utility/util.h" "utility/grid.h" "utility/grid.cpp")
+	"utility/graph.cpp" "utility/graph.h"
+	"utility/grid.cpp" "utility/grid.h"
+	"utility/util.cpp" "utility/util.h")
 target_include_directories(udcr PRIVATE ${PROJECT_SOURCE_DIR})
 
 # This is the main executable.
@@ -32,7 +36,7 @@ target_link_libraries(gencases udcr)
 enable_testing()
 find_package(GTest REQUIRED)
 
-add_executable(unittests "test/test_embed.cpp" "test/test_graph.cpp" "test/test_grid.cpp")
+add_executable(unittests "test/test_embed.cpp" "test/test_graph.cpp" "test/test_grid.cpp" "test/test_dynamic.cpp" "test/test_heuristic.cpp" "test/test_enumerate.cpp")
 target_link_libraries(unittests ${GTEST_BOTH_LIBRARIES} udcr)
 target_include_directories(unittests PRIVATE ${PROJECT_SOURCE_DIR})
 add_test(unittests unittests)

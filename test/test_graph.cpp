@@ -70,3 +70,34 @@ TEST(Graph, recognize_path_continuous)
 	EXPECT_TRUE(recognize_path(graph.begin(), graph.end())) << "expected: The input graph is a path";
 	EXPECT_TRUE(equal(graph.begin(), graph.end(), expected.begin(), edges_equal)) << "expected: The input path is in continuous order";
 }
+
+/**
+ * Ensure that we can convert a Lobster to a graph.
+ */
+TEST(Graph, DiskGraph_fromLobster)
+{
+	const auto NB = Lobster::NO_BRANCH;
+	Lobster lobster({ {2, 1, NB, NB, NB}, {NB, NB, NB, NB, NB} });
+
+	auto graph = DiskGraph::fromLobster(lobster);
+	auto spines = graph.spines();
+	auto branches = graph.branches();
+	auto leaves = graph.leaves();
+
+	EXPECT_EQ(graph.size(), 7);
+	
+	ASSERT_EQ(spines.size(), 2);
+	EXPECT_EQ(spines[0].children, 2);
+	EXPECT_EQ(spines[1].children, 0);
+
+	ASSERT_EQ(branches.size(), 2);
+	EXPECT_EQ(branches[0].parent, spines[0].id);
+	EXPECT_EQ(branches[1].parent, spines[0].id);
+	EXPECT_EQ(branches[0].children, 2);
+	EXPECT_EQ(branches[1].children, 1);
+
+	ASSERT_EQ(leaves.size(), 3);
+	EXPECT_EQ(leaves[0].parent, branches[0].id);
+	EXPECT_EQ(leaves[1].parent, branches[0].id);
+	EXPECT_EQ(leaves[2].parent, branches[1].id);
+}

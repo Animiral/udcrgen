@@ -24,17 +24,38 @@ public:
 	/**
 	 * Construct the translator for the given graph, margin and scale.
 	 */
-	explicit Translate(const DiskGraph& graph, float margin, float scale) noexcept;
+	explicit Translate(float scale) noexcept;
 
 	/**
 	 * Return the given layout coordinates translated into canvas coordinates.
 	 */
 	Vec2 translate(Vec2 v) const noexcept;
 
+	/**
+	 * @brief Configure offsets to show all disks in the given range.
+	 *
+	 * @param top expected y-coordinate of top disk (smallest y)
+	 * @param right expected x-coordinate of rightmost disk
+	 * @param bottom expected y-coordinate of bottom disk (largest y)
+	 * @param left expected x-coordinate of leftmost disk
+	 * @param margin extra distance from x- and y-axes
+	 */
+	void setLimits(float top, float right, float bottom, float left, float margin) noexcept;
+
+	/**
+	 * @brief Configure offsets for the specific disks in the graph.
+	 *
+	 * Convenience function.
+	 */
+	void setLimits(const DiskGraph& graph, float margin) noexcept;
+
+	float width() const noexcept;
+	float height() const noexcept;
+
 private:
 
 	// furthest object extents in graph layout units
-	float left_, right_, top_, bottom_;
+	float top_, right_, bottom_, left_;
 
 	float margin_; //!< blank distance from canvas border
 	float scale_; //!< size of a unit disk in canvas units

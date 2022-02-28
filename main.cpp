@@ -1,4 +1,6 @@
 #include "embed.h"
+#include "heuristic.h"
+#include "dynamic.h"
 #include "utility/graph.h"
 #include "output/ipe.h"
 #include "output/svg.h"
@@ -53,6 +55,7 @@ int main(int argc, const char* argv[])
 
 	try {
 		Embedder* embedder = nullptr;
+		WholesaleEmbedder* wholeEmbedder = nullptr;
 
 		switch (configuration.algorithm) {
 
@@ -66,13 +69,24 @@ int main(int argc, const char* argv[])
 			break;
 
 		case Configuration::Algorithm::CLEVE:
-			embedder = new WeakEmbedder(*graph);
+			embedder = new WeakEmbedder();
+			break;
+
+		case Configuration::Algorithm::DYNAMIC_PROGRAM:
+			wholeEmbedder = new DynamicProblemEmbedder();
 			break;
 
 		}
 
-		embed(*graph, *embedder, configuration.embedOrder);
+		// weird redundancy/ambiguity to be refactored!
+		if (embedder)
+			embed(*graph, *embedder, configuration.embedOrder);
+
+		if (wholeEmbedder)
+			embedDynamic(*graph, *wholeEmbedder);
+
 		delete embedder;
+		delete wholeEmbedder;
 	}
 	catch (const std::exception& e) {
 		std::cerr << "Failed to determine graph embedding: " << e.what() << "\n";
@@ -92,8 +106,10 @@ int main(int argc, const char* argv[])
 
 		case Configuration::OutputFormat::SVG:
 		{
-			Svg svg{ *graph, stream };
-			svg.write();
+			Svg svg(stream);
+			svg.intro();
+			svg.write(*graph, "Embed Result");
+			svg.outro();
 		}
 			break;
 

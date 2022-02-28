@@ -57,6 +57,48 @@ Caterpillar Caterpillar::fromText(std::istream& stream)
 	return caterpillar;
 }
 
+Lobster::Lobster() noexcept = default;
+
+Lobster::Lobster(Lobster&& ) noexcept = default;
+
+Lobster::Lobster(std::vector<Spine> spine) noexcept
+	: spine_(move(spine))
+{
+}
+
+Lobster& Lobster::operator=(Lobster&& ) noexcept = default;
+
+bool Lobster::operator==(const Lobster& rhs) const noexcept
+{
+	return spine_ == rhs.spine_;
+}
+
+int Lobster::countVertices() const noexcept
+{
+	int count = countSpine();
+
+	for (int i = 0; i < spine_.size(); i++) {
+		count += std::accumulate(spine_[i].begin(), spine_[i].end(), 5);
+	}
+
+	return count;
+}
+
+int Lobster::countSpine() const noexcept
+{
+	return spine_.size();
+}
+
+const std::vector<Lobster::Spine>& Lobster::spine() const noexcept
+{
+	return spine_;
+}
+
+std::vector<Lobster::Spine>& Lobster::spine() noexcept
+{
+	return spine_;
+}
+
 EdgeList edges_from_text(std::istream& stream)
 {
 	std::vector<Edge> edges;
@@ -279,6 +321,7 @@ DiskGraph DiskGraph::fromCaterpillar(const Caterpillar& caterpillar)
 		auto& v = result.spines()[id];
 		v.id = id;
 		v.parent = id - 1;
+		v.depth = 0;
 		v.failure = false;
 	}
 
@@ -290,11 +333,67 @@ DiskGraph DiskGraph::fromCaterpillar(const Caterpillar& caterpillar)
 			auto& v = result.branches()[id + leaf];
 			v.id = spinesCount + id + leaf;
 			v.parent = spineId;
+			v.depth = 1;
 			v.failure = false;
 		}
 
 		id += leaves;
 		spineId++;
+	}
+
+	return result;
+}
+
+DiskGraph DiskGraph::fromLobster(const Lobster& lobster)
+{
+	const auto& spine = lobster.spine();
+
+	int spinesCount = spine.size();
+	int branchCount = 0;
+	int leavesCount = 0;
+
+	for (int i = 0; i < spinesCount; i++)
+		for (int j = 0; j < 5; j++)
+			if (spine[i][j] != Lobster::NO_BRANCH) {
+				branchCount++;
+				leavesCount += spine[i][j];
+			}
+
+	DiskGraph result{ spinesCount, branchCount, leavesCount };
+
+	int id = 0;
+	int branchIx = 0;
+	int leafIx = 0;
+
+	for (int i = 0; i < spinesCount; i++) {
+		auto& s = result.spines()[i];
+		s.id = id++;
+		s.parent = 0 == i ? -1 : result.spines()[i - 1].id;
+		s.depth = 0;
+		s.children = 0;
+		s.embedded = false;
+
+		for (int j = 0; j < 5; j++) {
+			if (Lobster::NO_BRANCH == spine[i][j])
+				continue;
+
+			s.children++;
+			auto& b = result.branches()[branchIx++];
+			b.id = id++;
+			b.parent = s.id;
+			b.depth = 1;
+			b.children = spine[i][j];
+			b.embedded = false;
+
+			for (int k = 0; k < spine[i][j]; k++) {
+				auto& l = result.leaves()[leafIx++];
+				l.id = id++;
+				l.parent = b.id;
+				l.depth = 2;
+				l.children = 0;
+				l.embedded = false;
+			}
+		}
 	}
 
 	return result;

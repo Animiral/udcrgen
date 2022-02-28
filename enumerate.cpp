@@ -94,14 +94,21 @@ bool Enumerate::test(const Lobster& lobster)
 	stat.size = lobster.countVertices();
 	stat.spines = lobster.countSpine();
 
+	using Clock = std::chrono::steady_clock;
+	Clock clock;
+	Clock::time_point start;
+
 	// *** run fast heuristic test ***
 
 	// hardcoded because this is the only lobster heuristic option
 	stat.algorithm = Configuration::Algorithm::CLEVE;
 
 	DiskGraph graph = DiskGraph::fromLobster(lobster);
-	stat.success = embed(graph, *fast_, embedOrder_);
-	stat.duration = stat.duration.zero(); // TODO: implement timer
+	{ // measure embedding time
+		start = clock.now();
+		stat.success = embed(graph, *fast_, embedOrder_);
+		stat.duration = std::chrono::duration_cast<std::chrono::milliseconds>(clock.now() - start);
+	}
 
 	stats_.push_back(stat);
 
@@ -109,8 +116,11 @@ bool Enumerate::test(const Lobster& lobster)
 	stat.algorithm = Configuration::Algorithm::DYNAMIC_PROGRAM;
 
 	graph = DiskGraph::fromLobster(lobster); // reset
-	stat.success = embedDynamic(graph, *reference_);
-	stat.duration = stat.duration.zero(); // TODO: implement timer
+	{ // measure embedding time
+		start = clock.now();
+		stat.success = embedDynamic(graph, *reference_);
+		stat.duration = std::chrono::duration_cast<std::chrono::milliseconds>(clock.now() - start);
+	}
 
 	stats_.push_back(stat);
 

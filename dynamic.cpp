@@ -429,7 +429,7 @@ bool DynamicProblemEmbedder::embed(std::vector<Disk>& disks)
 
 			if (disks.size() - problem.depth() <= 2) {
 				std::string label = format("Depth {} Hash {}", problem.depth(), ProblemQueue::hash(problem.signature()));
-				svg.write(problem.signature(), label);
+				//svg.write(problem.signature(), label);
 			}
 		}
 	}

@@ -59,9 +59,18 @@ Caterpillar Caterpillar::fromText(std::istream& stream)
 
 Lobster::Lobster() noexcept = default;
 
+Lobster::Lobster(Lobster&& ) noexcept = default;
+
 Lobster::Lobster(std::vector<Spine> spine) noexcept
 	: spine_(move(spine))
 {
+}
+
+Lobster& Lobster::operator=(Lobster&& ) noexcept = default;
+
+bool Lobster::operator==(const Lobster& rhs) const noexcept
+{
+	return spine_ == rhs.spine_;
 }
 
 int Lobster::countVertices() const noexcept

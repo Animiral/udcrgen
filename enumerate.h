@@ -47,25 +47,47 @@ public:
 	 * and spines with no upper limit on the size of the result.
 	 *
 	 * Before advancing to the next instance, the current instance must have been tested.
+	 * If the test does not determine that an embedding is possible, this function will
+	 * skip over candidate lobsters of which we can already deduce that they have too
+	 * many branches/leaves and will also fail.
+	 *
+	 * Because enumerating every possible combination of integers everywhere in
+	 * the lobster (0-5) yields a lot of equivalent lobster definitions, this
+	 * enumeration is restricted to lobsters in @e canonical format.
+	 *
+	 * In a canonical lobster, the branches in all spines are ordered from highest
+	 * to lowest degree.
+	 * Also, of any two "mirror" cases of a lobster being defined front-to-back and
+	 * back-to-front along its spine, only one is canonical.
 	 */
 	void next();
 
 	/**
 	 * Run the embedding algorithms on the current lobster and record the results
-	 * in the statistics.
+	 * in the statistics. The success or failure determines the behavior of the @c next
+	 * function.
+	 *
+	 * @return true if embedding is possible using the reference embedder, false otherwise
 	 */
-	void test();
+	bool test();
 
 	/**
 	 * Run the embedding algorithms on the given lobster and record the results
 	 * in the statistics.
+	 *
+	 * @return true if embedding is possible using the reference embedder, false otherwise
 	 */
-	void test(const Lobster& lobster);
+	bool test(const Lobster& lobster);
 
 	/**
 	 * Get the current Lobster instance.
 	 */
 	const Lobster& current() const noexcept;
+
+	/**
+	 * Set the current Lobster instance.
+	 */
+	void setCurrent(Lobster lobster) noexcept;
 
 	/**
 	 * Set the @c EmbedOrder for the fast embedder.
@@ -94,6 +116,17 @@ public:
 	 */
 	void run();
 
+	/**
+	 * @brief Return true if the lobster is in canonical orientation.
+	 *
+	 * Between the two equivalent representations of any lobster which are
+	 * just front-to-back/back-to-front mirrors of each other, the canonical
+	 * representation is the lexicographically larger one.
+	 *
+	 * We skip over the non-canonical representations in our enumeration.
+	 */
+	static bool isCanonicallyOriented(const Lobster& lobster) noexcept;
+
 private:
 
 	Embedder* fast_;
@@ -102,6 +135,7 @@ private:
 	int minSize_;
 	int maxSize_;
 	Lobster current_;
+	bool lastSuccess_;
 	Svg* output_;
 	std::vector<Stat> stats_;
 

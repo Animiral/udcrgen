@@ -2,76 +2,86 @@
 
 #include "gtest/gtest.h"
 #include "enumerate.h"
+#include "heuristic.h"
+#include <memory>
 
-// helper for testing enumerate behavior
-class MockFastEmbedder : public Embedder
+/**
+ * Test that lobsters are correctly iterated and tested.
+ */
+TEST(Enumerate, enumerate)
 {
+	WeakEmbedder fast;
+	DynamicProblemEmbedder reference;
+	Enumerate enumerate(fast, reference, 0, 10);
 
-public:
+	const auto NB = Lobster::NO_BRANCH;
+	enumerate.setCurrent({ {{4, 3, 3, NB, NB}, {3, 2, NB, NB, NB}} });
+	EXPECT_TRUE(enumerate.test()); // embed possible
 
-	virtual void embed(Disk& disk) override
-	{
-		// TODO
-	}
+	enumerate.next(); // success advancement strategy: increase branches
+	EXPECT_EQ(enumerate.current(), Lobster({ {4, 3, 3, NB, NB}, {3, 2, 0, NB, NB} }));
+	EXPECT_FALSE(enumerate.test()); // embed not possible
 
-};
+	enumerate.next(); // failure advancement strategy: increase leaves on prev branch
+	EXPECT_EQ(enumerate.current(), Lobster({ {4, 3, 3, NB, NB}, {3, 3, NB, NB, NB} }));
+	EXPECT_FALSE(enumerate.test()); // embed not possible
 
-// helper for testing enumerate behavior
-class MockWholesaleEmbedder : public WholesaleEmbedder
-{
+	enumerate.next(); // failure advancement strategy: increase leaves on prev branch
+	EXPECT_EQ(enumerate.current(), Lobster({ {4, 3, 3, NB, NB}, {4, NB, NB, NB, NB} }));
+	EXPECT_TRUE(enumerate.test()); // embed possible
 
-public:
+	enumerate.next(); // success advancement strategy: increase branches
+	EXPECT_EQ(enumerate.current(), Lobster({ {4, 3, 3, NB, NB}, {4, 0, NB, NB, NB} }));
+	EXPECT_FALSE(enumerate.test()); // embed not possible
 
-	virtual bool embed(std::vector<Disk>& disks) override
-	{
-		return true;
-	}
+	enumerate.next(); // skip past all remaining configs on spine #2, increase branches on prev spine
+	EXPECT_EQ(enumerate.current(), Lobster({ {4, 3, 3, 0, NB}, {NB, NB, NB, NB, NB} }));
+	EXPECT_TRUE(enumerate.test()); // , embed not possible
 
-};
+	// final lobster of size 2
+	enumerate.setCurrent({ {{5, 5, NB, NB, NB}, {NB, NB, NB, NB, NB}} });
+	EXPECT_FALSE(enumerate.test()); // embed not possible
 
-// helper to compare lobster values
-bool equal(const Lobster& lhs, const Lobster& rhs) noexcept
-{
-	auto& ls = lhs.spine();
-	auto& rs = rhs.spine();
-
-	return ls == rs;
-
-	//if (ls.size() != rhs.countSpine())
-	//	return false;
-
-	//for (int i = 0; i < lhs.spine().size(); i++) {
-	//	for (int j = 0; j < 5; j++) {
-	//		if (lhs.spine()[i] != rhs.spine()[i])
-	//			return false;
-	//	}
-	//}
-
-	//return true;
+	enumerate.next(); // failure advancement strategy: increase lobster size
+	EXPECT_EQ(enumerate.current(), Lobster({ {NB, NB, NB, NB, NB}, {NB, NB, NB, NB, NB}, {NB, NB, NB, NB, NB} }));
 }
 
 /**
- * Test that lobsters are correctly iterated.
+ * Test recognizing canonical lobster mirrors.
  */
-TEST(Enumerate, next)
+TEST(Enumerate, isCanonicallyOriented)
 {
-	auto fast = std::make_unique<MockFastEmbedder>();
-	auto reference = std::make_unique <MockWholesaleEmbedder>();
+	const auto NB = Lobster::NO_BRANCH;
 
-	Enumerate enumerate(*fast, *reference, 0, 10);
+	Lobster headHeavy({ {2, 1, NB, NB, NB}, {1, NB, NB, NB, NB}, {1, 1, NB, NB, NB} });
+	EXPECT_TRUE(Enumerate::isCanonicallyOriented(headHeavy));
 
-	Lobster current{ {{3, 3, 1, 0}, {3, 3, 1, 0}} }; // embed possible
-	enumerate.test(current);
-	EXPECT_TRUE(enumerate.stats().back().success);
+	Lobster tailHeavy({ {5, 5, 5, 5, 4}, {1, NB, NB, NB, NB}, {5, 5, 5, 5, 5} });
+	EXPECT_FALSE(Enumerate::isCanonicallyOriented(tailHeavy));
 
-	enumerate.next(); // first advancement strategy: increase leaves on last branch
-
+	// palindrome lobsters are always canonical
+	Lobster palindrome({ {2, 1, NB, NB, NB}, {1, NB, NB, NB, NB}, {2, 1, NB, NB, NB} });
+	EXPECT_TRUE(Enumerate::isCanonicallyOriented(palindrome));
 }
 
 /**
- * Test that the algorithms are properly run.
+ * Test that lobsters are correctly iterated considering canonical orientation.
  */
-TEST(Enumerate, test)
+TEST(Enumerate, nextCanonical)
 {
-	// TODO
+	WeakEmbedder fast;
+	DynamicProblemEmbedder reference;
+	Enumerate enumerate(fast, reference, 0, 10);
+	
+	const auto NB = Lobster::NO_BRANCH;
+
+	// The next lobster after a tail-heavy is a palindrome
+	enumerate.setCurrent({ {{1, NB, NB, NB, NB}, {1, 1, NB, NB, NB}} });
+	enumerate.next();
+	EXPECT_EQ(enumerate.current(), Lobster({ {1, 0, NB, NB, NB}, {NB, NB, NB, NB, NB} }));
+
+	// The next lobster after a palindrome is a head-heavy
+	enumerate.setCurrent({ {{3, 2, 0, 0, 0}, {3, 2, 0, 0, 0}} });
+	enumerate.next();
+	EXPECT_EQ(enumerate.current(), Lobster({ {3, 2, 1, 0, 0}, {NB, NB, NB, NB, NB} }));
 }

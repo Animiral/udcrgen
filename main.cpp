@@ -69,7 +69,7 @@ int main(int argc, const char* argv[])
 			break;
 
 		case Configuration::Algorithm::CLEVE:
-			embedder = new WeakEmbedder(*graph);
+			embedder = new WeakEmbedder();
 			break;
 
 		case Configuration::Algorithm::DYNAMIC_PROGRAM:

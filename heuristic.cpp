@@ -39,6 +39,11 @@ void ProperEmbedder::embed(Disk& disk)
 		throw std::exception("proper embedder can not embed graphs deeper than caterpillars");
 }
 
+void ProperEmbedder::setGraph(DiskGraph& graph) noexcept
+{
+	// This embedder does not require graph knowledge.
+}
+
 void ProperEmbedder::embedSpine(Disk& disk) noexcept
 {
 	if (beforeFirstSpine_) {
@@ -279,9 +284,30 @@ void GridEmbedImpl::putDiskAt(Disk& disk, Coord coord) noexcept
 }
 
 
-WeakEmbedder::WeakEmbedder(DiskGraph& graph) noexcept :
-	graph_(&graph), impl_{ graph.size() }
+WeakEmbedder::WeakEmbedder() noexcept :
+	graph_(nullptr), impl_(0)
 {
+}
+
+void WeakEmbedder::embed(Disk& disk)
+{
+	assert(graph_);
+
+	if (0 == disk.depth)
+		return embedSpine(disk);
+
+	if (1 == disk.depth || 2 == disk.depth)
+		return embedBranchOrLeaf(disk);
+
+	else
+		throw std::exception("weak embedder can not embed graphs deeper than lobsters");
+}
+
+void WeakEmbedder::setGraph(DiskGraph& graph) noexcept
+{
+	graph_ = &graph;
+	impl_ = GridEmbedImpl(graph.size());
+
 	// sync grid to graph state
 	for (Disk& disk : graph.spines()) {
 		if (disk.embedded)
@@ -295,18 +321,6 @@ WeakEmbedder::WeakEmbedder(DiskGraph& graph) noexcept :
 		if (disk.embedded)
 			impl_.putDiskAt(disk, { disk.grid_x, disk.grid_sly });
 	}
-}
-
-void WeakEmbedder::embed(Disk& disk)
-{
-	if (0 == disk.depth)
-		return embedSpine(disk);
-
-	if (1 == disk.depth || 2 == disk.depth)
-		return embedBranchOrLeaf(disk);
-
-	else
-		throw std::exception("weak embedder can not embed graphs deeper than lobsters");
 }
 
 void WeakEmbedder::embedSpine(Disk& disk) noexcept

@@ -40,6 +40,16 @@ public:
 	 */
 	virtual void embed(Disk& disk) = 0;
 
+	/**
+	 * @brief Configure the graph object to be used by this embedder.
+	 *
+	 * The graph allows us to look up parents of disks.
+	 *
+	 * This function will reset all previous embedding information
+	 * except what is already stored in the graph.
+	 */
+	virtual void setGraph(DiskGraph& graph) noexcept = 0;
+
 };
 
 /**

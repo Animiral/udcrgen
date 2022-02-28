@@ -85,7 +85,7 @@ DiskGraph make_lobster()
 TEST(Embed, embed_weak)
 {
 	auto graph = make_lobster();
-	auto embedder = WeakEmbedder{ graph };
+	WeakEmbedder embedder;
 
 	// execute, leaves first
 	ASSERT_TRUE(embed(graph, embedder, Configuration::EmbedOrder::DEPTH_FIRST));
@@ -112,7 +112,7 @@ TEST(Embed, embed_weak)
 TEST(Embed, embed_weak_breadthfirst)
 {
 	auto graph = make_lobster();
-	auto embedder = WeakEmbedder{ graph };
+	WeakEmbedder embedder;
 
 	// execute, spine first
 	ASSERT_TRUE(embed(graph, embedder, Configuration::EmbedOrder::BREADTH_FIRST));
@@ -188,7 +188,8 @@ TEST(Embed, space_heuristic)
 	d = &graph.leaves()[1];   d->embedded = true; d->grid_x = -2; d->grid_sly = 1;
 	d = &graph.leaves()[2];   d->embedded = true; d->grid_x = -1; d->grid_sly = -1;
 
-	auto embedder = WeakEmbedder{ graph };
+	WeakEmbedder embedder;
+	embedder.setGraph(graph);
 
 	// layout sketch
 	//   (L1). (B1).

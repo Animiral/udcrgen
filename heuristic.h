@@ -37,6 +37,8 @@ public:
 	 */
 	virtual void embed(Disk& disk) override;
 
+	virtual void setGraph(DiskGraph& graph) noexcept override;
+
 private:
 
 	Vec2 spine_; //!< embedding position for the current spine piece
@@ -122,15 +124,10 @@ class WeakEmbedder : public Embedder
 
 public:
 
-	/**
-	 * Construct the embedder.
-	 */
-	explicit WeakEmbedder(DiskGraph& graph) noexcept;
+	WeakEmbedder() noexcept;
 
-	/**
-	 * Place the next disk.
-	 */
 	virtual void embed(Disk& disk) override;
+	virtual void setGraph(DiskGraph& graph) noexcept override;
 
 private:
 

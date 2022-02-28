@@ -203,6 +203,8 @@ using EmbedOrder = Configuration::EmbedOrder;
 
 bool embed(DiskGraph& graph, Embedder& embedder, EmbedOrder embedOrder)
 {
+	embedder.setGraph(graph);
+
 	auto& spines = graph.spines();
 	auto& branches = graph.branches(); // branches are ordered by parent spine
 	auto& leaves = graph.leaves(); // leaves are ordered by parent branch

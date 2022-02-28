@@ -71,7 +71,11 @@ public:
 	static const int NO_BRANCH = -1;
 
 	Lobster() noexcept;
+	Lobster(Lobster&& ) noexcept;
 	Lobster(std::vector<Spine> spine) noexcept;
+	Lobster& operator=(Lobster&& ) noexcept;
+
+	bool operator==(const Lobster& rhs) const noexcept;
 
 	/**
 	 * Count the total number of vertices (spine + branches + leaves).

@@ -84,8 +84,9 @@ struct Parser
         const auto opt = next();
 
         if ("knp"s == opt || "strict"s == opt || "strong"s == opt) return Configuration::Algorithm::KLEMZ_NOELLENBURG_PRUTKIN;
-        if ("cleve"s == opt || "weak"s == opt) return Configuration::Algorithm::CLEVE;
-        if ("dp"s == opt || "dynamic-program"s == opt) return Configuration::Algorithm::DYNAMIC_PROGRAM;
+        if ("cleve"s == opt || "weak"s == opt)                     return Configuration::Algorithm::CLEVE;
+        if ("dp"s == opt || "dynamic-program"s == opt)             return Configuration::Algorithm::DYNAMIC_PROGRAM;
+        if ("benchmark"s == opt)                                   return Configuration::Algorithm::BENCHMARK;
 
         throw std::out_of_range("Unknown algorithm: "s + opt);
     }
@@ -252,13 +253,7 @@ void Configuration::dump(std::ostream& stream) const
 
     stream << "(Running from: " << std::filesystem::current_path() << ")\n";
 
-    stream << "\tAlgorithm: ";
-    switch (algorithm) {
-    case Algorithm::KLEMZ_NOELLENBURG_PRUTKIN: stream << "knp"; break;
-    case Algorithm::CLEVE: stream << "cleve"; break;
-    case Algorithm::DYNAMIC_PROGRAM: stream << "dynamic-program"; break;
-    }
-    stream << "\n";
+    stream << "\tAlgorithm: " << algorithmString(algorithm) << "\n";
 
     stream << "\tInput File: " << inputFile << " (";
     switch (inputFormat) {
@@ -283,4 +278,15 @@ void Configuration::dump(std::ostream& stream) const
     stream << "\n";
 
     stream << "\tGap: " << std::setprecision(3) << gap << "\n\n";
+}
+
+const char* Configuration::algorithmString(Algorithm algorithm) noexcept
+{
+    switch (algorithm) {
+    case Algorithm::KLEMZ_NOELLENBURG_PRUTKIN: return "knp";
+    case Algorithm::CLEVE: return "cleve";
+    case Algorithm::DYNAMIC_PROGRAM: return "dynamic-program";
+    case Algorithm::BENCHMARK: return "benchmark";
+    default: assert(0); return "?";
+    }
 }

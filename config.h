@@ -25,9 +25,9 @@ public:
     void readArgv(int argc, const char* argv[]);
 
     /**
-     * Enumeration of available generators to run as the main mode of the program.
+     * Main modes of the program available to run.
      */
-    enum class Algorithm { KLEMZ_NOELLENBURG_PRUTKIN, CLEVE, DYNAMIC_PROGRAM };
+    enum class Algorithm { KLEMZ_NOELLENBURG_PRUTKIN, CLEVE, DYNAMIC_PROGRAM, BENCHMARK };
 
     /**
      * Enumeration of available file formats for input files.
@@ -59,5 +59,12 @@ public:
      * Write the parsed information in the configuration to the given stream.
      */
     void dump(std::ostream& stream) const;
+
+    /**
+     * Return a human-readable representation of the algorithm enumeration value.
+     *
+     * This matches the expected command line value to select the algorithm to run.
+     */
+    static const char* algorithmString(Algorithm algorithm) noexcept;
 
 };

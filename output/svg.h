@@ -6,7 +6,7 @@
 #include "translate.h"
 #include "dynamic.h"
 #include <string>
-#include <fstream>
+#include <ostream>
 #include <utility>
 
 /**

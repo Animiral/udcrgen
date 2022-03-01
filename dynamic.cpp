@@ -395,6 +395,7 @@ bool ProblemQueue::equivalent(const DynamicProblem& lhs, const DynamicProblem& r
 }
 
 #include "output/svg.h"
+#include <fstream>
 
 bool DynamicProblemEmbedder::embed(std::vector<Disk>& disks)
 {

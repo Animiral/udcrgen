@@ -1,144 +1,228 @@
 #include "embed.h"
 #include "heuristic.h"
 #include "dynamic.h"
+#include "enumerate.h"
 #include "utility/graph.h"
 #include "output/ipe.h"
 #include "output/svg.h"
+#include "output/csv.h"
 #include "config.h"
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <cassert>
 
-void write_output(const DiskGraph& udcrg, std::ostream& stream);
-
-int main(int argc, const char* argv[])
+namespace
 {
 	Configuration configuration;
 
+	// These functions implement the phases of the program according to the configuration:
+	// configure -> input -> processing -> output.
+	//
+	// The exception is BENCHMARK mode, in which the input is procedurally generated
+	// and the input file and input graph are ignored/empty. In that case, the output
+	// is a stats file in CSV format.
+	void build_configuration(int argc, const char* argv[]);
+	DiskGraph read_input_graph();
+	void run_algorithm(DiskGraph& graph);
+	void run_benchmark();
+	void write_output_graph(const DiskGraph& graph);
+	void write_output_stats(const std::vector<Stat>& stats);
+
+	// basic text dump for debugging
+	void write_output_graph_stream(const DiskGraph& udcrg, std::ostream& stream);
+}
+
+int main(int argc, const char* argv[])
+{
+	try
+	{
+		build_configuration(argc, argv);
+
+		if (Configuration::Algorithm::BENCHMARK == configuration.algorithm) {
+			run_benchmark();
+		}
+		else {
+			DiskGraph graph = read_input_graph();
+			run_algorithm(graph);
+			write_output_graph(graph);
+		}
+	}
+	catch (const std::exception& e) {
+		std::cerr << "Error: " << e.what() << "\n";
+		return 1;
+	}
+
+	std::cout << "All Done.\n";
+	return 0;
+}
+
+namespace
+{
+
+void build_configuration(int argc, const char* argv[])
+{
 	try {
 		configuration.readArgv(argc, argv);
 	}
 	catch (const std::exception& e) {
-		std::cerr << "Failed to read configuration from command line: " << e.what() << "\n";
-		return 1;
+		using namespace std::string_literals;
+		throw std::exception(("Failed to read configuration from command line: "s + e.what() + "\n"s).c_str());
 	}
 
 	configuration.dump(std::cout);
+}
 
-	DiskGraph* graph = nullptr;
-
+DiskGraph read_input_graph()
+{
 	try {
+		if (configuration.inputFile.empty())
+			return DiskGraph(1, 0, 0);
+
 		std::cout << "Process input file " << configuration.inputFile << "...\n";
 		std::ifstream stream{ configuration.inputFile };
 
 		switch (configuration.inputFormat) {
 
 		case Configuration::InputFormat::DEGREES:
-			graph = new DiskGraph{ DiskGraph::fromCaterpillar(Caterpillar::fromText(stream)) };
-			break;
+		{
+			DiskGraph graph = DiskGraph::fromCaterpillar(Caterpillar::fromText(stream));
+			stream.close();
+			return graph;
+		}
 
 		default:
 		case Configuration::InputFormat::EDGELIST:
+		{
 			EdgeList edges = edges_from_text(stream);
 			auto result = classify(edges);
-			graph = new DiskGraph{ result.first };
-			break;
-
+			stream.close();
+			return result.first;
 		}
 
-		stream.close();
+		}
 	}
 	catch (const std::exception& e) {
-		std::cerr << "Failed to read input file \"" << configuration.inputFile << "\": " << e.what() << "\n";
-		return 1;
+		using namespace std::string_literals;
+		throw std::exception(("Failed to read input file \""s + configuration.inputFile + "\": "s + e.what() + "\n"s).c_str());
 	}
+}
 
+void run_algorithm(DiskGraph& graph)
+{
 	try {
-		Embedder* embedder = nullptr;
-		WholesaleEmbedder* wholeEmbedder = nullptr;
-
 		switch (configuration.algorithm) {
 
-		default:
 		case Configuration::Algorithm::KLEMZ_NOELLENBURG_PRUTKIN:
 		{
-			auto properEmbedder = new ProperEmbedder();
-			properEmbedder->setGap(configuration.gap);
-			embedder = properEmbedder;
+			ProperEmbedder embedder;
+			embedder.setGap(configuration.gap);
+			embed(graph, embedder, configuration.embedOrder);
 		}
-			break;
+		break;
 
 		case Configuration::Algorithm::CLEVE:
-			embedder = new WeakEmbedder();
-			break;
+		{
+			WeakEmbedder embedder;
+			embed(graph, embedder, configuration.embedOrder);
+		}
+		break;
 
 		case Configuration::Algorithm::DYNAMIC_PROGRAM:
-			wholeEmbedder = new DynamicProblemEmbedder();
-			break;
+		{
+			DynamicProblemEmbedder embedder;
+			embedDynamic(graph, embedder);
+		}
+		break;
+
+		default: assert(0);
+		break;
 
 		}
-
-		// weird redundancy/ambiguity to be refactored!
-		if (embedder)
-			embed(*graph, *embedder, configuration.embedOrder);
-
-		if (wholeEmbedder)
-			embedDynamic(*graph, *wholeEmbedder);
-
-		delete embedder;
-		delete wholeEmbedder;
 	}
 	catch (const std::exception& e) {
-		std::cerr << "Failed to determine graph embedding: " << e.what() << "\n";
-		return 1;
+		using namespace std::string_literals;
+		throw std::exception(("Failed to determine graph embedding: "s + e.what() + "\n"s).c_str());
 	}
+}
 
+void run_benchmark()
+{
 	try {
+		WeakEmbedder fastEmbedder;
+		DynamicProblemEmbedder referenceEmbedder;
+		Enumerate enumerate(fastEmbedder, referenceEmbedder, 1, 2);
+		enumerate.run();
+		write_output_stats(enumerate.stats());
+	}
+	catch (const std::exception& e) {
+		using namespace std::string_literals;
+		throw std::exception(("Benchmark failed: "s + e.what() + "\n"s).c_str());
+	}
+}
+
+void write_output_graph(const DiskGraph& graph)
+{
+	try {
+		if (configuration.outputFile.empty())
+			return;
+
 		std::ofstream stream{ configuration.outputFile };
 
 		switch (configuration.outputFormat) {
 
 		case Configuration::OutputFormat::DUMP:
 		{
-			write_output(*graph, stream);
+			write_output_graph_stream(graph, stream);
 		}
-			break;
+		break;
 
 		case Configuration::OutputFormat::SVG:
 		{
 			Svg svg(stream);
 			svg.intro();
-			svg.write(*graph, "Embed Result");
+			svg.write(graph, "Embed Result");
 			svg.outro();
 		}
-			break;
+		break;
 
 		case Configuration::OutputFormat::IPE:
 		{
-			Ipe ipe{ *graph, stream };
+			Ipe ipe{ graph, stream };
 			ipe.write();
 		}
-			break;
+		break;
 
 		}
 
 		stream.close();
 	}
 	catch (const std::exception& e) {
-		std::cerr << "Failed to write output file \"" << configuration.outputFile << "\": " << e.what() << "\n";
-		return 1;
+		using namespace std::string_literals;
+		throw std::exception(("Failed to write output file \""s + configuration.outputFile + "\": "s + e.what() + "\n"s).c_str());
 	}
-
-	delete graph;
-
-	std::cout << "All Done.\n";
-	return 0;
 }
 
-/**
- * A simple text dump of the output graph that does not yet look very pretty.
- */
-void write_output(const DiskGraph& udcrg, std::ostream& stream)
+void write_output_stats(const std::vector<Stat>& stats)
+{
+	try {
+		std::ofstream stream{ configuration.outputFile };
+		Csv csv(stream, ',');
+		csv.header();
+
+		for (const Stat& stat : stats) {
+			csv.write(stat);
+		}
+
+		stream.close();
+	}
+	catch (const std::exception& e) {
+		using namespace std::string_literals;
+		throw std::exception(("Failed to write stats file \""s + configuration.outputFile + "\": "s + e.what() + "\n"s).c_str());
+	}
+}
+
+void write_output_graph_stream(const DiskGraph& udcrg, std::ostream& stream)
 {
 	stream << std::setprecision(2);
 
@@ -155,4 +239,6 @@ void write_output(const DiskGraph& udcrg, std::ostream& stream)
 			stream << v.id << " -> " << v.parent << "  (" << v.x << ", " << v.y << ")\n";
 		}
 	}
+}
+
 }

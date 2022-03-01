@@ -47,7 +47,12 @@ struct Parser
         ALGORITHM,
         INPUT_FILE, OUTPUT_FILE, STATS_FILE,
         INPUT_FORMAT, OUTPUT_FORMAT,
-        EMBED_ORDER, GAP,
+        EMBED_ORDER,
+        
+        GAP,
+
+        SPINE_MIN, SPINE_MAX,
+
         OPT_END
     };
 
@@ -68,7 +73,12 @@ struct Parser
         if ("-j"s == opt || "--input-format"s == opt)  return Token::INPUT_FORMAT;
         if ("-f"s == opt || "--output-format"s == opt) return Token::OUTPUT_FORMAT;
         if ("-e"s == opt || "--embed-order"s == opt)   return Token::EMBED_ORDER;
+
         if ("-g"s == opt || "--gap"s == opt)           return Token::GAP;
+
+        if ("--spine-min"s == opt)                     return Token::SPINE_MIN;
+        if ("--spine-max"s == opt)                     return Token::SPINE_MAX;
+
         if ("--"s == opt)                              return Token::OPT_END;
 
         return Token::LITERAL;
@@ -216,7 +226,12 @@ void Configuration::readArgv(int argc, const char* argv[])
         case Parser::Token::INPUT_FORMAT:    inputFormat = parser.inputFormat(); break;
         case Parser::Token::OUTPUT_FORMAT:   outputFormat = parser.outputFormat(); break;
         case Parser::Token::EMBED_ORDER:     embedOrder = parser.embedOrder(); break;
+
         case Parser::Token::GAP:             gap = parser.floatArg(0.f, 2.f); break;
+
+        case Parser::Token::SPINE_MIN:       spineMin = parser.intArg(); break;
+        case Parser::Token::SPINE_MAX:       spineMax = parser.intArg(); break;
+
         case Parser::Token::OPT_END:
             //inputFiles.insert(inputFiles.end(), &parser.argv[1], &parser.argv[parser.argc]);
             parser.argc = 1;
@@ -280,9 +295,12 @@ void Configuration::dump(std::ostream& stream) const
     case EmbedOrder::DEPTH_FIRST: stream << "depth-first"; break;
     case EmbedOrder::BREADTH_FIRST: stream << "breadth-first"; break;
     }
-    stream << "\n";
+    stream << "\n\n";
 
     stream << "\tGap: " << std::setprecision(3) << gap << "\n\n";
+
+    stream << "\t(Benchmark) minimum spine length: " << spineMin << "\n";
+    stream << "\t(Benchmark) maximum spine length: " << spineMax << "\n\n";
 }
 
 const char* Configuration::algorithmString(Algorithm algorithm) noexcept

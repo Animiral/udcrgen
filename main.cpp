@@ -150,7 +150,7 @@ void run_benchmark()
 	try {
 		WeakEmbedder fastEmbedder;
 		DynamicProblemEmbedder referenceEmbedder;
-		Enumerate enumerate(fastEmbedder, referenceEmbedder, 1, 2);
+		Enumerate enumerate(fastEmbedder, referenceEmbedder, configuration.spineMin, configuration.spineMax);
 
 		std::ofstream svgStream{ configuration.outputFile };
 		Svg svg(svgStream);

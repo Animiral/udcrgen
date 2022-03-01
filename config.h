@@ -54,7 +54,13 @@ public:
     InputFormat inputFormat = InputFormat::EDGELIST;
     OutputFormat outputFormat = OutputFormat::SVG;
     EmbedOrder embedOrder = EmbedOrder::DEPTH_FIRST;
+
+    // keys for graphical rendering
     float gap = .1f; //!< size of gap between non-contact disks in strong UDCRs
+
+    // benchmark-specific keys
+    int spineMin = 5;
+    int spineMax = 6;
 
     /**
      * Write the parsed information in the configuration to the given stream.

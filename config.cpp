@@ -44,7 +44,9 @@ struct Parser
     enum class Token
     {
         LITERAL,
-        ALGORITHM, INPUT_FILE, OUTPUT_FILE, INPUT_FORMAT, OUTPUT_FORMAT,
+        ALGORITHM,
+        INPUT_FILE, OUTPUT_FILE, STATS_FILE,
+        INPUT_FORMAT, OUTPUT_FORMAT,
         EMBED_ORDER, GAP,
         OPT_END
     };
@@ -62,6 +64,7 @@ struct Parser
         if ("-a"s == opt || "--algorithm"s == opt)     return Token::ALGORITHM;
         if ("-i"s == opt || "--input-file"s == opt)    return Token::INPUT_FILE;
         if ("-o"s == opt || "--output-file"s == opt)   return Token::OUTPUT_FILE;
+        if ("-s"s == opt || "--stats-file"s == opt)    return Token::STATS_FILE;
         if ("-j"s == opt || "--input-format"s == opt)  return Token::INPUT_FORMAT;
         if ("-f"s == opt || "--output-format"s == opt) return Token::OUTPUT_FORMAT;
         if ("-e"s == opt || "--embed-order"s == opt)   return Token::EMBED_ORDER;
@@ -209,6 +212,7 @@ void Configuration::readArgv(int argc, const char* argv[])
         case Parser::Token::ALGORITHM:       algorithm = parser.algorithm(); break;
         case Parser::Token::INPUT_FILE:      inputFile = parser.pathArg(); break;
         case Parser::Token::OUTPUT_FILE:     outputFile = parser.pathArg(); break;
+        case Parser::Token::STATS_FILE:      statsFile = parser.pathArg(); break;
         case Parser::Token::INPUT_FORMAT:    inputFormat = parser.inputFormat(); break;
         case Parser::Token::OUTPUT_FORMAT:   outputFormat = parser.outputFormat(); break;
         case Parser::Token::EMBED_ORDER:     embedOrder = parser.embedOrder(); break;
@@ -225,7 +229,7 @@ void Configuration::readArgv(int argc, const char* argv[])
     }
 
     // autocomplete non-defaults
-    if (outputFile.empty()) {
+    if (outputFile.empty() && !inputFile.empty()) { // infer output file name from input file name
         const char* ext = nullptr;
 
         switch (outputFormat)
@@ -269,6 +273,7 @@ void Configuration::dump(std::ostream& stream) const
     case OutputFormat::DUMP: stream << "dump"; break;
     }
     stream << ")\n";
+    stream << "\tStats File: " << statsFile << "\n";
 
     stream << "\tEmbed Order: ";
     switch (embedOrder) {

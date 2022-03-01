@@ -48,8 +48,9 @@ public:
     enum class EmbedOrder { DEPTH_FIRST, BREADTH_FIRST };
 
     Algorithm algorithm = Algorithm::CLEVE;
-    path inputFile; //!< only one supported at this time
-    path outputFile; //!< only one supported at this time
+    path inputFile;
+    path outputFile;
+    path statsFile;
     InputFormat inputFormat = InputFormat::EDGELIST;
     OutputFormat outputFormat = OutputFormat::SVG;
     EmbedOrder embedOrder = EmbedOrder::DEPTH_FIRST;

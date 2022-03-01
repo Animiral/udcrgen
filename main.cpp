@@ -27,7 +27,6 @@ namespace
 	void run_algorithm(DiskGraph& graph);
 	void run_benchmark();
 	void write_output_graph(const DiskGraph& graph);
-	void write_output_stats(const std::vector<Stat>& stats);
 
 	// basic text dump for debugging
 	void write_output_graph_stream(const DiskGraph& udcrg, std::ostream& stream);
@@ -152,8 +151,26 @@ void run_benchmark()
 		WeakEmbedder fastEmbedder;
 		DynamicProblemEmbedder referenceEmbedder;
 		Enumerate enumerate(fastEmbedder, referenceEmbedder, 1, 2);
+
+		std::ofstream svgStream{ configuration.outputFile };
+		Svg svg(svgStream);
+
+		std::ofstream csvStream{ configuration.statsFile };
+		Csv csv(csvStream, ',');
+
+		if (svgStream.good())
+			enumerate.setOutput(&svg);
+
+		if (csvStream.good())
+			enumerate.setCsv(&csv);
+
+		svg.intro();
+		csv.header();
 		enumerate.run();
-		write_output_stats(enumerate.stats());
+		svg.outro();
+
+		svgStream.close();
+		csvStream.close();
 	}
 	catch (const std::exception& e) {
 		using namespace std::string_literals;
@@ -200,25 +217,6 @@ void write_output_graph(const DiskGraph& graph)
 	catch (const std::exception& e) {
 		using namespace std::string_literals;
 		throw std::exception(("Failed to write output file \""s + configuration.outputFile + "\": "s + e.what() + "\n"s).c_str());
-	}
-}
-
-void write_output_stats(const std::vector<Stat>& stats)
-{
-	try {
-		std::ofstream stream{ configuration.outputFile };
-		Csv csv(stream, ',');
-		csv.header();
-
-		for (const Stat& stat : stats) {
-			csv.write(stat);
-		}
-
-		stream.close();
-	}
-	catch (const std::exception& e) {
-		using namespace std::string_literals;
-		throw std::exception(("Failed to write stats file \""s + configuration.outputFile + "\": "s + e.what() + "\n"s).c_str());
 	}
 }
 

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "enumerate.h"
+#include "utility/stat.h"
 #include <ostream>
 
 /**

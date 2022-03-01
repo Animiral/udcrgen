@@ -243,6 +243,11 @@ bool recognize_path(EdgeList::iterator begin, EdgeList::iterator end)
 	return true;
 }
 
+DiskGraph::DiskGraph()
+	: spines_(1), branches_(), leaves_() // 1 spine for decoration
+{
+}
+
 DiskGraph::DiskGraph(int spines, int branches, int leaves)
 	: spines_(spines), branches_(branches), leaves_(leaves)
 {

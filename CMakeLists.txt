@@ -22,7 +22,8 @@ add_library(udcr STATIC
 	"utility/geometry.cpp" "utility/geometry.h"
 	"utility/graph.cpp" "utility/graph.h"
 	"utility/grid.cpp" "utility/grid.h"
-	"utility/util.cpp" "utility/util.h")
+	"utility/util.cpp" "utility/util.h"
+	"utility/stat.h")
 target_include_directories(udcr PRIVATE ${PROJECT_SOURCE_DIR})
 
 # This is the main executable.

@@ -1,11 +1,12 @@
 #include "enumerate.h"
+#include "utility/util.h"
 #include <algorithm>
 #include <cassert>
 
 Enumerate::Enumerate(Embedder& fast, WholesaleEmbedder& reference, int minSize, int maxSize) noexcept
 	: fast_(&fast), embedOrder_(Configuration::EmbedOrder::DEPTH_FIRST),
 	reference_(&reference), minSize_(minSize), maxSize_(maxSize),
-	current_(), lastSuccess_(true), output_(nullptr), stats_()
+	current_(), evaluation_(), output_(nullptr), csv_(nullptr), stats_()
 {
 	assert(minSize >= 0);
 	assert(minSize < maxSize);
@@ -24,7 +25,7 @@ void Enumerate::next()
 	int j = 4; // branch index
 
 	// reference-based skip: we do not evaluate the bigger lobsters after a fail
-	if (!lastSuccess_) {
+	if (!evaluation_.refSuccess) {
 		// remove the last branch from the back
 		while (i >= 0) {
 			for (j = 4; j >= 0; j--) {
@@ -83,48 +84,67 @@ addleaf:
 	current_ = Lobster(std::vector<Lobster::Spine>(spine.size() + 1, empty));
 }
 
-bool Enumerate::test()
+const Evaluation& Enumerate::test()
 {
-	return lastSuccess_ = test(current_);
+	return evaluation_ = test(current_);
 }
 
-bool Enumerate::test(const Lobster& lobster)
+Evaluation Enumerate::test(const Lobster& lobster)
 {
-	Stat stat;
-	stat.size = lobster.countVertices();
-	stat.spines = lobster.countSpine();
-
 	using Clock = std::chrono::steady_clock;
 	Clock clock;
 	Clock::time_point start;
 
 	// *** run fast heuristic test ***
 
+	Stat fastStat;
+	fastStat.size = lobster.countVertices();
+	fastStat.spines = lobster.countSpine();
 	// hardcoded because this is the only lobster heuristic option
-	stat.algorithm = Configuration::Algorithm::CLEVE;
+	fastStat.algorithm = Configuration::Algorithm::CLEVE;
 
-	DiskGraph graph = DiskGraph::fromLobster(lobster);
+	DiskGraph fastGraph = DiskGraph::fromLobster(lobster);
 	{ // measure embedding time
 		start = clock.now();
-		stat.success = embed(graph, *fast_, embedOrder_);
-		stat.duration = std::chrono::duration_cast<std::chrono::milliseconds>(clock.now() - start);
+		fastStat.success = embed(fastGraph, *fast_, embedOrder_);
+		fastStat.duration = std::chrono::duration_cast<std::chrono::milliseconds>(clock.now() - start);
 	}
-
-	stats_.push_back(stat);
 
 	// *** run reference test ***
-	stat.algorithm = Configuration::Algorithm::DYNAMIC_PROGRAM;
 
-	graph = DiskGraph::fromLobster(lobster); // reset
+	Stat refStat;
+	refStat.size = lobster.countVertices();
+	refStat.spines = lobster.countSpine();
+	refStat.algorithm = Configuration::Algorithm::DYNAMIC_PROGRAM;
+
+	DiskGraph refGraph = DiskGraph::fromLobster(lobster);
 	{ // measure embedding time
 		start = clock.now();
-		stat.success = embedDynamic(graph, *reference_);
-		stat.duration = std::chrono::duration_cast<std::chrono::milliseconds>(clock.now() - start);
+		refStat.success = embedDynamic(refGraph, *reference_);
+		refStat.duration = std::chrono::duration_cast<std::chrono::milliseconds>(clock.now() - start);
 	}
 
-	stats_.push_back(stat);
+	// *** record statistics ***
 
-	return stat.success;
+	if (csv_) {
+		csv_->write(fastStat);
+		csv_->write(refStat);
+	}
+	else {
+		stats_.push_back(fastStat);
+		stats_.push_back(refStat);
+	}
+
+	// *** produce output if we are on the "line" between feasible/infeasible ***
+	if (output_) {
+		if (evaluation_.fastSuccess && !fastStat.success)
+			output_->write(evaluation_.fastResult, format("fast {} spines {} total", fastStat.spines, fastStat.size));
+
+		if (evaluation_.refSuccess && !refStat.success)
+			output_->write(evaluation_.refResult, format("reference {} spines {} total", refStat.spines, refStat.size));
+	}
+
+	return { fastStat.success, std::move(fastGraph), refStat.success, std::move(refGraph) };
 }
 
 const Lobster& Enumerate::current() const noexcept
@@ -135,7 +155,8 @@ const Lobster& Enumerate::current() const noexcept
 void Enumerate::setCurrent(Lobster lobster) noexcept
 {
 	current_ = std::move(lobster);
-	lastSuccess_ = true;
+	evaluation_.fastSuccess = true;
+	evaluation_.refSuccess = true;
 }
 
 void Enumerate::setEmbedOrder(Configuration::EmbedOrder embedOrder) noexcept
@@ -143,9 +164,14 @@ void Enumerate::setEmbedOrder(Configuration::EmbedOrder embedOrder) noexcept
 	embedOrder_ = embedOrder;
 }
 
-void Enumerate::setOutput(Svg& output)
+void Enumerate::setOutput(Svg* output) noexcept
 {
-	output_ = &output;
+	output_ = output;
+}
+
+void Enumerate::setCsv(Csv* csv) noexcept
+{
+	csv_ = csv;
 }
 
 const std::vector<Stat>& Enumerate::stats() const noexcept

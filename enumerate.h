@@ -3,23 +3,22 @@
 #pragma once
 
 #include "utility/graph.h"
+#include "utility/stat.h"
 #include "embed.h"
 #include "output/svg.h"
+#include "output/csv.h"
 #include "config.h"
 #include <vector>
-#include <chrono>
 
 /**
- * Record of one execution of an embedding algorithm.
+ * Total result of evaluation of one Lobster instance.
  */
-struct Stat
+struct Evaluation
 {
-	Configuration::Algorithm algorithm;
-	int size; //!< total number of input vertices
-	int spines; //!< number of spine input vertices
-
-	bool success; //!< true if an embedding was determined possible, false otherwise
-	std::chrono::milliseconds duration; //!< run duration of algorithm
+	bool fastSuccess; // true if fast algorithm did find embedding
+	DiskGraph fastResult; // embedding from fast algorithm
+	bool refSuccess; // true if reference algorithm did find embedding
+	DiskGraph refResult; // embedding from reference algorithm
 };
 
 /**
@@ -67,17 +66,17 @@ public:
 	 * in the statistics. The success or failure determines the behavior of the @c next
 	 * function.
 	 *
-	 * @return true if embedding is possible using the reference embedder, false otherwise
+	 * @return the evaluation result
 	 */
-	bool test();
+	const Evaluation& test();
 
 	/**
 	 * Run the embedding algorithms on the given lobster and record the results
 	 * in the statistics.
 	 *
-	 * @return true if embedding is possible using the reference embedder, false otherwise
+	 * @return the evaluation result
 	 */
-	bool test(const Lobster& lobster);
+	Evaluation test(const Lobster& lobster);
 
 	/**
 	 * Get the current Lobster instance.
@@ -99,8 +98,20 @@ public:
 	 *
 	 * If set, in addition to collecting statistics, write a witness for every
 	 * result, if available.
+	 *
+	 * @param output pointer to an output handler or @c nullptr to disable
 	 */
-	void setOutput(Svg& output);
+	void setOutput(Svg* output) noexcept;
+
+	/**
+	 * @brief Configure the stats handler.
+	 *
+	 * If set, write a stat line for every evaluation result.
+	 * Also, this enumerator will no longer waste memory storing all statistics.
+	 *
+	 * @param csv pointer to a stats handler or @c nullptr to disable
+	 */
+	void setCsv(Csv* csv) noexcept;
 
 	/**
 	 * Access statistics gathered.
@@ -135,8 +146,10 @@ private:
 	int minSize_;
 	int maxSize_;
 	Lobster current_;
-	bool lastSuccess_;
+	Evaluation evaluation_; // result of last evaluation
+
 	Svg* output_;
+	Csv* csv_;
 	std::vector<Stat> stats_;
 
 };

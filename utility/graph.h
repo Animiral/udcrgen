@@ -165,6 +165,11 @@ class DiskGraph
 public:
 
 	/**
+	 * Construct an empty graph.
+	 */
+	DiskGraph();
+
+	/**
 	 * Construct the graph.
 	 *
 	 * @param spines: length of the central disk chain

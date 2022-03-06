@@ -125,6 +125,14 @@ void Fundament::print() const
 
 bool Signature::operator==(const Signature& rhs) const noexcept = default;
 
+bool Signature::dominates(const Signature& rhs) const noexcept
+{
+	if (depth != rhs.depth || head != rhs.head)
+		return false;
+
+	return (fundament.mask & rhs.fundament.mask) == fundament.mask;
+}
+
 DynamicProblem::DynamicProblem(InputDisks& input)
 	: solution_(input.size()),
 	spineHead_(),
@@ -340,12 +348,12 @@ namespace
 	 */
 	bool priority(const DynamicProblem& lhs, const DynamicProblem& rhs)
 	{
-		return lhs.depth() < rhs.depth();
+		return lhs.depth() < rhs.depth(); // TODO: BFS vs DFS, consider fundament popcnt
 	}
 }
 
 ProblemQueue::ProblemQueue()
-	: open_(&priority), closed_(1024, &hash) // arbitrary # of buckets
+	: open_(&priority), closed_(&less)
 {
 }
 
@@ -358,8 +366,20 @@ void ProblemQueue::push(const DynamicProblem& problem)
 {
 	auto signature = problem.signature();
 
-	if (closed_.contains(signature))
-		return;
+	// We want to compare the new signature to the known ones.
+	// Since both open_ and closed_ are locally ordered by fundament bit count,
+	// we can quickly query the few comparable entries.
+	auto lowerSig = signature;
+	lowerSig.fundament.mask = 0; // all unblocked
+	auto upperSig = signature;
+	upperSig.fundament.mask.set(); // all blocked
+
+	// If we previously encountered a dominating signature, we have no need for the new one.
+	for (auto it = closed_.lower_bound(lowerSig),
+	         end = closed_.upper_bound(upperSig); it != end; ++it) {
+		if (it->dominates(signature))
+			return;
+	}
 
 	open_.push(problem);
 	closed_.insert(signature);
@@ -375,18 +395,21 @@ bool ProblemQueue::empty() const noexcept
 	return open_.empty();
 }
 
-std::size_t ProblemQueue::hash(const Signature& signature) noexcept
+bool ProblemQueue::less(const Signature& lhs, const Signature& rhs) noexcept
 {
-	unsigned long long funValue = signature.fundament.mask.to_ullong();
-	unsigned long long depth = signature.depth;
-	unsigned long long headX = signature.head.x;
-	unsigned long long headSly = signature.head.sly;
+	if (lhs.depth < rhs.depth) return true;
+	if (lhs.depth > rhs.depth) return false;
 
-	// hash layout assuming 64-bit size_t:
-	// 64     56      48      40      32      24      16       8       0
-	// |-------|-------|-------|-------|-------|-------|-------|-------|
-	// |   depth    |   headX    |  headSly   |        funValue        |
-	return (depth << 51) + (headX << 38) + (headSly << 25) + funValue;
+	if (lhs.head.x < rhs.head.x) return true;
+	if (lhs.head.x > rhs.head.x) return false;
+
+	if (lhs.head.sly < rhs.head.sly) return true;
+	if (lhs.head.sly > rhs.head.sly) return false;
+
+	if (lhs.fundament.mask.count() < rhs.fundament.mask.count()) return true;
+	if (lhs.fundament.mask.count() > rhs.fundament.mask.count()) return false;
+
+	return lhs.fundament.mask.to_ulong() < rhs.fundament.mask.to_ulong();
 }
 
 bool ProblemQueue::equivalent(const DynamicProblem& lhs, const DynamicProblem& rhs) noexcept
@@ -429,7 +452,7 @@ bool DynamicProblemEmbedder::embed(std::vector<Disk>& disks)
 			pushCounter++;
 
 			if (disks.size() - problem.depth() <= 2) {
-				std::string label = format("Depth {} Hash {}", problem.depth(), ProblemQueue::hash(problem.signature()));
+				//std::string label = format("Depth {} Hash {}", problem.depth(), ProblemQueue::hash(problem.signature()));
 				//svg.write(problem.signature(), label);
 			}
 		}

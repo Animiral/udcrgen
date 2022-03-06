@@ -115,6 +115,61 @@ TEST(Dynamic, fundament_reachable)
 }
 
 /**
+ * Test that subsets of fundaments are recognized as dominant.
+ */
+TEST(Dynamic, signature_dominates)
+{
+	//     x
+	//    x -
+	//   x x -
+	//  x - - -
+	// x x * - -
+	//  x x x -
+	//   x x -
+	//    x x
+	//     x
+	Fundament fun1;
+	fun1.mask = 0b11111'11111'10110'11000'10000;
+	Signature sig1{ 10, fun1, {0, 0} };
+
+	//     x
+	//    x -
+	//   x x -
+	//  x x - -
+	// x x * - -
+	//  x x x -
+	//   x x x
+	//    x x
+	//     x
+	Fundament fun2;
+	fun2.mask = 0b11111'11111'11111'11000'10000;
+	Signature sig2{ 10, fun2, {0, 0} };
+
+	//     x
+	//    x -
+	//   x x -
+	//  x x - -
+	// x x * - -
+	//  x x - -
+	//   x x -
+	//    x x
+	//     x
+	Fundament fun3;
+	fun3.mask = 0b11111'11111'11100'11000'10000;
+	Signature sig3{ 10, fun3, {0, 0} };
+
+	EXPECT_TRUE(sig1.dominates(sig1));
+	EXPECT_TRUE(sig3.dominates(sig2));
+	EXPECT_TRUE(sig1.dominates(sig2));
+	EXPECT_FALSE(sig1.dominates(sig3));
+	EXPECT_FALSE(sig3.dominates(sig1));
+
+	Signature sig4{ 11, fun2, {0, 1} }; // unrelated depth, head
+	EXPECT_FALSE(sig1.dominates(sig4));
+	EXPECT_FALSE(sig4.dominates(sig1));
+}
+
+/**
  * Test that in the subproblems, the latest solution disks are
  * placed in the correct spot.
  * The fundament and heads must be updated.
@@ -274,9 +329,7 @@ TEST(Dynamic, queue)
 	solution3.put({ 0, 1 }, disks[2]);
 	p3.setSolution(solution3, { 0, 0 }, { -1, 0 });
 
-	EXPECT_NE(ProblemQueue::hash(p1.signature()), ProblemQueue::hash(p2.signature()));
 	// p1 and p3 are equal because of mirroring and reachability
-	EXPECT_EQ(ProblemQueue::hash(p1.signature()), ProblemQueue::hash(p3.signature()));
 	EXPECT_FALSE(ProblemQueue::equivalent(p1, p2));
 	EXPECT_TRUE(ProblemQueue::equivalent(p1, p3));
 
@@ -298,4 +351,65 @@ TEST(Dynamic, queue)
 	queue.pop();
 
 	EXPECT_TRUE(queue.empty());
+}
+
+/**
+ * Test that the queue applies dominance of signatures when pushing
+ * and popping problems.
+ */
+TEST(Dynamic, queue_dominant)
+{
+	std::vector<Disk> disks = {
+		// id, parent, depth, children, embedded, grid_x, grid_sly
+		{0, -1, 0, 1, true, 0, 0},
+		{1,  0, 1, 0, true, 0, 1},
+		{2,  0, 0, 0, true, 1, 0},
+		{3,  2, 0, 1, true, 2, 0},
+		{4,  3, 1, 0, false, 0, 0},
+		{5,  4, 2, 0, false, 0, 0}
+	};
+
+	DynamicProblem p1(disks), p2(disks);
+
+	// prepare p1
+	//     -
+	//    - -
+	//   - - -      (3)
+	//  1 - - -      |
+	// 0 2 3 - -     4
+	//  - - - -      |
+	//   - - -       5
+	//    - -
+	//     -
+	Grid solution1(6);
+	for (int i = 0; i < 4; i++)
+		solution1.put({ disks[i].grid_x, disks[i].grid_sly }, disks[i]);
+	p1.setSolution(solution1, { 2, 0 }, { 2, 0 });
+
+	// prepare p2 - "better" than p1
+	//     -
+	//    - -
+	//   - - -      (3)
+	//  - - - -      |
+	// 0 2 3 - -     4
+	//  - - - -      |
+	//   - - -       5
+	//    - -
+	//     -
+	Grid solution2(6);
+	solution2.put({ 0, 0 }, disks[0]);
+	solution2.put({ 0, -1 }, disks[1]);
+	solution2.put({ 1, 0 }, disks[2]);
+	solution2.put({ 2, 0 }, disks[3]);
+	p2.setSolution(solution2, { 2, 0 }, { 2, 0 });
+
+	ProblemQueue queue;
+	queue.push(p2);
+	queue.push(p1); // better p2 prevents insertion of p1
+
+	const DynamicProblem& out2 = queue.top();
+	EXPECT_TRUE(ProblemQueue::equivalent(p2, out2));
+
+	queue.pop();
+	ASSERT_TRUE(queue.empty());
 }

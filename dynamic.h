@@ -4,7 +4,7 @@
 
 #include <bitset>
 #include <queue>
-#include <unordered_set>
+#include <set>
 #include "utility/graph.h"
 #include "utility/grid.h"
 #include "utility/geometry.h"
@@ -82,6 +82,17 @@ struct Signature
 	Coord head; //!< relative branch head position
 
 	bool operator==(const Signature& rhs) const noexcept;
+
+	/**
+	 * Return @c true if this signature is preferable to the given signature
+	 * with respect to chances of finding an embedding.
+	 *
+	 * This is the case if @c depth and @c head are equal and every space
+	 * blocked in this fundament is also blocked in the other fundament.
+	 *
+	 * This definition is reflexive, i.e. every Signature dominates itself.
+	 */
+	bool dominates(const Signature& rhs) const noexcept;
 };
 
 using InputDisks = std::vector<Disk>; // complete input
@@ -173,15 +184,15 @@ public:
 	bool empty() const noexcept;
 
 	/**
-	 * @brief Calculate a fixed-size value from the given signature.
+	 * Define a weak ordering on Signatures such that Signatures of the same
+	 * size and same head are grouped next to each other, and Signatures
+	 * with smaller Fundaments (less blocked spaces) are less than Signatures
+	 * with larger Fundaments.
 	 *
-	 * Derive the value from the depth, fundament and relative branch head.
-	 *
-	 * If we can determine that two given problems are equivalently solvable
-	 * (eliminating redundancies like a mirrored fundament), their signatures
-	 * also have the same hash value.
+	 * This allows us to quickly find out if the "dominance" heuristic
+	 * applies to a problem to be pushed.
 	 */
-	static std::size_t hash(const Signature& signature) noexcept;
+	static bool less(const Signature& lhs, const Signature& rhs) noexcept;
 
 	/**
 	 * @brief Determine whether two given problems are equivalently solvable.
@@ -201,7 +212,7 @@ private:
 	std::priority_queue<DynamicProblem, std::deque<DynamicProblem>, OrderFunction> open_;
 
 	// set of hashes of already seen problems
-	std::unordered_set<Signature, decltype(&hash)> closed_;
+	std::set<Signature, decltype(&less)> closed_;
 
 };
 

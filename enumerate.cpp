@@ -137,6 +137,8 @@ Evaluation Enumerate::test(const Lobster& lobster)
 
 	// *** produce output if we are on the "line" between feasible/infeasible ***
 	if (output_) {
+		output_->ensureBatch();
+
 		if (evaluation_.fastSuccess && !fastStat.success)
 			output_->write(evaluation_.fastResult, format("fast {} spines {} total", fastStat.spines, fastStat.size));
 

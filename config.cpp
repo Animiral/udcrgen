@@ -51,7 +51,7 @@ struct Parser
         
         GAP,
 
-        SPINE_MIN, SPINE_MAX,
+        SPINE_MIN, SPINE_MAX, BATCH_SIZE,
 
         OPT_END
     };
@@ -78,6 +78,7 @@ struct Parser
 
         if ("--spine-min"s == opt)                     return Token::SPINE_MIN;
         if ("--spine-max"s == opt)                     return Token::SPINE_MAX;
+        if ("--batch-size"s == opt)                    return Token::BATCH_SIZE;
 
         if ("--"s == opt)                              return Token::OPT_END;
 
@@ -204,7 +205,7 @@ struct Parser
      * @return: the argument parsed into a filesystem path
      * @throw std::out_of_range: if the argument is missing
      */
-    path pathArg()
+    std::filesystem::path pathArg()
     {
         return { next() };
     }
@@ -231,6 +232,7 @@ void Configuration::readArgv(int argc, const char* argv[])
 
         case Parser::Token::SPINE_MIN:       spineMin = parser.intArg(); break;
         case Parser::Token::SPINE_MAX:       spineMax = parser.intArg(); break;
+        case Parser::Token::BATCH_SIZE:      batchSize = parser.intArg(); break;
 
         case Parser::Token::OPT_END:
             //inputFiles.insert(inputFiles.end(), &parser.argv[1], &parser.argv[parser.argc]);
@@ -262,7 +264,8 @@ void Configuration::readArgv(int argc, const char* argv[])
 
         }
 
-        outputFile = inputFile + ext;
+        outputFile = inputFile;
+        outputFile.replace_extension(ext);
     }
 }
 
@@ -300,7 +303,8 @@ void Configuration::dump(std::ostream& stream) const
     stream << "\tGap: " << std::setprecision(3) << gap << "\n\n";
 
     stream << "\t(Benchmark) minimum spine length: " << spineMin << "\n";
-    stream << "\t(Benchmark) maximum spine length: " << spineMax << "\n\n";
+    stream << "\t(Benchmark) maximum spine length: " << spineMax << "\n";
+    stream << "\t(Benchmark) batch size: " << batchSize << "\n\n";
 }
 
 const char* Configuration::algorithmString(Algorithm algorithm) noexcept

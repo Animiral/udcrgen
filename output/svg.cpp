@@ -1,10 +1,77 @@
 #include "svg.h"
 #include <algorithm>
 #include <tuple>
+#include <cassert>
 
-Svg::Svg(std::ostream& stream, float scale) noexcept :
-	stream_(&stream), scale_(scale), translate_(scale)
+Svg::Svg(std::ostream& stream) noexcept :
+	fileStream_(), stream_(&stream),
+	basePath_(), batchSize_(0), batchNr_(0), batchCount_(0),
+	scale_(100.f), translate_(scale_)
 {
+}
+
+Svg::Svg(const std::filesystem::path& path) :
+	fileStream_(path), stream_(&fileStream_),
+	basePath_(path), batchSize_(0), batchNr_(0), batchCount_(0),
+	scale_(100.f), translate_(scale_)
+{
+}
+
+void Svg::open(std::filesystem::path basePath)
+{
+	fileStream_.open(basePath);
+	stream_ = &fileStream_;
+	basePath_ = basePath;
+	batchNr_ = 0;
+	batchCount_ = 0;
+}
+
+void Svg::close()
+{
+	fileStream_.close();
+	basePath_ = std::filesystem::path{};
+	batchNr_ = 0;
+	batchCount_ = 0;
+}
+
+void Svg::use(std::ostream& stream)
+{
+	stream_ = &stream;
+	close();
+	fileStream_ = std::ofstream{};
+}
+
+void Svg::setBatchSize(int batchSize) noexcept
+{
+	assert(batchSize >= 0);
+	batchSize_ = batchSize;
+}
+
+void Svg::setScale(float scale) noexcept
+{
+	assert(scale >= 0);
+	scale_ = scale;
+	translate_ = Translate(scale);
+}
+
+void Svg::ensureBatch()
+{
+	if (0 >= batchSize_ || !fileStream_.is_open())
+		return;
+
+	if (batchCount_ >= batchSize_) {
+		outro();
+		fileStream_.close();
+		batchNr_++;
+		batchCount_ = 0;
+
+		auto nextPath = basePath_;
+		auto nextFilename = basePath_.stem().concat("_").concat(std::to_string(batchNr_))
+			+= basePath_.extension();
+		nextPath.replace_filename(nextFilename);
+		fileStream_.open(nextPath);
+		intro();
+	}
 }
 
 void Svg::intro() const
@@ -19,7 +86,7 @@ void Svg::outro() const
 	*stream_ << "\t</body>\n</html>\n";
 }
 
-void Svg::write(const DiskGraph& graph, const std::string& label)
+void Svg::write(const DiskGraph& graph, const std::string& label) const
 {
 	translate_.setLimits(graph, 10.f);
 
@@ -34,9 +101,10 @@ void Svg::write(const DiskGraph& graph, const std::string& label)
 	writeAllDisks(graph.leaves(), Appearance::LEAF);
 
 	closeSvg();
+	batchCount_++;
 }
 
-void Svg::write(const Signature& signature, const std::string& label)
+void Svg::write(const Signature& signature, const std::string& label) const
 {
 	translate_.setLimits(-4.5, 2.5, 4.5, -2.5, 10.f);
 
@@ -53,6 +121,7 @@ void Svg::write(const Signature& signature, const std::string& label)
 	}
 
 	closeSvg();
+	batchCount_++;
 }
 
 void Svg::openSvg(const std::string& label) const

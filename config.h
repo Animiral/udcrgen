@@ -6,10 +6,8 @@
 #include <vector>
 #include <string>
 #include <ostream>
-//#include <filesystem>
+#include <filesystem>
 #include <exception>
-
-using path = std::string; // std::filesystem::path
 
 /**
  * Contains all collected and parsed settings for executing a program run.
@@ -48,9 +46,9 @@ public:
     enum class EmbedOrder { DEPTH_FIRST, BREADTH_FIRST };
 
     Algorithm algorithm = Algorithm::CLEVE;
-    path inputFile;
-    path outputFile;
-    path statsFile;
+    std::filesystem::path inputFile;
+    std::filesystem::path outputFile;
+    std::filesystem::path statsFile;
     InputFormat inputFormat = InputFormat::EDGELIST;
     OutputFormat outputFormat = OutputFormat::SVG;
     EmbedOrder embedOrder = EmbedOrder::DEPTH_FIRST;
@@ -61,6 +59,7 @@ public:
     // benchmark-specific keys
     int spineMin = 5;
     int spineMax = 6;
+    int batchSize = 100;
 
     /**
      * Write the parsed information in the configuration to the given stream.

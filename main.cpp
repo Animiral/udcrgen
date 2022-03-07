@@ -103,7 +103,7 @@ DiskGraph read_input_graph()
 	}
 	catch (const std::exception& e) {
 		using namespace std::string_literals;
-		throw std::exception(("Failed to read input file \""s + configuration.inputFile + "\": "s + e.what() + "\n"s).c_str());
+		throw std::exception(("Failed to read input file \""s + configuration.inputFile.string() + "\": "s + e.what() + "\n"s).c_str());
 	}
 }
 
@@ -152,14 +152,13 @@ void run_benchmark()
 		DynamicProblemEmbedder referenceEmbedder;
 		Enumerate enumerate(fastEmbedder, referenceEmbedder, configuration.spineMin, configuration.spineMax);
 
-		std::ofstream svgStream{ configuration.outputFile };
-		Svg svg(svgStream);
+		Svg svg(configuration.outputFile);
+		svg.setBatchSize(configuration.batchSize);
 
 		std::ofstream csvStream{ configuration.statsFile };
 		Csv csv(csvStream, ',');
 
-		if (svgStream.good())
-			enumerate.setOutput(&svg);
+		enumerate.setOutput(&svg);
 
 		if (csvStream.good())
 			enumerate.setCsv(&csv);
@@ -169,7 +168,7 @@ void run_benchmark()
 		enumerate.run();
 		svg.outro();
 
-		svgStream.close();
+		svg.close();
 		csvStream.close();
 	}
 	catch (const std::exception& e) {
@@ -184,39 +183,41 @@ void write_output_graph(const DiskGraph& graph)
 		if (configuration.outputFile.empty())
 			return;
 
-		std::ofstream stream{ configuration.outputFile };
 
 		switch (configuration.outputFormat) {
 
 		case Configuration::OutputFormat::DUMP:
 		{
+			std::ofstream stream{ configuration.outputFile };
 			write_output_graph_stream(graph, stream);
+			stream.close();
 		}
 		break;
 
 		case Configuration::OutputFormat::SVG:
 		{
-			Svg svg(stream);
+			Svg svg(configuration.outputFile);
 			svg.intro();
 			svg.write(graph, "Embed Result");
 			svg.outro();
+			svg.close();
 		}
 		break;
 
 		case Configuration::OutputFormat::IPE:
 		{
+			std::ofstream stream{ configuration.outputFile };
 			Ipe ipe{ graph, stream };
 			ipe.write();
+			stream.close();
 		}
 		break;
 
 		}
-
-		stream.close();
 	}
 	catch (const std::exception& e) {
 		using namespace std::string_literals;
-		throw std::exception(("Failed to write output file \""s + configuration.outputFile + "\": "s + e.what() + "\n"s).c_str());
+		throw std::exception(("Failed to write output file \""s + configuration.outputFile.string() + "\": "s + e.what() + "\n"s).c_str());
 	}
 }
 

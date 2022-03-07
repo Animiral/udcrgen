@@ -51,7 +51,6 @@ private:
 	std::ostream* stream_; // current output stream
 	float scale_; // size of a unit disk in output
 	Translate translate_; // coordinate translation and scaling
-	bool firstContent_; // true before any (non-intro) content has been written
 
 	// Describes how the vertex should be presented to the user.
 	enum class Appearance { SPINE, BRANCH, LEAF, FAIL };

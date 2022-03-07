@@ -3,56 +3,20 @@
 #include <tuple>
 
 Svg::Svg(std::ostream& stream, float scale) noexcept :
-	stream_(&stream), scale_(scale), translate_(scale), firstContent_(true)
+	stream_(&stream), scale_(scale), translate_(scale)
 {
 }
 
 void Svg::intro() const
 {
 	*stream_ <<
-		"<html>"
-		"<head>"
-		"<style type=\"text / css\"> "
-		".collapsible {"
-		"  background-color: #eee;"
-		"  color: #444;"
-		"  cursor: pointer;"
-		"  padding: 18px;"
-		"  width: 100%;"
-		"  max-width: 100%;"
-		"  border: none;"
-		"  text-align: left;"
-		"  outline: none;"
-		"  font-size: 15px;"
-		"} "
-		".active, .collapsible:hover {"
-		"  background-color: #ccc;"
-		"} "
-		".content {"
-		"  padding: 0 18px;"
-		"  display: none;"
-		"  overflow: hidden;"
-		"  background-color: #f1f1f1;"
-		"}"
-		"</style>"
-		"<script>"
-		"function doCollapse(btn) {"
-		"	btn.classList.toggle('active');"
-		"	var content = btn.nextElementSibling;"
-		"	if (content.style.display === 'none') {"
-		"	  content.style.display = 'block';"
-		"	} else {"
-		"	  content.style.display = 'none';"
-		"	}"
-		"}"
-		"</script>"
-		"</head>"
-		"<body>\n";
+		"<html>\n"
+		"\t<body>\n";
 }
 
 void Svg::outro() const
 {
-	*stream_ << "</body></html>\n";
+	*stream_ << "\t</body>\n</html>\n";
 }
 
 void Svg::write(const DiskGraph& graph, const std::string& label)
@@ -70,8 +34,6 @@ void Svg::write(const DiskGraph& graph, const std::string& label)
 	writeAllDisks(graph.leaves(), Appearance::LEAF);
 
 	closeSvg();
-
-	firstContent_ = false;
 }
 
 void Svg::write(const Signature& signature, const std::string& label)
@@ -91,22 +53,21 @@ void Svg::write(const Signature& signature, const std::string& label)
 	}
 
 	closeSvg();
-
-	firstContent_ = false;
 }
 
 void Svg::openSvg(const std::string& label) const
 {
 	*stream_ <<
-		"<button type=\"button\" class=\"collapsible\" onClick=\"doCollapse(this)\">" << label << "</button>"
-		"<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"content\" style=\"" << (firstContent_ ? "display:block;" : "display:none;") << "\" "
+		"<details>\n"
+		"\t<summary><h7>" << label << "</h7></summary>\n"
+		"<svg class=\"content\" style=\"max-width:" << translate_.width() << ";\" "
 		"viewBox=\"0 0 " << translate_.width() << " " << translate_.height() << "\">\n"
 		"<g text-anchor=\"middle\">\n";
 }
 
 void Svg::closeSvg() const
 {
-	*stream_ << "</g></svg>\n";
+	*stream_ << "</g></svg></details>\n";
 
 	if (stream_->bad())
 		throw std::exception("Failed to write SVG.");

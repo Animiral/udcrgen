@@ -38,7 +38,7 @@ target_link_libraries(gencases udcr)
 enable_testing()
 find_package(GTest REQUIRED)
 
-add_executable(unittests "test/test_embed.cpp" "test/test_graph.cpp" "test/test_grid.cpp" "test/test_dynamic.cpp" "test/test_heuristic.cpp" "test/test_enumerate.cpp")
+add_executable(unittests "test/test_embed.cpp" "test/test_graph.cpp" "test/test_grid.cpp" "test/test_dynamic.cpp" "test/test_heuristic.cpp" "test/test_enumerate.cpp" "test/test_config.cpp")
 target_link_libraries(unittests ${GTEST_BOTH_LIBRARIES} udcr)
 target_include_directories(unittests PRIVATE ${PROJECT_SOURCE_DIR})
 add_test(unittests unittests)

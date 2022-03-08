@@ -69,6 +69,7 @@ void build_configuration(int argc, const char* argv[])
 		throw std::exception(("Failed to read configuration from command line: "s + e.what() + "\n"s).c_str());
 	}
 
+	configuration.validate();
 	configuration.dump(std::cout);
 }
 

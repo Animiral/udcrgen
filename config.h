@@ -62,6 +62,11 @@ public:
     int batchSize = 100;
 
     /**
+     * @brief Throw an exception if the configuration values are not sensible.
+     */
+    void validate() const;
+
+    /**
      * Write the parsed information in the configuration to the given stream.
      */
     void dump(std::ostream& stream) const;

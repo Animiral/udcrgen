@@ -269,6 +269,15 @@ void Configuration::readArgv(int argc, const char* argv[])
     }
 }
 
+void Configuration::validate() const
+{
+    if (Algorithm::BENCHMARK == algorithm && !inputFile.empty())
+        throw std::exception("Benchmark does not use an input file.");
+
+    if (spineMin >= spineMax)
+        throw std::exception("spine-min must be smaller than spine-max.");
+}
+
 void Configuration::dump(std::ostream& stream) const
 {
     stream << "Configuration:\n\n";

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "utility/stat.h"
-#include <ostream>
+#include <fstream>
 
 /**
  * @brief Write stats to CSV.
@@ -14,14 +14,19 @@ class Csv
 public:
 
 	/**
-	 * @brief Construct the CSV object for writing to the given stream.
+	 * @brief Construct the CSV object.
 	 */
-	explicit Csv(std::ostream& stream, char separator) noexcept;
+	explicit Csv(char separator = ',') noexcept;
 
 	/**
-	 * @brief Write the header line.
+	 * @brief Open the given CSV file in the given mode.
 	 */
-	void header();
+	void open(const std::filesystem::path& path, std::ios::openmode mode = std::ios::app);
+
+	/**
+	 * @brief Explicitly close this @c Csv's output file.
+	 */
+	void close();
 
 	/**
 	 * @brief Write the given stat line.
@@ -30,7 +35,9 @@ public:
 
 private:
 
-	std::ostream* stream_;
+	std::fstream stream_;
 	char separator_;
+
+	void header();
 
 };

@@ -4,6 +4,7 @@
 #include "utility/graph.h"
 #include "utility/grid.h"
 #include "utility/geometry.h"
+#include "utility/stat.h"
 #include "config.h"
 
 /**
@@ -72,13 +73,13 @@ public:
 /**
  * Apply an embedding to the graph using the given embedding strategy.
  *
- * @return true if an embedding was found, false otherwise.
+ * @return statistics on the embedding operation
  */
-bool embed(DiskGraph& graph, Embedder& embedder, Configuration::EmbedOrder embedOrder);
+Stat embed(DiskGraph& graph, Embedder& embedder, Configuration::Algorithm algorithm, Configuration::EmbedOrder embedOrder);
 
 /**
  * Apply an embedding to the graph using the dynamic programming approach.
  *
- * @return true if an embedding was found, false otherwise.
+ * @return statistics on the embedding operation
  */
-bool embedDynamic(DiskGraph& graph, WholesaleEmbedder& embedder);
+Stat embedDynamic(DiskGraph& graph, WholesaleEmbedder& embedder);

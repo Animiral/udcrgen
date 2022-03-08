@@ -33,9 +33,12 @@ TEST(Embed, embed_proper)
 {
 	auto graph = make_caterpillar();
 	auto embedder = ProperEmbedder{};
+	auto algorithm = Configuration::Algorithm::KLEMZ_NOELLENBURG_PRUTKIN;
+	auto embedOrder = Configuration::EmbedOrder::DEPTH_FIRST;
 
 	// execute
-	ASSERT_TRUE(embed(graph, embedder, Configuration::EmbedOrder::DEPTH_FIRST));
+	Stat stat = embed(graph, embedder, algorithm, embedOrder);
+	ASSERT_TRUE(stat.success);
 
 	auto& spines = graph.spines();
 	auto& branches = graph.branches();
@@ -86,9 +89,12 @@ TEST(Embed, embed_weak)
 {
 	auto graph = make_lobster();
 	WeakEmbedder embedder;
+	auto algorithm = Configuration::Algorithm::CLEVE;
+	auto embedOrder = Configuration::EmbedOrder::DEPTH_FIRST;
 
 	// execute, leaves first
-	ASSERT_TRUE(embed(graph, embedder, Configuration::EmbedOrder::DEPTH_FIRST));
+	Stat stat = embed(graph, embedder, algorithm, embedOrder);
+	ASSERT_TRUE(stat.success);
 
 	auto& spines = graph.spines();
 	auto& branches = graph.branches();
@@ -113,9 +119,12 @@ TEST(Embed, embed_weak_breadthfirst)
 {
 	auto graph = make_lobster();
 	WeakEmbedder embedder;
+	auto algorithm = Configuration::Algorithm::CLEVE;
+	auto embedOrder = Configuration::EmbedOrder::BREADTH_FIRST;
 
 	// execute, spine first
-	ASSERT_TRUE(embed(graph, embedder, Configuration::EmbedOrder::BREADTH_FIRST));
+	Stat stat = embed(graph, embedder, algorithm, embedOrder);
+	ASSERT_TRUE(stat.success);
 
 	auto& spines = graph.spines();
 	auto& branches = graph.branches();

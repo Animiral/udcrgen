@@ -110,33 +110,41 @@ DiskGraph read_input_graph()
 void run_algorithm(DiskGraph& graph)
 {
 	try {
+		Stat stat;
+
 		switch (configuration.algorithm) {
 
 		case Configuration::Algorithm::KLEMZ_NOELLENBURG_PRUTKIN:
 		{
 			ProperEmbedder embedder;
 			embedder.setGap(configuration.gap);
-			embed(graph, embedder, configuration.embedOrder);
+			stat = embed(graph, embedder, configuration.algorithm, configuration.embedOrder);
 		}
 		break;
 
 		case Configuration::Algorithm::CLEVE:
 		{
 			WeakEmbedder embedder;
-			embed(graph, embedder, configuration.embedOrder);
+			stat = embed(graph, embedder, configuration.algorithm, configuration.embedOrder);
 		}
 		break;
 
 		case Configuration::Algorithm::DYNAMIC_PROGRAM:
 		{
 			DynamicProblemEmbedder embedder;
-			embedDynamic(graph, embedder);
+			stat = embedDynamic(graph, embedder);
 		}
 		break;
 
 		default: assert(0);
 		break;
 
+		}
+
+		if (!configuration.statsFile.empty()) {
+			Csv csv;
+			csv.open(configuration.statsFile, std::ios::app);
+			csv.write(stat);
 		}
 	}
 	catch (const std::exception& e) {
@@ -154,22 +162,22 @@ void run_benchmark()
 
 		Svg svg(configuration.outputFile);
 		svg.setBatchSize(configuration.batchSize);
-
-		std::ofstream csvStream{ configuration.statsFile };
-		Csv csv(csvStream, ',');
-
 		enumerate.setOutput(&svg);
 
-		if (csvStream.good())
+		Csv csv;
+		bool doStats = !configuration.statsFile.empty();
+
+		if (doStats) {
+			csv.open(configuration.statsFile, std::ios::out | std::ios::trunc);
 			enumerate.setCsv(&csv);
+		}
 
 		svg.intro();
-		csv.header();
 		enumerate.run();
 		svg.outro();
 
 		svg.close();
-		csvStream.close();
+		csv.close();
 	}
 	catch (const std::exception& e) {
 		using namespace std::string_literals;
@@ -182,7 +190,6 @@ void write_output_graph(const DiskGraph& graph)
 	try {
 		if (configuration.outputFile.empty())
 			return;
-
 
 		switch (configuration.outputFormat) {
 

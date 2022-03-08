@@ -201,8 +201,18 @@ std::vector<Disk> getDisksInOrder(const DiskGraph& graph, EmbedOrder embedOrder)
 
 using EmbedOrder = Configuration::EmbedOrder;
 
-bool embed(DiskGraph& graph, Embedder& embedder, EmbedOrder embedOrder)
+Stat embed(DiskGraph& graph, Embedder& embedder, Configuration::Algorithm algorithm, EmbedOrder embedOrder)
 {
+	using Clock = std::chrono::steady_clock;
+	Clock clock;
+	Clock::time_point start;
+
+	Stat stat;
+	stat.size = graph.spines().size() + graph.branches().size() + graph.leaves().size();
+	stat.spines = graph.spines().size();
+	stat.algorithm = algorithm;
+	start = clock.now();
+
 	embedder.setGraph(graph);
 
 	auto& spines = graph.spines();
@@ -213,23 +223,23 @@ bool embed(DiskGraph& graph, Embedder& embedder, EmbedOrder embedOrder)
 	auto branchIt = branches.begin();
 	auto leafIt = leaves.begin();
 
-	bool success = true;
+	stat.success = true;
 
 	for (; spineIt != spines.end(); ++spineIt) {
-		success &= embedDisk(graph, embedder, *spineIt);
+		stat.success &= embedDisk(graph, embedder, *spineIt);
 
 		for (; branchIt != branches.end(); ++branchIt) {
 			if (branchIt->parent != spineIt->id)
 				break; // skip to next spine
 
-			success &= embedDisk(graph, embedder, *branchIt);
+			stat.success &= embedDisk(graph, embedder, *branchIt);
 
 			if (EmbedOrder::DEPTH_FIRST == embedOrder) {
 				for (; leafIt != leaves.end(); ++leafIt) {
 					if (leafIt->parent != branchIt->id)
 						break; // skip to next branch
 
-					success &= embedDisk(graph, embedder, *leafIt);
+					stat.success &= embedDisk(graph, embedder, *leafIt);
 				}
 			}
 		}
@@ -242,20 +252,31 @@ bool embed(DiskGraph& graph, Embedder& embedder, EmbedOrder embedOrder)
 				if (branch->parent != spineIt->id)
 					break; // skip to next spine
 
-				success &= embedDisk(graph, embedder, *leafIt);
+				stat.success &= embedDisk(graph, embedder, *leafIt);
 			}
 		}
 	}
 
-	return success;
+	stat.duration = std::chrono::duration_cast<std::chrono::milliseconds>(clock.now() - start);
+	return stat;
 }
 
-bool embedDynamic(DiskGraph& graph, WholesaleEmbedder& embedder)
+Stat embedDynamic(DiskGraph& graph, WholesaleEmbedder& embedder)
 {
-	std::vector<Disk> disks = getDisksInOrder(graph, EmbedOrder::DEPTH_FIRST);
-	bool success = embedder.embed(disks);
+	using Clock = std::chrono::steady_clock;
+	Clock clock;
+	Clock::time_point start;
 
-	if (success) {
+	Stat stat;
+	stat.size = graph.spines().size() + graph.branches().size() + graph.leaves().size();
+	stat.spines = graph.spines().size();
+	stat.algorithm = Configuration::Algorithm::DYNAMIC_PROGRAM;
+	start = clock.now();
+
+	std::vector<Disk> disks = getDisksInOrder(graph, EmbedOrder::DEPTH_FIRST);
+	stat.success = embedder.embed(disks);
+
+	if (stat.success) {
 		// transcribe result to graph
 		for (const Disk& out : disks) {
 			Disk* actual = graph.findDisk(out.id);
@@ -268,5 +289,6 @@ bool embedDynamic(DiskGraph& graph, WholesaleEmbedder& embedder)
 		}
 	}
 
-	return success;
+	stat.duration = std::chrono::duration_cast<std::chrono::milliseconds>(clock.now() - start);
+	return stat;
 }

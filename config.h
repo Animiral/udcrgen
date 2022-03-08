@@ -7,7 +7,25 @@
 #include <string>
 #include <ostream>
 #include <filesystem>
-#include <exception>
+#include "utility/exception.h"
+
+/**
+ * @brief This class covers errors which arise during configuration.
+ *
+ * The cases are:
+ *   - command-line arguments missing, malformed or unrecognized
+ *   - validation failure of the configuration
+ *   - stream error while writing configuration state
+ */
+class ConfigException : public Exception
+{
+
+public:
+
+    explicit ConfigException(const std::string& message, const std::exception* cause = nullptr);
+    virtual const char* title() const noexcept override;
+
+};
 
 /**
  * Contains all collected and parsed settings for executing a program run.

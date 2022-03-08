@@ -1,6 +1,7 @@
 /**
  * Provides independent, self-contained utility and helper functions.
  */
+#pragma once
 
 #include <string>
 #include <numeric>

@@ -23,6 +23,7 @@ add_library(udcr STATIC
 	"utility/graph.cpp" "utility/graph.h"
 	"utility/grid.cpp" "utility/grid.h"
 	"utility/util.cpp" "utility/util.h"
+	"utility/exception.cpp" "utility/exception.h"
 	"utility/stat.h")
 target_include_directories(udcr PRIVATE ${PROJECT_SOURCE_DIR})
 

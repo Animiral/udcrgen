@@ -3,6 +3,7 @@
 #include "dynamic.h"
 #include "enumerate.h"
 #include "utility/graph.h"
+#include "utility/exception.h"
 #include "output/ipe.h"
 #include "output/svg.h"
 #include "output/csv.h"
@@ -47,6 +48,10 @@ int main(int argc, const char* argv[])
 			write_output_graph(graph);
 		}
 	}
+	catch (const Exception& e) {
+		std::cerr << e.fullMessage() << "\n";
+		return 1;
+	}
 	catch (const std::exception& e) {
 		std::cerr << "Error: " << e.what() << "\n";
 		return 1;
@@ -61,14 +66,7 @@ namespace
 
 void build_configuration(int argc, const char* argv[])
 {
-	try {
-		configuration.readArgv(argc, argv);
-	}
-	catch (const std::exception& e) {
-		using namespace std::string_literals;
-		throw std::exception(("Failed to read configuration from command line: "s + e.what() + "\n"s).c_str());
-	}
-
+	configuration.readArgv(argc, argv);
 	configuration.validate();
 	configuration.dump(std::cout);
 }

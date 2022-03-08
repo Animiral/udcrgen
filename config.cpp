@@ -7,6 +7,18 @@
 #include <cassert>
 #include "utility/util.h"
 
+ConfigException::ConfigException(const std::string& message, const std::exception* cause)
+    : Exception(message, cause)
+{
+}
+
+const char* ConfigException::title() const noexcept
+{
+    return "Configuration Exception";
+}
+
+using namespace std::string_literals;
+
 /**
  * The Parser object holds the state of the options parser in progress.
  * It offers functions to tokenize command arguments and extract argument values.
@@ -32,7 +44,7 @@ struct Parser
     const char* next()
     {
         if (end())
-            throw std::out_of_range("Command line unexpectedly short.");
+            throw ConfigException("Command line unexpectedly short."s);
 
         argc--;
         return *++argv;
@@ -61,8 +73,6 @@ struct Parser
      */
     Token what() const
     {
-        using namespace std::string_literals;
-
         assert(!end());
         const auto opt = argv[0];
 
@@ -102,7 +112,7 @@ struct Parser
         if ("dp"s == opt || "dynamic-program"s == opt)             return Configuration::Algorithm::DYNAMIC_PROGRAM;
         if ("benchmark"s == opt)                                   return Configuration::Algorithm::BENCHMARK;
 
-        throw std::out_of_range("Unknown algorithm: "s + opt);
+        throw ConfigException("Unknown algorithm: "s += opt);
     }
 
     /**
@@ -120,7 +130,7 @@ struct Parser
         if ("degrees"s == opt)  return Configuration::InputFormat::DEGREES;
         if ("edgelist"s == opt) return Configuration::InputFormat::EDGELIST;
 
-        throw std::out_of_range("Unknown input format: "s + opt);
+        throw ConfigException("Unknown input format: "s += opt);
     }
 
     /**
@@ -139,7 +149,7 @@ struct Parser
         if ("ipe"s == opt)   return Configuration::OutputFormat::IPE;
         if ("dump"s == opt)  return Configuration::OutputFormat::DUMP;
 
-        throw std::out_of_range("Unknown output format: "s + opt);
+        throw ConfigException("Unknown output format: "s += opt);
     }
 
     /**
@@ -157,7 +167,7 @@ struct Parser
         if ("dfs"s == opt || "depth-first"s == opt)    return Configuration::EmbedOrder::DEPTH_FIRST;
         if ("bfs"s == opt || "breadth-first"s == opt)  return Configuration::EmbedOrder::BREADTH_FIRST;
 
-        throw std::out_of_range("Unknown embed order: "s + opt);
+        throw ConfigException("Unknown embed order: "s += opt);
     }
 
     /**
@@ -169,10 +179,18 @@ struct Parser
      */
     int intArg(int minValue = 1)
     {
-        const int value = std::stoi(next());
+        const char* intStr = next();
+        int value = 0;
+
+        try {
+            value = std::stoi(intStr);
+        }
+        catch (const std::exception& e) {
+            throw ConfigException("Failed to parse integer: "s += intStr, &e);
+        }
 
         if (value < minValue)
-            throw std::out_of_range(format("Integer argument value too small: {} (< {})", value, minValue));
+            throw ConfigException(format("Integer argument value too small: {} (< {})", value, minValue));
 
         return value;
     }
@@ -188,13 +206,21 @@ struct Parser
     float floatArg(float minValue = std::numeric_limits<float>::lowest(),
         float maxValue = std::numeric_limits<float>::max())
     {
-        const float value = std::stof(next());
+        const char* floatStr = next();
+        float value = 0;
+
+        try {
+            value = std::stof(floatStr);
+        }
+        catch (const std::exception& e) {
+            throw ConfigException("Failed to parse floating-point number: "s += floatStr, &e);
+        }
 
         if (value < minValue)
-            throw std::out_of_range(format("Floating-point argument value too small: {} (< {})", value, minValue));
+            throw ConfigException(format("Floating-point argument value too small: {} (< {})", value, minValue));
 
         if (value > maxValue)
-            throw std::out_of_range(format("Floating-point argument value too large: {} (> {})", value, maxValue));
+            throw ConfigException(format("Floating-point argument value too large: {} (> {})", value, maxValue));
 
         return value;
     }
@@ -207,7 +233,14 @@ struct Parser
      */
     std::filesystem::path pathArg()
     {
-        return { next() };
+        const char* pathStr = next();
+
+        try {
+            return { pathStr };
+        }
+        catch (const std::exception& e) {
+            throw ConfigException("Invalid path: "s += pathStr, &e);
+        }
     }
 };
 
@@ -272,10 +305,10 @@ void Configuration::readArgv(int argc, const char* argv[])
 void Configuration::validate() const
 {
     if (Algorithm::BENCHMARK == algorithm && !inputFile.empty())
-        throw std::exception("Benchmark does not use an input file.");
+        throw ConfigException("Benchmark does not use an input file.");
 
     if (spineMin >= spineMax)
-        throw std::exception("spine-min must be smaller than spine-max.");
+        throw ConfigException(format("spine-min must be smaller than spine-max. ({} >= {})", spineMin, spineMax));
 }
 
 void Configuration::dump(std::ostream& stream) const
@@ -314,6 +347,9 @@ void Configuration::dump(std::ostream& stream) const
     stream << "\t(Benchmark) minimum spine length: " << spineMin << "\n";
     stream << "\t(Benchmark) maximum spine length: " << spineMax << "\n";
     stream << "\t(Benchmark) batch size: " << batchSize << "\n\n";
+
+    if (stream.bad())
+        throw ConfigException("Bad stream while describing configuration.");
 }
 
 const char* Configuration::algorithmString(Algorithm algorithm) noexcept

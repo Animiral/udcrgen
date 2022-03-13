@@ -1,5 +1,6 @@
 #include "heuristic.h"
 #include "utility/util.h"
+#include "utility/exception.h"
 #include <algorithm>
 #include <cassert>
 
@@ -36,7 +37,7 @@ void ProperEmbedder::embed(Disk& disk)
 		return embedLeaf(disk);
 
 	else
-		throw std::exception("proper embedder can not embed graphs deeper than caterpillars");
+		throw EmbedException("Proper embedder can not embed graphs deeper than caterpillars");
 }
 
 void ProperEmbedder::setGraph(DiskGraph& graph) noexcept
@@ -300,7 +301,7 @@ void WeakEmbedder::embed(Disk& disk)
 		return embedBranchOrLeaf(disk);
 
 	else
-		throw std::exception("weak embedder can not embed graphs deeper than lobsters");
+		throw EmbedException("Weak embedder can not embed graphs deeper than lobsters");
 }
 
 void WeakEmbedder::setGraph(DiskGraph& graph) noexcept

@@ -1,36 +1,8 @@
 #include "ipe.h"
+#include "utility/exception.h"
 #include <algorithm>
 #include <tuple>
 #include <iomanip>
-
-namespace
-{
-	// GRID TO COORDINATE TRANSLATION
-
-	const float gstep = 16.f;
-	const float gstep_s = (sqrtf(3.f) * gstep) / 2.f;
-
-		//t_add = lambda i, j: i + j
-		//def t_addition(a, b) :
-		//return tuple(map(t_add, a, b))
-	void t_addition(float& r1, float& r2, float a1, float a2)
-	{
-		r1 += a1;
-		r2 += a2;
-	}
-
-	void grid_to_coord(float a, float b, float c, float& x, float& y)
-	{
-		// print("\n###")
-		// print(str(a) + ", " + str(b) + ", " + str(c))
-		x = y = 0;
-		t_addition(x, y, a * gstep, 0);
-		t_addition(x, y, b * gstep / 2, b * gstep_s);
-		t_addition(x, y, -c * gstep / 2, c * gstep_s);
-	}
-
-}
-
 
 Ipe::Ipe(const DiskGraph& graph, std::ostream& stream) noexcept :
 	graph_(&graph), scale_(16.f), translate_(scale_), stream_(&stream)
@@ -78,11 +50,10 @@ void Ipe::write()
 
 	// page end
 	*stream_ << "</page>";
-
 	*stream_ << "</ipe>\n";
 
-	if (stream_->bad())
-		throw std::exception("Failed to write SVG.");
+	if (stream_->fail())
+		throw OutputException(std::strerror(errno));
 }
 
 void Ipe::writeDisk(const Disk& disk, Appearance appearance)
@@ -99,8 +70,6 @@ void Ipe::writeDisk(const Disk& disk, Appearance appearance)
 
 void Ipe::writeCircle(float x, float y, int id, Appearance appearance)
 {
-	//float cx, cy;
-	//grid_to_coord(x, y, 0, cx, cy);
 	const Vec2 center = translate_.translate({ x, y });
 
 	const char* ipe_color;
@@ -125,11 +94,6 @@ void Ipe::writeCircle(float x, float y, int id, Appearance appearance)
 
 void Ipe::writeLine(float x1, float y1, float x2, float y2)
 {
-	//float sx, sy, tx, ty;
-
-	//grid_to_coord(x1, y1, 0, sx, sy);
-	//grid_to_coord(x2, y2, 0, tx, ty);
-
 	const Vec2 source = translate_.translate({ x1, y1 });
 	const Vec2 target = translate_.translate({ x2, y2 });
 

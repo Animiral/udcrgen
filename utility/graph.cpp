@@ -1,5 +1,8 @@
 #include "graph.h"
+#include "input/input.h" // TODO: remove dependent functions from utility/ structure
+#include "exception.h"
 #include <algorithm>
+#include <string>
 #include <cassert>
 #include <numeric>
 
@@ -29,12 +32,8 @@ Caterpillar Caterpillar::fromText(std::istream& stream)
 	std::vector<int> degrees; // vertex degrees from degree representation
 	int token;
 
-	while (stream >> token) {
+	while (readint(stream, token)) {
 		degrees.push_back(token);
-	}
-
-	if (stream.bad()) {
-		throw std::exception("Failed to parse caterpillar.");
 	}
 
 	// correction: first and last spine have leaves = degree - 1,
@@ -49,7 +48,7 @@ Caterpillar Caterpillar::fromText(std::istream& stream)
 
 	for (int d : degrees) {
 		if (d < 2)
-			throw std::exception("Caterpillar spine cannot have less than 2 leaves.");
+			throw InputException("Caterpillar spine cannot have degree <2.");
 
 		caterpillar.extend(d - 2);
 	}
@@ -106,13 +105,10 @@ EdgeList edges_from_text(std::istream& stream)
 	// read all edges from input stream
 	DiskId from, to;
 
-	while (stream >> from >> to) {
+	while (readint(stream, from) && readint(stream, to)) {
 		Edge e{ from, to };
 		edges.push_back(e);
-	}
-
-	if (stream.bad()) {
-		throw std::exception("Failed to parse edge list.");
+		ignoreline(stream);
 	}
 
 	return edges;
@@ -124,9 +120,8 @@ void edges_to_text(std::ostream& stream, const EdgeList& edges)
 		stream << edge.from << " " << edge.to << "\n";
 	}
 
-	if (stream.bad()) {
-		throw std::exception("Failed to write edge list.");
-	}
+	if (stream.fail())
+		throw OutputException(std::strerror(errno));
 }
 
 EdgeList::iterator separate_leaves(EdgeList::iterator begin, EdgeList::iterator end)

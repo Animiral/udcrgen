@@ -1,6 +1,7 @@
 #include "dynamic.h"
-#include <algorithm>
 #include "utility/util.h"
+#include "utility/exception.h"
+#include <algorithm>
 
 Fundament::Fundament() noexcept = default;
 
@@ -172,7 +173,7 @@ std::vector<DynamicProblem> DynamicProblem::subproblems() const
 		head = spineHead_;
 	}
 	else {
-		throw std::exception("dynamic program can not embed graphs deeper than lobsters");
+		throw EmbedException("Dynamic program can not embed graphs deeper than lobsters");
 	}
 
 	// create map of blocked spaces
@@ -417,9 +418,6 @@ bool ProblemQueue::equivalent(const DynamicProblem& lhs, const DynamicProblem& r
 	return lhs.signature() == rhs.signature();
 }
 
-#include "output/svg.h"
-#include <fstream>
-
 bool DynamicProblemEmbedder::embed(std::vector<Disk>& disks)
 {
 	// performance counters
@@ -429,10 +427,6 @@ bool DynamicProblemEmbedder::embed(std::vector<Disk>& disks)
 	ProblemQueue queue;
 	queue.push(DynamicProblem(disks));
 	pushCounter++;
-
-	std::ofstream stream(format("fun/contours.html"));
-	Svg svg(stream);
-	svg.intro();
 
 	while (!queue.empty()) {
 		const DynamicProblem& next = queue.top();
@@ -450,16 +444,8 @@ bool DynamicProblemEmbedder::embed(std::vector<Disk>& disks)
 		for (const DynamicProblem& problem : subproblems) {
 			queue.push(problem);
 			pushCounter++;
-
-			if (disks.size() - problem.depth() <= 2) {
-				//std::string label = format("Depth {} Hash {}", problem.depth(), ProblemQueue::hash(problem.signature()));
-				//svg.write(problem.signature(), label);
-			}
 		}
 	}
-
-	svg.outro();
-	stream.close();
 
 	trace("Dynamic Problems: {} generated, {} expanded.", pushCounter, popCounter);
 

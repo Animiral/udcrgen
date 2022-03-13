@@ -43,10 +43,7 @@ Vec2 Grid::vec(Coord coord) const
 void Grid::put(Coord coord, Disk& disk)
 {
 	auto it_inserted = map_.insert({ coord, &disk });
-
-	if (!it_inserted.second) {
-		throw std::exception("disks cannot overlap in grid");
-	}
+	assert(it_inserted.second);
 }
 
 std::size_t Grid::coordHash(Coord coord) noexcept

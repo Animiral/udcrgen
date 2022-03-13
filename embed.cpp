@@ -2,6 +2,7 @@
 #include "utility/graph.h"
 #include "utility/geometry.h"
 #include "utility/util.h"
+#include "utility/exception.h"
 #include <algorithm>
 #include <stdexcept>
 
@@ -120,8 +121,7 @@ std::pair<DiskGraph, GraphClass> classify(EdgeList input)
 		return { graph, GraphClass::LOBSTER };
 	}
 
-	// unfamiliar graph
-	return { {0, 0, 0}, GraphClass::OTHER };
+	throw InputException("Unrecognized graph type.");
 }
 
 namespace

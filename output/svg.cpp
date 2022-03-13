@@ -1,4 +1,5 @@
 #include "svg.h"
+#include "utility/exception.h"
 #include <algorithm>
 #include <tuple>
 #include <cassert>
@@ -15,11 +16,19 @@ Svg::Svg(const std::filesystem::path& path) :
 	basePath_(path), batchSize_(0), batchNr_(0), batchCount_(0),
 	scale_(100.f), translate_(scale_)
 {
+	if (!fileStream_.is_open())
+		throw OutputException(std::strerror(errno), path.string());
 }
 
 void Svg::open(std::filesystem::path basePath)
 {
+	assert(!fileStream_.is_open());
+
 	fileStream_.open(basePath);
+
+	if (!fileStream_.is_open())
+		throw OutputException(std::strerror(errno), basePath.string());
+
 	stream_ = &fileStream_;
 	basePath_ = basePath;
 	batchNr_ = 0;
@@ -28,7 +37,12 @@ void Svg::open(std::filesystem::path basePath)
 
 void Svg::close()
 {
+	fileStream_.clear();
 	fileStream_.close();
+
+	if (fileStream_.fail())
+		throw OutputException(std::strerror(errno));
+
 	basePath_ = std::filesystem::path{};
 	batchNr_ = 0;
 	batchCount_ = 0;
@@ -61,7 +75,13 @@ void Svg::ensureBatch()
 
 	if (batchCount_ >= batchSize_) {
 		outro();
+
+		fileStream_.clear();
 		fileStream_.close();
+
+		if (fileStream_.fail())
+			throw OutputException(std::strerror(errno));
+
 		batchNr_++;
 		batchCount_ = 0;
 
@@ -69,7 +89,12 @@ void Svg::ensureBatch()
 		auto nextFilename = basePath_.stem().concat("_").concat(std::to_string(batchNr_))
 			+= basePath_.extension();
 		nextPath.replace_filename(nextFilename);
+
 		fileStream_.open(nextPath);
+
+		if (!fileStream_.is_open())
+			throw OutputException(std::strerror(errno), nextPath.string());
+
 		intro();
 	}
 }
@@ -79,11 +104,17 @@ void Svg::intro() const
 	*stream_ <<
 		"<html>\n"
 		"\t<body>\n";
+
+	if (stream_->fail())
+		throw OutputException(std::strerror(errno));
 }
 
 void Svg::outro() const
 {
 	*stream_ << "\t</body>\n</html>\n";
+
+	if (stream_->fail())
+		throw OutputException(std::strerror(errno));
 }
 
 void Svg::write(const DiskGraph& graph, const std::string& label) const
@@ -101,6 +132,10 @@ void Svg::write(const DiskGraph& graph, const std::string& label) const
 	writeAllDisks(graph.leaves(), Appearance::LEAF);
 
 	closeSvg();
+
+	if (stream_->fail())
+		throw OutputException(std::strerror(errno));
+
 	batchCount_++;
 }
 
@@ -121,6 +156,10 @@ void Svg::write(const Signature& signature, const std::string& label) const
 	}
 
 	closeSvg();
+
+	if (stream_->fail())
+		throw OutputException(std::strerror(errno));
+
 	batchCount_++;
 }
 
@@ -137,9 +176,6 @@ void Svg::openSvg(const std::string& label) const
 void Svg::closeSvg() const
 {
 	*stream_ << "</g></svg></details>\n";
-
-	if (stream_->bad())
-		throw std::exception("Failed to write SVG.");
 }
 
 void Svg::writeDisk(const Disk& disk, const DiskGraph& graph, Appearance appearance) const

@@ -1,12 +1,10 @@
 /**
- * Defines the base exception for error handling in udcrgen.
- *
- * More specific derived exceptions are defined in the relevant modules themselves.
+ * Defines all domain-specific exceptions for error handling in udcrgen.
  */
 #pragma once
 
-#include <stdexcept>
-#include <concepts>
+#include <exception>
+#include <filesystem>
 #include <string>
 #include "util.h"
 
@@ -44,5 +42,90 @@ private:
 
     std::string message_;
     std::string causeMessage_;
+
+};
+
+/**
+ * @brief This class covers errors which arise during configuration.
+ *
+ * The cases are:
+ *   - command-line arguments missing, malformed or unrecognized
+ *   - validation failure of the configuration
+ *   - stream error while writing configuration state
+ */
+class ConfigException : public Exception
+{
+
+public:
+
+    explicit ConfigException(const std::string& message, const std::exception* cause = nullptr);
+    virtual const char* title() const noexcept override;
+
+};
+
+/**
+ * @brief This class covers errors which arise during reading input.
+ *
+ * The cases are:
+ *   - input file cannot be opened or read
+ *   - input file token cannot be parsed
+ *   - input data cannot be converted to a graph
+ */
+class InputException : public Exception
+{
+
+public:
+
+    /**
+     * @brief Construct the Exception.
+     *
+     * @param message failure description
+     * @param file source input file name
+     * @param token problematic excerpt from input file contents
+     * @param cause low-level source exception
+     */
+    explicit InputException(const std::string& message, const std::filesystem::path& file = {},
+        const std::string& token = "", const std::exception* cause = nullptr);
+
+    virtual const char* title() const noexcept override;
+
+};
+
+/**
+ * @brief This class covers errors which arise when running the embedding algorithm.
+ *
+ * This occurs when the chosen algorithm is unsuitable for the input graph.
+ */
+class EmbedException : public Exception
+{
+
+public:
+
+    explicit EmbedException(const std::string& message);
+    virtual const char* title() const noexcept override;
+
+};
+
+/**
+ * @brief This class covers errors which arise during writing output.
+ *
+ * This occurs when the output file cannot be opened or written to.
+ */
+class OutputException : public Exception
+{
+
+public:
+
+    /**
+     * @brief Construct the Exception.
+     *
+     * @param message failure description
+     * @param file target output file name
+     * @param cause low-level source exception
+     */
+    explicit OutputException(const std::string& message, const std::filesystem::path& file = {},
+        const std::exception* cause = nullptr);
+
+    virtual const char* title() const noexcept override;
 
 };

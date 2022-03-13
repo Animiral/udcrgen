@@ -12,6 +12,7 @@
  */
 enum class GraphClass { CATERPILLAR, LOBSTER, OTHER };
 
+// TODO: move to input (read graph)
 /**
  * Take the raw input graph in the form of an edge list and prepare it for processing by the
  * embedding algorithm.

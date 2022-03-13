@@ -1,21 +1,12 @@
 #include "config.h"
+#include "utility/util.h"
+#include "utility/exception.h"
 #include <string>
 #include <iomanip>
 #include <functional>
 #include <filesystem>
 #include <stdexcept>
 #include <cassert>
-#include "utility/util.h"
-
-ConfigException::ConfigException(const std::string& message, const std::exception* cause)
-    : Exception(message, cause)
-{
-}
-
-const char* ConfigException::title() const noexcept
-{
-    return "Configuration Exception";
-}
 
 using namespace std::string_literals;
 
@@ -99,7 +90,7 @@ struct Parser
      * Interpret the next argument value as an algorithm specification.
      *
      * @return: the argument parsed into an Algorithm
-     * @throw std::out_of_range: if the argument cannot be interpreted
+     * @throw ConfigException: if the argument cannot be interpreted
      */
     Configuration::Algorithm algorithm()
     {
@@ -119,7 +110,7 @@ struct Parser
      * Interpret the next argument value as an input format specification.
      *
      * @return: the argument parsed into an InputFormat
-     * @throw std::out_of_range: if the argument cannot be interpreted
+     * @throw ConfigException: if the argument cannot be interpreted
      */
     Configuration::InputFormat inputFormat()
     {
@@ -137,7 +128,7 @@ struct Parser
      * Interpret the next argument value as an output format specification.
      *
      * @return: the argument parsed into an OutputFormat
-     * @throw std::out_of_range: if the argument cannot be interpreted
+     * @throw ConfigException: if the argument cannot be interpreted
      */
     Configuration::OutputFormat outputFormat()
     {
@@ -156,7 +147,7 @@ struct Parser
      * Interpret the next argument value as an embed order specification.
      *
      * @return: the argument parsed into an EmbedOrder
-     * @throw std::out_of_range: if the argument cannot be interpreted
+     * @throw ConfigException: if the argument cannot be interpreted
      */
     Configuration::EmbedOrder embedOrder()
     {
@@ -175,7 +166,7 @@ struct Parser
      *
      * @param minValue: minimum value of the argument
      * @return: the argument parsed into an integer
-     * @throw std::out_of_range: if the argument is smaller than the minValue
+     * @throw ConfigException: if the argument is smaller than the minValue
      */
     int intArg(int minValue = 1)
     {
@@ -201,7 +192,7 @@ struct Parser
      * @param minValue: minimum value of the argument
      * @param maxValue: maximum value of the argument
      * @return: the argument parsed into a floating-point value
-     * @throw std::out_of_range: if the argument violates minValue or maxValue
+     * @throw ConfigException: if the argument violates minValue or maxValue
      */
     float floatArg(float minValue = std::numeric_limits<float>::lowest(),
         float maxValue = std::numeric_limits<float>::max())
@@ -229,7 +220,7 @@ struct Parser
      * Interpret the next argument value as a filesystem path.
      *
      * @return: the argument parsed into a filesystem path
-     * @throw std::out_of_range: if the argument is missing
+     * @throw ConfigException: if the argument is missing
      */
     std::filesystem::path pathArg()
     {
@@ -306,6 +297,9 @@ void Configuration::validate() const
 {
     if (Algorithm::BENCHMARK == algorithm && !inputFile.empty())
         throw ConfigException("Benchmark does not use an input file.");
+
+    if (Algorithm::BENCHMARK != algorithm && inputFile.empty())
+        throw ConfigException("Please specify an input file.");
 
     if (spineMin >= spineMax)
         throw ConfigException(format("spine-min must be smaller than spine-max. ({} >= {})", spineMin, spineMax));

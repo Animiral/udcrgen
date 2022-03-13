@@ -15,6 +15,7 @@ add_library(udcr STATIC
 	"embed.cpp" "embed.h"
 	"enumerate.cpp" "enumerate.h"
 	"config.cpp" "config.h"
+	"input/input.cpp" "input/input.h"
 	"output/csv.cpp" "output/csv.h"
 	"output/svg.cpp" "output/svg.h"
 	"output/ipe.cpp" "output/ipe.h"

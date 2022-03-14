@@ -1,14 +1,13 @@
+#include "config.h"
 #include "embed.h"
 #include "heuristic.h"
 #include "dynamic.h"
 #include "enumerate.h"
 #include "utility/graph.h"
 #include "utility/exception.h"
-#include "input/input.h"
 #include "output/ipe.h"
 #include "output/svg.h"
 #include "output/csv.h"
-#include "config.h"
 #include <iostream>
 #include <fstream>
 #include <iomanip>

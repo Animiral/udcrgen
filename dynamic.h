@@ -5,10 +5,8 @@
 #include <bitset>
 #include <queue>
 #include <set>
-#include "utility/graph.h"
 #include "utility/grid.h"
 #include "utility/geometry.h"
-#include "config.h"
 #include "embed.h"
 
 /**

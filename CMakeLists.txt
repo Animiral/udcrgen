@@ -1,7 +1,4 @@
-﻿# CMakeList.txt : CMake project for wudcrgen, include source and define
-# project specific logic here.
-#
-cmake_minimum_required (VERSION 3.8)
+﻿cmake_minimum_required (VERSION 3.8)
 
 project ("udcrgen")
 set(CMAKE_CXX_STANDARD 20)
@@ -10,33 +7,33 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 # All implementation details of the recognition algorithm, generator etc.
 # are compiled in this library, on which all the executables depend.
 add_library(udcr STATIC
-	"dynamic.cpp" "dynamic.h"
-	"heuristic.cpp" "heuristic.h"
-	"embed.cpp" "embed.h"
-	"enumerate.cpp" "enumerate.h"
-	"config.cpp" "config.h"
-	"input/input.cpp" "input/input.h"
-	"output/csv.cpp" "output/csv.h"
-	"output/svg.cpp" "output/svg.h"
-	"output/ipe.cpp" "output/ipe.h"
-	"output/translate.cpp" "output/translate.h"
-	"utility/geometry.cpp" "utility/geometry.h"
-	"utility/graph.cpp" "utility/graph.h"
-	"utility/grid.cpp" "utility/grid.h"
-	"utility/util.cpp" "utility/util.h"
-	"utility/exception.cpp" "utility/exception.h"
-	"utility/stat.h")
-target_include_directories(udcr PRIVATE ${PROJECT_SOURCE_DIR})
+	"src/dynamic.cpp" "src/dynamic.h"
+	"src/heuristic.cpp" "src/heuristic.h"
+	"src/embed.cpp" "src/embed.h"
+	"src/enumerate.cpp" "src/enumerate.h"
+	"src/config.cpp" "src/config.h"
+	"src/input/input.cpp" "src/input/input.h"
+	"src/output/csv.cpp" "src/output/csv.h"
+	"src/output/svg.cpp" "src/output/svg.h"
+	"src/output/ipe.cpp" "src/output/ipe.h"
+	"src/output/translate.cpp" "src/output/translate.h"
+	"src/utility/geometry.cpp" "src/utility/geometry.h"
+	"src/utility/graph.cpp" "src/utility/graph.h"
+	"src/utility/grid.cpp" "src/utility/grid.h"
+	"src/utility/util.cpp" "src/utility/util.h"
+	"src/utility/exception.cpp" "src/utility/exception.h"
+	"src/utility/stat.h")
+target_include_directories(udcr PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
 # This is the main executable.
-add_executable(udcrgen "main.cpp"
-	"config.h" "embed.h" "heuristic.h" "dynamic.h" "enumerate.h"
-	"utility/graph.h" "utility/exception.h" "utility/grid.h" "utility/geometry.h" "utility/stat.h"
-	"output/translate.h" "output/ipe.h" "output/svg.h" "output/csv.h")
+add_executable(udcrgen "src/main.cpp"
+	"src/config.h" "src/embed.h" "src/heuristic.h" "src/dynamic.h" "src/enumerate.h"
+	"src/utility/graph.h" "src/utility/exception.h" "src/utility/grid.h" "src/utility/geometry.h" "src/utility/stat.h"
+	"src/output/translate.h" "src/output/ipe.h" "src/output/svg.h" "src/output/csv.h")
 target_link_libraries(udcrgen udcr)
 
 # This is the generator executable, which produces test cases.
-add_executable(gencases "gencases.cpp" "utility/graph.h" "utility/geometry.h")
+add_executable(gencases "src/gencases.cpp" "src/utility/graph.h" "src/utility/geometry.h")
 target_link_libraries(gencases udcr)
 
 # Unit Tests
@@ -44,15 +41,15 @@ enable_testing()
 find_package(GTest REQUIRED)
 
 add_executable(unittests
-	"test/test_embed.cpp" "embed.h"
-	"test/test_graph.cpp" "utility/graph.h"
-	"test/test_grid.cpp" "utility/grid.h"
-	"test/test_dynamic.cpp" "dynamic.h"
-	"test/test_heuristic.cpp" "heuristic.h"
-	"test/test_enumerate.cpp" "enumerate.h" "output/csv.h" "output/svg.h" "output/translate.h"
-	"test/test_config.cpp" "config.h"
-	"utility/exception.h" "utility/geometry.h" "utility/stat.h"
+	"test/test_embed.cpp" "src/embed.h"
+	"test/test_graph.cpp" "src/utility/graph.h"
+	"test/test_grid.cpp" "src/utility/grid.h"
+	"test/test_dynamic.cpp" "src/dynamic.h"
+	"test/test_heuristic.cpp" "src/heuristic.h"
+	"test/test_enumerate.cpp" "src/enumerate.h" "src/output/csv.h" "src/output/svg.h" "src/output/translate.h"
+	"test/test_config.cpp" "src/config.h"
+	"src/utility/exception.h" "src/utility/geometry.h" "src/utility/stat.h"
 	)
 target_link_libraries(unittests ${GTEST_BOTH_LIBRARIES} udcr)
-target_include_directories(unittests PRIVATE ${PROJECT_SOURCE_DIR})
+target_include_directories(unittests PRIVATE ${PROJECT_SOURCE_DIR}/src)
 add_test(unittests unittests)

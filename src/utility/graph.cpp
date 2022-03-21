@@ -244,56 +244,6 @@ DiskGraph::DiskGraph(std::vector<Disk>&& disks)
 {
 }
 
-namespace
-{
-
-	bool isSpine(const Disk& d) noexcept
-	{
-		return 0 == d.depth;
-	}
-
-	bool isBranch(const Disk& d) noexcept
-	{
-		return 1 == d.depth;
-	}
-
-	bool isLeaf(const Disk& d) noexcept
-	{
-		return 2 == d.depth;
-	}
-
-}
-
-DiskGraph::DiskView DiskGraph::spines() noexcept
-{
-	return std::views::filter(disks_, &isSpine);
-}
-
-DiskGraph::ConstDiskView DiskGraph::spines() const noexcept
-{
-	return std::views::filter(disks_, &isSpine);
-}
-
-DiskGraph::DiskView DiskGraph::branches() noexcept
-{
-	return std::views::filter(disks_, &isBranch);
-}
-
-DiskGraph::ConstDiskView DiskGraph::branches() const noexcept
-{
-	return std::views::filter(disks_, &isBranch);
-}
-
-DiskGraph::DiskView DiskGraph::leaves() noexcept
-{
-	return std::views::filter(disks_, &isLeaf);
-}
-
-DiskGraph::ConstDiskView DiskGraph::leaves() const noexcept
-{
-	return std::views::filter(disks_, &isLeaf);
-}
-
 std::vector<Disk>& DiskGraph::disks() noexcept
 {
 	return disks_;
@@ -311,7 +261,7 @@ std::size_t DiskGraph::size()  const noexcept
 
 std::size_t DiskGraph::length() const noexcept
 {
-	return std::ranges::count_if(disks_, &isSpine);
+	return std::ranges::count_if(disks_, [](const Disk & d) { return 0 == d.depth; });
 }
 
 Disk* DiskGraph::findDisk(DiskId id)

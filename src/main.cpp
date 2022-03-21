@@ -31,7 +31,7 @@ namespace
 	void write_output_graph(const DiskGraph& graph);
 
 	// basic text dump for debugging
-	void write_output_graph_stream(const DiskGraph& udcrg, std::ostream& stream);
+	void write_output_graph_stream(const DiskGraph& graph, std::ostream& stream);
 }
 
 int main(int argc, const char* argv[])
@@ -219,16 +219,11 @@ void write_output_graph(const DiskGraph& graph)
 	}
 }
 
-void write_output_graph_stream(const DiskGraph& udcrg, std::ostream& stream)
+void write_output_graph_stream(const DiskGraph& graph, std::ostream& stream)
 {
 	stream << std::setprecision(2);
 
-	std::vector<Disk> disks;
-	disks.insert(disks.end(), udcrg.spines().begin(), udcrg.spines().end());
-	disks.insert(disks.end(), udcrg.branches().begin(), udcrg.branches().end());
-	disks.insert(disks.end(), udcrg.leaves().begin(), udcrg.leaves().end());
-
-	for (const auto& v : disks) {
+	for (const auto& v : graph.disks()) {
 		if (v.failure) {
 			stream << "FAILED to place disk " << v.id << " -> " << v.parent << ".\n";
 		}

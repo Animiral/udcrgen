@@ -4,11 +4,6 @@
 
 #include <array>
 #include <vector>
-#include <ranges>
-#include <type_traits>
-#include <utility>
-#include <istream>
-#include <ostream>
 #include "geometry.h"
 #include "config.h" // TODO: refactor
 
@@ -178,19 +173,6 @@ public:
 	 */
 	DiskGraph(std::vector<Disk>&& disks = {});
 
-	// range view types for filtered access -
-	// the concrete type is implementation-defined, so we have to derive
-	// it empirically from the ranges library implementation.
-	using DiskPredicate = bool (*) (const Disk&) noexcept;
-	using DiskView = decltype(std::ranges::views::filter(std::declval<std::vector<Disk>&>(), std::declval<DiskPredicate>()));
-	using ConstDiskView = decltype(std::ranges::views::filter(std::declval<const std::vector<Disk>&>(), std::declval<DiskPredicate>()));
-
-	DiskView spines() noexcept;
-	ConstDiskView spines() const noexcept;
-	DiskView branches() noexcept;
-	ConstDiskView branches() const noexcept;
-	DiskView leaves() noexcept;
-	ConstDiskView leaves() const noexcept;
 	std::vector<Disk>& disks() noexcept;
 	const std::vector<Disk>& disks() const noexcept;
 

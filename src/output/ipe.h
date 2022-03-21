@@ -37,7 +37,7 @@ private:
 	 */
 	enum class Appearance { SPINE, BRANCH, LEAF, FAIL };
 
-	void writeDisk(const Disk& disk, Appearance appearance);
+	void writeDisk(const Disk& disk);
 	void writeCircle(float x, float y, int id, Appearance appearance);
 	void writeLine(float x1, float y1, float x2, float y2);
 

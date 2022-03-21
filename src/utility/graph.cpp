@@ -2,6 +2,7 @@
 #include "input/input.h" // TODO: remove dependent functions from utility/ structure
 #include "exception.h"
 #include <algorithm>
+#include <unordered_map>
 #include <string>
 #include <cassert>
 #include <numeric>
@@ -105,7 +106,7 @@ EdgeList edges_from_text(std::istream& stream)
 	// read all edges from input stream
 	DiskId from, to;
 
-	while (readint(stream, from) && readint(stream, to)) {
+	while (readint(stream, from) && readint(stream, to)) { // TODO: only one int of an edge is an error!
 		Edge e{ from, to };
 		edges.push_back(e);
 		ignoreline(stream);
@@ -238,68 +239,86 @@ bool recognize_path(EdgeList::iterator begin, EdgeList::iterator end)
 	return true;
 }
 
-DiskGraph::DiskGraph()
-	: spines_(1), branches_(), leaves_() // 1 spine for decoration
+DiskGraph::DiskGraph(std::vector<Disk>&& disks)
+	: disks_(move(disks))
 {
 }
 
-DiskGraph::DiskGraph(int spines, int branches, int leaves)
-	: spines_(spines), branches_(branches), leaves_(leaves)
+namespace
 {
+
+	bool isSpine(const Disk& d) noexcept
+	{
+		return 0 == d.depth;
+	}
+
+	bool isBranch(const Disk& d) noexcept
+	{
+		return 1 == d.depth;
+	}
+
+	bool isLeaf(const Disk& d) noexcept
+	{
+		return 2 == d.depth;
+	}
+
 }
 
-std::vector<Disk>& DiskGraph::spines() noexcept
+DiskGraph::DiskView DiskGraph::spines() noexcept
 {
-	return spines_;
+	return std::views::filter(disks_, &isSpine);
 }
 
-const std::vector<Disk>& DiskGraph::spines() const noexcept
+DiskGraph::ConstDiskView DiskGraph::spines() const noexcept
 {
-	return spines_;
+	return std::views::filter(disks_, &isSpine);
 }
 
-std::vector<Disk>& DiskGraph::branches() noexcept
+DiskGraph::DiskView DiskGraph::branches() noexcept
 {
-	return branches_;
+	return std::views::filter(disks_, &isBranch);
 }
 
-const std::vector<Disk>& DiskGraph::branches() const noexcept
+DiskGraph::ConstDiskView DiskGraph::branches() const noexcept
 {
-	return branches_;
+	return std::views::filter(disks_, &isBranch);
 }
 
-std::vector<Disk>& DiskGraph::leaves() noexcept
+DiskGraph::DiskView DiskGraph::leaves() noexcept
 {
-	return leaves_;
+	return std::views::filter(disks_, &isLeaf);
 }
 
-const std::vector<Disk>& DiskGraph::leaves() const noexcept
+DiskGraph::ConstDiskView DiskGraph::leaves() const noexcept
 {
-	return leaves_;
+	return std::views::filter(disks_, &isLeaf);
+}
+
+std::vector<Disk>& DiskGraph::disks() noexcept
+{
+	return disks_;
+}
+
+const std::vector<Disk>& DiskGraph::disks() const noexcept
+{
+	return disks_;
 }
 
 std::size_t DiskGraph::size()  const noexcept
 {
-	return spines_.size() + branches_.size() + leaves_.size();
+	return disks_.size();
+}
+
+std::size_t DiskGraph::length() const noexcept
+{
+	return std::ranges::count_if(disks_, &isSpine);
 }
 
 Disk* DiskGraph::findDisk(DiskId id)
 {
-	const auto hasId = [id](const Disk& v) { return v.id == id; };
+	auto it = std::ranges::find(disks_, id, [](const Disk& d) { return d.id; });
 
-	auto it = std::find_if(spines_.begin(), spines_.end(), hasId);
-
-	if (it != spines_.end())
-		return &*it;
-
-	it = std::find_if(branches_.begin(), branches_.end(), hasId);
-
-	if (it != branches_.end())
-		return &*it;
-
-	it = std::find_if(leaves_.begin(), leaves_.end(), hasId);
-
-	if (it != leaves_.end())
+	if (it != disks_.end())
 		return &*it;
 
 	return nullptr;
@@ -310,111 +329,150 @@ const Disk* DiskGraph::findDisk(DiskId id) const
 	return const_cast<DiskGraph*>(this)->findDisk(id); // reuse implementation
 }
 
-DiskGraph DiskGraph::fromCaterpillar(const Caterpillar& caterpillar)
+void DiskGraph::reorder(Configuration::EmbedOrder order)
 {
-	int spinesCount = caterpillar.countSpine();
-	int leavesCount = caterpillar.countVertices() - spinesCount;
-	DiskGraph result{ spinesCount, leavesCount, 0 };
+	// Primary order: spine position.
+	std::unordered_map<DiskId, std::size_t> primary;
 
-	int id = 0;
-	for (; id < spinesCount; id++) {
-		auto& v = result.spines()[id];
-		v.id = id;
-		v.parent = id - 1;
-		v.depth = 0;
-		v.failure = false;
+	const std::size_t length = this->length();
+
+	// TODO: more efficient implementation (when disk structure exists)
+	// assign primary order to spine nodes
+	DiskId parent = NODISK;
+	for (std::size_t p = 0; p < length; p++) {
+		auto it = std::ranges::find_if(disks_, [parent](const Disk& d) { return 0 == d.depth && parent == d.parent; });
+		assert(disks_.end() != it);
+		primary[it->id] = p;
+		parent = it->id;
 	}
 
-	int spineId = 0; // attach the number of leaves to this spine vertex
+	// propragate primary order to branches and spines
+	while (primary.size() < disks_.size()) {
+		// TODO: inefficiency
+		// find a disk that needs a primary entry
+		const Disk* disk = nullptr;
+		for (std::size_t j = 0; j < disks_.size(); j++) {
+			disk = &disks_[j];
+			if (!primary.contains(disk->id)
+				&& primary.contains(disk->parent)) {
+				break;
+			}
+		}
+		assert(disk);
+		primary[disk->id] = primary[disk->parent];
+	}
 
-	id = 0;
+	auto before = [&primary, order](const Disk& a, const Disk& b)
+	{
+		auto pa = primary[a.id], pb = primary[b.id];
+
+		if (pa == pb) { // same spine
+			if (a.depth > 0 && b.depth > 0
+				&& Configuration::EmbedOrder::DEPTH_FIRST == order) {
+				int ba = 1 == a.depth ? a.id : a.parent;
+				int bb = 1 == b.depth ? b.id : b.parent;
+
+				if (ba == bb) { // same branch
+					return a.depth < b.depth;
+				}
+				else {
+					return ba < bb;
+				}
+			}
+			else {
+				return a.depth < b.depth;
+			}
+		}
+		else {
+			return pa < pb;
+		}
+	};
+
+	std::ranges::sort(disks_.begin(), disks_.end(), before);
+}
+
+DiskGraph DiskGraph::fromCaterpillar(const Caterpillar& caterpillar)
+{
+	std::vector<Disk> disks(caterpillar.countVertices());
+
+	DiskId id = 0;
+	DiskId spineId = -1;
+
 	for (int leaves : caterpillar.leaves()) {
+		auto& v = disks[id];
+		v.id = id;
+		v.parent = spineId;
+		v.depth = 0;
+		v.failure = false;
+		spineId = id;
+		id++;
+
 		for (int leaf = 0; leaf < leaves; leaf++) {
-			auto& v = result.branches()[id + leaf];
-			v.id = spinesCount + id + leaf;
+			auto& v = disks[id];
+			v.id = id;
 			v.parent = spineId;
 			v.depth = 1;
 			v.failure = false;
+			id++;
 		}
-
-		id += leaves;
-		spineId++;
 	}
 
-	return result;
+	return DiskGraph{ move(disks) };
 }
 
 DiskGraph DiskGraph::fromLobster(const Lobster& lobster)
 {
+	std::vector<Disk> disks(lobster.countVertices());
 	const auto& spine = lobster.spine();
 
-	int spinesCount = spine.size();
-	int branchCount = 0;
-	int leavesCount = 0;
+	DiskId id = 0;
+	DiskId spineId = NODISK;
 
-	for (int i = 0; i < spinesCount; i++)
-		for (int j = 0; j < 5; j++)
-			if (spine[i][j] != Lobster::NO_BRANCH) {
-				branchCount++;
-				leavesCount += spine[i][j];
-			}
-
-	DiskGraph result{ spinesCount, branchCount, leavesCount };
-
-	int id = 0;
-	int branchIx = 0;
-	int leafIx = 0;
-
-	for (int i = 0; i < spinesCount; i++) {
-		auto& s = result.spines()[i];
-		s.id = id++;
-		s.parent = 0 == i ? -1 : result.spines()[i - 1].id;
+	for (int i = 0; i < spine.size(); i++) {
+		auto& s = disks[id];
+		s.id = id;
+		s.parent = spineId;
 		s.depth = 0;
 		s.children = 0;
 		s.embedded = false;
+		spineId = id;
+		id++;
 
 		for (int j = 0; j < 5; j++) {
 			if (Lobster::NO_BRANCH == spine[i][j])
 				continue;
 
 			s.children++;
-			auto& b = result.branches()[branchIx++];
-			b.id = id++;
-			b.parent = s.id;
+			auto& b = disks[id];
+			b.id = id;
+			b.parent = spineId;
 			b.depth = 1;
 			b.children = spine[i][j];
 			b.embedded = false;
+			id++;
 
 			for (int k = 0; k < spine[i][j]; k++) {
-				auto& l = result.leaves()[leafIx++];
-				l.id = id++;
+				auto& l = disks[id];
+				l.id = id;
 				l.parent = b.id;
 				l.depth = 2;
 				l.children = 0;
 				l.embedded = false;
+				id++;
 			}
 		}
 	}
 
-	return result;
+	return DiskGraph{ move(disks) };
 }
 
 EdgeList DiskGraph::toEdgeList() const
 {
 	EdgeList edgeList;
 
-	for (const auto& spine : spines()) {
-		if (spine.parent > 0)
-			edgeList.push_back({ spine.parent, spine.id });
-	}
-
-	for (const auto& branch : branches()) {
-		edgeList.push_back({ branch.parent, branch.id });
-	}
-
-	for (const auto& leaf : leaves()) {
-		edgeList.push_back({ leaf.parent, leaf.id });
-	}
+	for (const Disk& disk : disks())
+		if (NODISK != disk.parent)
+			edgeList.push_back({ disk.parent, disk.id });
 
 	return edgeList;
 }

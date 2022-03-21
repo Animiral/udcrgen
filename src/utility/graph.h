@@ -4,9 +4,13 @@
 
 #include <array>
 #include <vector>
+#include <ranges>
+#include <type_traits>
+#include <utility>
 #include <istream>
 #include <ostream>
 #include "geometry.h"
+#include "config.h" // TODO: refactor
 
 /**
  * A basic representation of a caterpillar graph used for input.
@@ -154,10 +158,12 @@ EdgeList::iterator separate_leaves(EdgeList::iterator begin, EdgeList::iterator 
 bool recognize_path(EdgeList::iterator begin, EdgeList::iterator end);
 
 /**
- * The output graph representation.
+ * @brief The output graph representation.
  *
- * It consists of lists of disks, separated by their
- * role as spine, branch or leaf disks.
+ * It stores of a list of disks and provides an interface to conveniently
+ * traverse and manipulate them.
+ *
+ * While the disks are mutable, the graph itself is designed to be fixed-size.
  */
 class DiskGraph
 {
@@ -165,53 +171,38 @@ class DiskGraph
 public:
 
 	/**
-	 * Construct an empty graph.
-	 */
-	DiskGraph();
-
-	/**
-	 * Construct the graph.
+	 * @brief Construct the graph from disk data.
 	 *
-	 * @param spines: length of the central disk chain
-	 * @param branches: number of branch disks
-	 * @param leaves: number of leaf disks
+	 * The disks must satisfy the invariant that parents
+	 * occur before their children.
 	 */
-	DiskGraph(int spines, int branches, int leaves);
+	DiskGraph(std::vector<Disk>&& disks = {});
 
-	/**
-	 * Get the mutable spine vertex data.
-	 */
-	std::vector<Disk>& spines() noexcept;
+	// range view types for filtered access -
+	// the concrete type is implementation-defined, so we have to derive
+	// it empirically from the ranges library implementation.
+	using DiskPredicate = bool (*) (const Disk&) noexcept;
+	using DiskView = decltype(std::ranges::views::filter(std::declval<std::vector<Disk>&>(), std::declval<DiskPredicate>()));
+	using ConstDiskView = decltype(std::ranges::views::filter(std::declval<const std::vector<Disk>&>(), std::declval<DiskPredicate>()));
 
-	/**
-	 * Get the immutable spine vertex data.
-	 */
-	const std::vector<Disk>& spines() const noexcept;
-
-	/**
-	 * Get the mutable branch vertex data.
-	 */
-	std::vector<Disk>& branches() noexcept;
-
-	/**
-	 * Get the immutable branch vertex data.
-	 */
-	const std::vector<Disk>& branches() const noexcept;
-
-	/**
-	 * Get the mutable leaf vertex data.
-	 */
-	std::vector<Disk>& leaves() noexcept;
-
-	/**
-	 * Get the immutable leaf vertex data.
-	 */
-	const std::vector<Disk>& leaves() const noexcept;
+	DiskView spines() noexcept;
+	ConstDiskView spines() const noexcept;
+	DiskView branches() noexcept;
+	ConstDiskView branches() const noexcept;
+	DiskView leaves() noexcept;
+	ConstDiskView leaves() const noexcept;
+	std::vector<Disk>& disks() noexcept;
+	const std::vector<Disk>& disks() const noexcept;
 
 	/**
 	 * Return the number of disks in the graph.
 	 */
 	std::size_t size() const noexcept;
+
+	/**
+	 * Return the number of spine disks in the graph.
+	 */
+	std::size_t length() const noexcept;
 
 	/**
 	 * Get the disk with the given vertex id.
@@ -226,6 +217,11 @@ public:
 	 * @return a pointer to the disk or nullptr if the id is unknown.
 	 */
 	const Disk* findDisk(DiskId id) const;
+
+	/**
+	 * @brief Normalize the order of disks stored in this graph.
+	 */
+	void reorder(Configuration::EmbedOrder order);
 
 	/**
 	 * @brief Create an instance based on the given basic caterpillar representation.
@@ -252,8 +248,6 @@ public:
 
 private:
 
-	std::vector<Disk> spines_;
-	std::vector<Disk> branches_;
-	std::vector<Disk> leaves_;
+	std::vector<Disk> disks_;
 
 };

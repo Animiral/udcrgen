@@ -310,15 +310,7 @@ void WeakEmbedder::setGraph(DiskGraph& graph) noexcept
 	impl_ = GridEmbedImpl(graph.size());
 
 	// sync grid to graph state
-	for (Disk& disk : graph.spines()) {
-		if (disk.embedded)
-			impl_.putDiskAt(disk, { disk.grid_x, disk.grid_sly });
-	}
-	for (Disk& disk : graph.branches()) {
-		if (disk.embedded)
-			impl_.putDiskAt(disk, { disk.grid_x, disk.grid_sly });
-	}
-	for (Disk& disk : graph.leaves()) {
+	for (Disk& disk : graph.disks()) {
 		if (disk.embedded)
 			impl_.putDiskAt(disk, { disk.grid_x, disk.grid_sly });
 	}

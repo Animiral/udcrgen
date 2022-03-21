@@ -110,7 +110,7 @@ struct Disk
 	int children; //!< counter of direct descendant nodes
 
 	// embedding info, filled in the embedding step - see embed()
-	bool embedded; //!< whether the disk has coordinates or failure
+	bool embedded; //!< whether the disk has coordinates or failure, TODO: remove
 	int grid_x; //!< triangular grid x-coordinate (weak embedding only)
 	int grid_sly; //!< triangular grid "slash-y"-coordinate (weak embedding only)
 	float x; //!< canvas x-coordinate

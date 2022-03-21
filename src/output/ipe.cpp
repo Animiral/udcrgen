@@ -1,7 +1,5 @@
 #include "ipe.h"
 #include "utility/exception.h"
-#include <algorithm>
-#include <tuple>
 #include <iomanip>
 
 Ipe::Ipe(const DiskGraph& graph, std::ostream& stream) noexcept :
@@ -40,13 +38,8 @@ void Ipe::write()
 	const char* layer = "alpha";
 	*stream_ << "<page>\n<layer name=\"" << layer << "\"/>\n<view layers=\"" << layer << "\" active=\"" << layer << "\"/>\n";
 
-	auto writeAllDisks = [this](const std::vector<Disk>& v, Appearance a) {
-		std::for_each(v.begin(), v.end(), [this, a](const Disk& d) { writeDisk(d, a); });
-	};
-
-	writeAllDisks(graph_->spines(), Appearance::SPINE);
-	writeAllDisks(graph_->branches(), Appearance::BRANCH);
-	writeAllDisks(graph_->leaves(), Appearance::LEAF);
+	for (const Disk& disk : graph_->disks())
+		writeDisk(disk);
 
 	// page end
 	*stream_ << "</page>";
@@ -56,8 +49,14 @@ void Ipe::write()
 		throw OutputException(std::strerror(errno));
 }
 
-void Ipe::writeDisk(const Disk& disk, Appearance appearance)
+void Ipe::writeDisk(const Disk& disk)
 {
+	assert(disk.depth >= 0);
+	assert(disk.depth < 3);
+
+	Appearance appearances[] = { Appearance::SPINE, Appearance::BRANCH, Appearance::LEAF };
+	Appearance appearance = appearances[disk.depth];
+
 	if (disk.failure)
 		appearance = Appearance::FAIL;
 

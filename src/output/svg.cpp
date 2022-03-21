@@ -123,13 +123,8 @@ void Svg::write(const DiskGraph& graph, const std::string& label) const
 
 	openSvg(label);
 
-	auto writeAllDisks = [this, graph](const std::vector<Disk>& v, Appearance a) {
-		std::for_each(v.begin(), v.end(), [this, graph, a](const Disk& d) { writeDisk(d, graph, a); });
-	};
-
-	writeAllDisks(graph.spines(), Appearance::SPINE);
-	writeAllDisks(graph.branches(), Appearance::BRANCH);
-	writeAllDisks(graph.leaves(), Appearance::LEAF);
+	for (const Disk& disk : graph.disks())
+		writeDisk(disk, graph);
 
 	closeSvg();
 
@@ -178,8 +173,14 @@ void Svg::closeSvg() const
 	*stream_ << "</g></svg></details>\n";
 }
 
-void Svg::writeDisk(const Disk& disk, const DiskGraph& graph, Appearance appearance) const
+void Svg::writeDisk(const Disk& disk, const DiskGraph& graph) const
 {
+	assert(disk.depth >= 0);
+	assert(disk.depth < 3);
+
+	Appearance appearances[] = { Appearance::SPINE, Appearance::BRANCH, Appearance::LEAF };
+	Appearance appearance = appearances[disk.depth];
+
 	if (disk.failure)
 		appearance = Appearance::FAIL;
 

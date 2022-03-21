@@ -120,7 +120,7 @@ private:
 	void openSvg(const std::string& label) const; // write SVG opening tag and info
 	void closeSvg() const; // write SVG closing tag and info
 
-	void writeDisk(const Disk& disk, const DiskGraph& graph, Appearance appearance) const;
+	void writeDisk(const Disk& disk, const DiskGraph& graph) const;
 	void writeCircle(float x, float y, std::string label, std::string fill) const;
 	void writeCircle(float x, float y, int id, Appearance appearance) const;
 	void writeLine(float x1, float y1, float x2, float y2) const;

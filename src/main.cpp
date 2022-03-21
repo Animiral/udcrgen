@@ -95,6 +95,10 @@ DiskGraph read_input_graph()
 	case Configuration::InputFormat::EDGELIST:
 	{
 		EdgeList edges = edges_from_text(stream);
+
+		if (edges.empty())
+			throw InputException("Graph is empty.", configuration.inputFile.string());
+
 		GraphClass gclass;
 		std::tie(graph, gclass) = classify(edges);
 	}

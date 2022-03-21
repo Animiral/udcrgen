@@ -71,33 +71,69 @@ TEST(Graph, recognize_path_continuous)
 	EXPECT_TRUE(equal(graph.begin(), graph.end(), expected.begin(), edges_equal)) << "expected: The input path is in continuous order";
 }
 
+TEST(Graph, reorder)
+{
+	std::vector<Disk> disks{
+		{3, NODISK, 0, 2},
+		{4, 3, 0, 0},
+		{5, 3, 1, 0},
+		{7, 3, 1, 1},
+		{9, 5, 2, 0}
+	};
+
+	DiskGraph graph(move(disks));
+	graph.reorder(Configuration::EmbedOrder::DEPTH_FIRST);
+
+	// leaf must be ordered after its branch
+	EXPECT_EQ(3, graph.disks()[0].id);
+	EXPECT_EQ(5, graph.disks()[1].id);
+	EXPECT_EQ(9, graph.disks()[2].id);
+	EXPECT_EQ(7, graph.disks()[3].id);
+	EXPECT_EQ(4, graph.disks()[4].id);
+
+	graph.reorder(Configuration::EmbedOrder::BREADTH_FIRST);
+
+	// leaf must be ordered after all branches
+	EXPECT_EQ(3, graph.disks()[0].id);
+	EXPECT_EQ(5, graph.disks()[1].id);
+	EXPECT_EQ(7, graph.disks()[2].id);
+	EXPECT_EQ(9, graph.disks()[3].id);
+	EXPECT_EQ(4, graph.disks()[4].id);
+}
+
 /**
  * Ensure that we can convert a Lobster to a graph.
  */
-TEST(Graph, DiskGraph_fromLobster)
+TEST(Graph, fromLobster)
 {
 	const auto NB = Lobster::NO_BRANCH;
 	Lobster lobster({ {2, 1, NB, NB, NB}, {NB, NB, NB, NB, NB} });
 
 	auto graph = DiskGraph::fromLobster(lobster);
-	auto spines = graph.spines();
-	auto branches = graph.branches();
-	auto leaves = graph.leaves();
+	auto& disks = graph.disks();
 
-	EXPECT_EQ(graph.size(), 7);
+	ASSERT_EQ(disks.size(), 7);
 	
-	ASSERT_EQ(spines.size(), 2);
-	EXPECT_EQ(spines[0].children, 2);
-	EXPECT_EQ(spines[1].children, 0);
+	EXPECT_EQ(disks[0].depth, 0);
+	EXPECT_EQ(disks[0].children, 2);
 
-	ASSERT_EQ(branches.size(), 2);
-	EXPECT_EQ(branches[0].parent, spines[0].id);
-	EXPECT_EQ(branches[1].parent, spines[0].id);
-	EXPECT_EQ(branches[0].children, 2);
-	EXPECT_EQ(branches[1].children, 1);
+	EXPECT_EQ(disks[1].depth, 1);
+	EXPECT_EQ(disks[1].parent, disks[0].id);
+	EXPECT_EQ(disks[1].children, 2);
 
-	ASSERT_EQ(leaves.size(), 3);
-	EXPECT_EQ(leaves[0].parent, branches[0].id);
-	EXPECT_EQ(leaves[1].parent, branches[0].id);
-	EXPECT_EQ(leaves[2].parent, branches[1].id);
+	EXPECT_EQ(disks[2].depth, 2);
+	EXPECT_EQ(disks[2].parent, disks[1].id);
+
+	EXPECT_EQ(disks[3].depth, 2);
+	EXPECT_EQ(disks[3].parent, disks[1].id);
+
+	EXPECT_EQ(disks[4].depth, 1);
+	EXPECT_EQ(disks[4].parent, disks[0].id);
+	EXPECT_EQ(disks[4].children, 1);
+
+	EXPECT_EQ(disks[5].depth, 2);
+	EXPECT_EQ(disks[5].parent, disks[4].id);
+
+	EXPECT_EQ(disks[6].depth, 0);
+	EXPECT_EQ(disks[6].children, 0);
 }

@@ -4,6 +4,7 @@
 #include "utility/util.h"
 #include "utility/exception.h"
 #include <algorithm>
+#include <unordered_map>
 #include <stdexcept>
 
 /**
@@ -30,71 +31,57 @@ DiskGraph from_edge_list(EdgeList::iterator begin, EdgeList::iterator branches, 
 	assert(spineCount > 1 || branchCount > 0); // must have at least one edge
 	assert(branchCount > 0 || leafCount == 0); // no leaves without branches
 
-	DiskGraph graph{ spineCount, branchCount, leafCount };
+	std::vector<Disk> disks(end - begin + 1);
+	std::unordered_map<DiskId, Disk*> lookup;
+	std::size_t i = 0;
 
-	auto& spineList = graph.spines();
+	disks[i].id = begin[0].from; // this works even with 1 spine, because begin then connects the first branch
+	lookup[disks[i].id] = &disks[i];
+	disks[i].parent = NODISK;
+	disks[i].depth = 0;
+	disks[i].children = 0;
+	disks[i].failure = false;
 
-	spineList[0].id = begin[0].from; // this works even with 1 spine, because begin then connects the first branch
-	spineList[0].parent = -1;
-	spineList[0].depth = 0;
-	spineList[0].children = 0;
-	spineList[0].failure = false;
+	for (i = 1; i < disks.size(); i++) {
+		disks[i].id = begin[i - 1].to;
+		lookup[disks[i].id] = &disks[i];
+		disks[i].parent = begin[i - 1].from;
+		
+		if (begin + i - 1 >= leaves)
+			disks[i].depth = 2;
+		else if (begin + i - 1 >= branches)
+			disks[i].depth = 1;
+		else
+			disks[i].depth = 0;
 
-	for (int i = 1; i < spineCount; i++) {
-		spineList[i].id = begin[i - 1].to;
-		spineList[i].parent = begin[i - 1].from;
-		spineList[i].depth = 0;
-		spineList[i].children = 0;
-		spineList[i].failure = false;
+		disks[i].children = 0;
+		disks[i].failure = false;
 	}
 
-	auto& branchList = graph.branches();
+	// fill parents info
+	for (i = 1; i < disks.size(); i++) {
+		auto it = lookup.find(disks[i].parent);
+		
+		if (lookup.end() == it)
+			throw InputException(format("Faulty graph: node {} (parent of {}) is not connected.", disks[i].parent, disks[i].id));
 
-	for (int i = 0; i < branchCount; i++) {
-		branchList[i].id = branches[i].to;
-		branchList[i].parent = branches[i].from;
-		graph.findDisk(branchList[i].parent)->children++;
-		branchList[i].depth = 1;
-		branchList[i].children = 0;
-		branchList[i].failure = false;
+		Disk* parent = it->second;
+		parent->children++;
 	}
 
-	// lambda: determine position of disk's parent id in the given list
-	auto pos = [](const std::vector<Disk>& l, const Disk& d) {
-		return std::find_if(l.begin(), l.end(), [&d](const Disk& p) { return p.id == d.parent; });
-	};
-
-	// order branches by index of appearance of their parent in the spine
-	std::sort(branchList.begin(), branchList.end(),
-		[&l = spineList, pos](const Disk& a, const Disk& b) { return pos(l, a) < pos(l, b); });
-
-	auto& leafList = graph.leaves();
-
-	for (int i = 0; i < leafCount; i++) {
-		leafList[i].id = leaves[i].to;
-		leafList[i].parent = leaves[i].from;
-		graph.findDisk(leafList[i].parent)->children++;
-		leafList[i].depth = 2;
-		leafList[i].children = 0;
-		leafList[i].failure = false;
-	}
-
-	// order leaves by index of appearance of their parent in the branches
-	std::sort(leafList.begin(), leafList.end(),
-		[&l = branchList, pos](const Disk& a, const Disk& b) { return pos(l, a) < pos(l, b); });
-
-	return graph;
+	DiskGraph result(move(disks));
+	result.reorder(Configuration::EmbedOrder::DEPTH_FIRST);
+	return result;
 }
 
 std::pair<DiskGraph, GraphClass> classify(EdgeList input)
 {
-	if (input.size() == 0)
-		return { {0, 0, 0}, GraphClass::OTHER }; // sanity check for empty graph
+	assert(input.size() > 0); // empty graph not allowed
 
 	// caterpillar without leaves
 	if (recognize_path(input.begin(), input.end())) {
-		int const spines = static_cast<int>(input.end() - input.begin()) + 1;
-		return { {spines, 0, 0}, GraphClass::CATERPILLAR };
+		DiskGraph graph = from_edge_list(input.begin(), input.end(), input.end(), input.end());
+		return { graph, GraphClass::CATERPILLAR };
 	}
 
 	auto leaves = separate_leaves(input.begin(), input.end());
@@ -124,135 +111,29 @@ std::pair<DiskGraph, GraphClass> classify(EdgeList input)
 	throw InputException("Unrecognized graph type.");
 }
 
-namespace
-{
-// Helper functions for embed()
-
-using EmbedOrder = Configuration::EmbedOrder;
-using DiskVec = std::vector<Disk>;
-
-bool embedDisk(DiskGraph& graph, Embedder& embedder, Disk& disk)
-{
-	if (disk.embedded)
-		return true; // nothing to do
-
-	bool success = true;
-
-	// ensure that parent is embedded
-	Disk* parent = graph.findDisk(disk.parent);
-	if (parent != nullptr) {
-		success &= embedDisk(graph, embedder, *parent);
-	}
-
-	embedder.embed(disk);
-	disk.embedded = true;
-	return success && !disk.failure;
-}
-
-std::vector<Disk> getDisksInOrder(const DiskGraph& graph, EmbedOrder embedOrder)
-{
-	std::vector<Disk> disks;
-	disks.reserve(graph.size());
-
-	auto& spines = graph.spines();
-	auto& branches = graph.branches(); // branches are ordered by parent spine
-	auto& leaves = graph.leaves(); // leaves are ordered by parent branch
-
-	auto spineIt = spines.begin();
-	auto branchIt = branches.begin();
-	auto leafIt = leaves.begin();
-
-	for (; spineIt != spines.end(); ++spineIt) {
-		disks.push_back(*spineIt);
-
-		for (; branchIt != branches.end(); ++branchIt) {
-			if (branchIt->parent != spineIt->id)
-				break; // skip to next spine
-
-			disks.push_back(*branchIt);
-
-			if (EmbedOrder::DEPTH_FIRST == embedOrder) {
-				for (; leafIt != leaves.end(); ++leafIt) {
-					if (leafIt->parent != branchIt->id)
-						break; // skip to next branch
-
-					disks.push_back(*leafIt);
-				}
-			}
-		}
-
-		if (EmbedOrder::BREADTH_FIRST == embedOrder) {
-			for (; leafIt != leaves.end(); ++leafIt) {
-				const Disk* branch = graph.findDisk(leafIt->parent);
-				assert(branch);
-
-				if (branch->parent != spineIt->id)
-					break; // skip to next spine
-
-				disks.push_back(*leafIt);
-			}
-		}
-	}
-
-	return disks;
-}
-
-}
-
-using EmbedOrder = Configuration::EmbedOrder;
-
-Stat embed(DiskGraph& graph, Embedder& embedder, Configuration::Algorithm algorithm, EmbedOrder embedOrder)
+Stat embed(DiskGraph& graph, Embedder& embedder, Configuration::Algorithm algorithm, Configuration::EmbedOrder embedOrder)
 {
 	using Clock = std::chrono::steady_clock;
 	Clock clock;
 	Clock::time_point start;
 
 	Stat stat;
-	stat.size = graph.spines().size() + graph.branches().size() + graph.leaves().size();
-	stat.spines = graph.spines().size();
+	stat.size = graph.size();
+	stat.spines = graph.length();
 	stat.algorithm = algorithm;
 	start = clock.now();
 
-	embedder.setGraph(graph);
+	// timed instructions
+	{
+		graph.reorder(embedOrder);
+		embedder.setGraph(graph);
 
-	auto& spines = graph.spines();
-	auto& branches = graph.branches(); // branches are ordered by parent spine
-	auto& leaves = graph.leaves(); // leaves are ordered by parent branch
+		stat.success = true;
 
-	auto spineIt = spines.begin();
-	auto branchIt = branches.begin();
-	auto leafIt = leaves.begin();
-
-	stat.success = true;
-
-	for (; spineIt != spines.end(); ++spineIt) {
-		stat.success &= embedDisk(graph, embedder, *spineIt);
-
-		for (; branchIt != branches.end(); ++branchIt) {
-			if (branchIt->parent != spineIt->id)
-				break; // skip to next spine
-
-			stat.success &= embedDisk(graph, embedder, *branchIt);
-
-			if (EmbedOrder::DEPTH_FIRST == embedOrder) {
-				for (; leafIt != leaves.end(); ++leafIt) {
-					if (leafIt->parent != branchIt->id)
-						break; // skip to next branch
-
-					stat.success &= embedDisk(graph, embedder, *leafIt);
-				}
-			}
-		}
-
-		if (EmbedOrder::BREADTH_FIRST == embedOrder) {
-			for (; leafIt != leaves.end(); ++leafIt) {
-				const Disk* branch = graph.findDisk(leafIt->parent);
-				assert(branch);
-
-				if (branch->parent != spineIt->id)
-					break; // skip to next spine
-
-				stat.success &= embedDisk(graph, embedder, *leafIt);
+		for (Disk& disk : graph.disks()) {
+			if (!disk.embedded) {
+				embedder.embed(disk);
+				stat.success &= !disk.failure;
 			}
 		}
 	}
@@ -268,25 +149,15 @@ Stat embedDynamic(DiskGraph& graph, WholesaleEmbedder& embedder)
 	Clock::time_point start;
 
 	Stat stat;
-	stat.size = graph.spines().size() + graph.branches().size() + graph.leaves().size();
-	stat.spines = graph.spines().size();
+	stat.size = graph.size();
+	stat.spines = graph.length();
 	stat.algorithm = Configuration::Algorithm::DYNAMIC_PROGRAM;
 	start = clock.now();
 
-	std::vector<Disk> disks = getDisksInOrder(graph, EmbedOrder::DEPTH_FIRST);
-	stat.success = embedder.embed(disks);
-
-	if (stat.success) {
-		// transcribe result to graph
-		for (const Disk& out : disks) {
-			Disk* actual = graph.findDisk(out.id);
-			actual->embedded = out.embedded;
-			actual->failure = out.failure;
-			actual->grid_x = out.grid_x;
-			actual->grid_sly = out.grid_sly;
-			actual->x = out.x;
-			actual->y = out.y;
-		}
+	// timed instructions
+	{
+		graph.reorder(Configuration::EmbedOrder::DEPTH_FIRST);
+		stat.success = embedder.embed(graph.disks());
 	}
 
 	stat.duration = std::chrono::duration_cast<std::chrono::milliseconds>(clock.now() - start);

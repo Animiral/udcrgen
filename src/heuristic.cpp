@@ -320,16 +320,14 @@ void WeakEmbedder::embedSpine(Disk& disk) noexcept
 {
 	Coord coord{ 0, 0 };
 
-	if (-1 != disk.parent)
-	{
-		const Disk* parent = graph_->findDisk(disk.parent);
-		assert(parent);
-		Coord parentCoord{ parent->grid_x, parent->grid_sly };
+	Disk* prev = disk.prevSibling;
+	if (prev) {
+		Coord prevCoord{ prev->grid_x, prev->grid_sly };
 
 		// bend heuristic
-		impl_.principalDirection = impl_.determinePrincipal(parentCoord);
+		impl_.principalDirection = impl_.determinePrincipal(prevCoord);
 
-		coord = impl_.grid().step(parentCoord, impl_.principalDirection, Rel::FORWARD);
+		coord = impl_.grid().step(prevCoord, impl_.principalDirection, Rel::FORWARD);
 	}
 
 	if (impl_.grid().at(coord)) {
@@ -344,10 +342,8 @@ void WeakEmbedder::embedSpine(Disk& disk) noexcept
 
 void WeakEmbedder::embedBranchOrLeaf(Disk& disk) noexcept
 {
-	assert(NODISK != disk.parent); // branches and leaves always have parents
-
-	const Disk* parent = graph_->findDisk(disk.parent);
-	assert(parent);
+	const Disk* parent = disk.parent;
+	assert(parent); // branches and leaves always have parents
 	Coord parentCoord{ parent->grid_x, parent->grid_sly };
 	GridEmbedImpl::Affinity affinity = impl_.determineAffinity(parentCoord); // whether to place disk high or low
 

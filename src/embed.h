@@ -67,7 +67,7 @@ public:
 	 *
 	 * @return true if an embedding was found, false otherwise.
 	 */
-	virtual bool embed(std::vector<Disk>& disks) = 0;
+	virtual bool embed(DiskGraph& graph) = 0;
 
 };
 

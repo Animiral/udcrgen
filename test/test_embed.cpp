@@ -53,7 +53,6 @@ TEST(Embed, classify_lobster)
 
 	auto result = classify(edges);
 	auto& graph = result.first;
-	graph.reorder(Configuration::EmbedOrder::BREADTH_FIRST);
 
 	EXPECT_EQ(GraphClass::LOBSTER, result.second) << "expected LOBSTER, but actually " << result.second;
 	EXPECT_EQ(1, graph.length()) << "expected 1 spine disk, but actually " << graph.length();
@@ -79,7 +78,6 @@ TEST(Embed, classify_stumped_lobster)
 
 	auto result = classify(edges);
 	auto& graph = result.first;
-	graph.reorder(Configuration::EmbedOrder::BREADTH_FIRST);
 
 	EXPECT_EQ(GraphClass::LOBSTER, result.second) << "expected LOBSTER with stump, but actually " << result.second;
 	EXPECT_EQ(1, graph.length()) << "expected 1 spine disk, but actually" << graph.length();

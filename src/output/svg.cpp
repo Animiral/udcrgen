@@ -186,7 +186,7 @@ void Svg::writeDisk(const Disk& disk, const DiskGraph& graph) const
 
 	writeCircle(disk.x, disk.y, disk.id, appearance);
 
-	if (const auto* parent = graph.findDisk(disk.parent)) {
+	if (const Disk* parent = disk.parent) {
 		writeLine(disk.x, disk.y, parent->x, parent->y);
 	}
 }

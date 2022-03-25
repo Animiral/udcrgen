@@ -153,6 +153,40 @@ EdgeList::iterator separate_leaves(EdgeList::iterator begin, EdgeList::iterator 
 bool recognize_path(EdgeList::iterator begin, EdgeList::iterator end);
 
 /**
+ * @brief Allow traversal of the graph.
+ *
+ * In depth-first order, explore all leaves immediately after their parent branch.
+ * In breadth-first order, explore branches before leaves on each spine.
+ */
+class GraphTraversal
+{
+
+public:
+
+	/**
+	 * Construct an end iterator.
+	 */
+	GraphTraversal() noexcept;
+
+	/**
+	 * Construct an iterator starting from the given disk.
+	 */
+	explicit GraphTraversal(Disk* from, Configuration::EmbedOrder order) noexcept;
+
+	GraphTraversal& operator++() noexcept;
+	Disk& operator*() const noexcept;
+	Disk* operator->() const noexcept;
+	bool operator==(const GraphTraversal& rhs) const noexcept;
+	bool operator!=(const GraphTraversal& rhs) const noexcept;
+
+private:
+
+	Disk* disk_;
+	Configuration::EmbedOrder order_;
+
+};
+
+/**
  * @brief The output graph representation.
  *
  * It stores of a list of disks and provides an interface to conveniently
@@ -168,13 +202,23 @@ public:
 	/**
 	 * @brief Construct the graph from disk data.
 	 *
-	 * The disks must satisfy the invariant that parents
-	 * occur before their children.
+	 * The tip pointer point to the first spine node.
+	 * By default, assume that it is the first element in @c disks.
 	 */
-	DiskGraph(std::vector<Disk>&& disks = {});
+	explicit DiskGraph(std::vector<Disk>&& disks = {}, Disk* tip = nullptr);
+
+	DiskGraph(const DiskGraph& rhs);
+	DiskGraph(DiskGraph&& rhs) noexcept;
+	DiskGraph& operator=(const DiskGraph& rhs);
+	DiskGraph& operator=(DiskGraph&& rhs) noexcept;
 
 	std::vector<Disk>& disks() noexcept;
+	Disk* tip() noexcept;
 	const std::vector<Disk>& disks() const noexcept;
+	const Disk* tip() const noexcept;
+
+	GraphTraversal traversal(Configuration::EmbedOrder order) noexcept;
+	GraphTraversal end() const noexcept;
 
 	/**
 	 * Return the number of disks in the graph.
@@ -199,11 +243,6 @@ public:
 	 * @return a pointer to the disk or nullptr if the id is unknown.
 	 */
 	const Disk* findDisk(DiskId id) const;
-
-	/**
-	 * @brief Normalize the order of disks stored in this graph.
-	 */
-	void reorder(Configuration::EmbedOrder order);
 
 	/**
 	 * @brief Create an instance based on the given basic caterpillar representation.
@@ -231,5 +270,8 @@ public:
 private:
 
 	std::vector<Disk> disks_;
+	Disk* tip_;
+
+	void fixDiskPointer(const DiskGraph& base, Disk*& pointer) noexcept;
 
 };

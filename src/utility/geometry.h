@@ -105,7 +105,10 @@ struct Disk
 {
 	// graph info, filled in the classification step - see classify()
 	DiskId id; //!< unique node number [0..n]
-	DiskId parent; //!< parent node number, must be spine vertex or -1
+	Disk* parent; //!< parent node
+	Disk* prevSibling; //!< previous sibling node
+	Disk* nextSibling; //!< next sibling node
+	Disk* child; //!< first child node
 	int depth; //!< distance from the spine (0 for spine vertices)
 	int children; //!< counter of direct descendant nodes
 

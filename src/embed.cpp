@@ -37,40 +37,52 @@ DiskGraph from_edge_list(EdgeList::iterator begin, EdgeList::iterator branches, 
 
 	disks[i].id = begin[0].from; // this works even with 1 spine, because begin then connects the first branch
 	lookup[disks[i].id] = &disks[i];
-	disks[i].parent = NODISK;
+	disks[i].parent = nullptr;
+	disks[i].prevSibling = nullptr;
+	disks[i].nextSibling = nullptr;
+	disks[i].child = nullptr;
 	disks[i].depth = 0;
 	disks[i].children = 0;
 	disks[i].failure = false;
 
 	for (i = 1; i < disks.size(); i++) {
-		disks[i].id = begin[i - 1].to;
-		lookup[disks[i].id] = &disks[i];
-		disks[i].parent = begin[i - 1].from;
-		
-		if (begin + i - 1 >= leaves)
-			disks[i].depth = 2;
-		else if (begin + i - 1 >= branches)
-			disks[i].depth = 1;
-		else
-			disks[i].depth = 0;
+		Disk& disk = disks[i];
+		disk.id = begin[i - 1].to;
+		lookup[disk.id] = &disk;
+		disk.child = nullptr;
+		assert(lookup.contains(begin[i - 1].from));
+		Disk* from = lookup[begin[i - 1].from];
 
-		disks[i].children = 0;
-		disks[i].failure = false;
-	}
+		if (begin + i - 1 < branches) {
+			// link spine
+			disk.parent = nullptr;
+			from->nextSibling = &disk;
+			disk.prevSibling = from;
+			disk.nextSibling = nullptr;
+			disk.depth = 0;
+		}
+		else {
+			// hook up branch/leaf with parent
+			disk.parent = from;
+			disk.prevSibling = nullptr;
+			if (from->child)
+				from->child->prevSibling = &disk;
+			disk.nextSibling = from->child;
+			from->child = &disk;
+			from->children++;
 
-	// fill parents info
-	for (i = 1; i < disks.size(); i++) {
-		auto it = lookup.find(disks[i].parent);
-		
-		if (lookup.end() == it)
-			throw InputException(format("Faulty graph: node {} (parent of {}) is not connected.", disks[i].parent, disks[i].id));
+			if (begin + i - 1 >= leaves) {
+				disk.depth = 2;
+			}
+			else
+				disk.depth = 1;
+		}
 
-		Disk* parent = it->second;
-		parent->children++;
+		disk.children = 0;
+		disk.failure = false;
 	}
 
 	DiskGraph result(move(disks));
-	result.reorder(Configuration::EmbedOrder::DEPTH_FIRST);
 	return result;
 }
 
@@ -125,15 +137,13 @@ Stat embed(DiskGraph& graph, Embedder& embedder, Configuration::Algorithm algori
 
 	// timed instructions
 	{
-		graph.reorder(embedOrder);
 		embedder.setGraph(graph);
-
 		stat.success = true;
 
-		for (Disk& disk : graph.disks()) {
-			if (!disk.embedded) {
-				embedder.embed(disk);
-				stat.success &= !disk.failure;
+		for (auto it = graph.traversal(embedOrder); it != graph.end(); ++it) {
+			if (!it->embedded) {
+				embedder.embed(*it);
+				stat.success &= !it->failure;
 			}
 		}
 	}
@@ -156,8 +166,7 @@ Stat embedDynamic(DiskGraph& graph, WholesaleEmbedder& embedder)
 
 	// timed instructions
 	{
-		graph.reorder(Configuration::EmbedOrder::DEPTH_FIRST);
-		stat.success = embedder.embed(graph.disks());
+		stat.success = embedder.embed(graph);
 	}
 
 	stat.duration = std::chrono::duration_cast<std::chrono::milliseconds>(clock.now() - start);

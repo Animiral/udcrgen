@@ -104,6 +104,9 @@ Evaluation Enumerate::test(const Lobster& lobster)
 	DiskGraph refGraph = DiskGraph::fromLobster(lobster);
 	Stat refStat = embedDynamic(refGraph, *reference_);
 
+	// debug sanity check: the reference implementation is strictly more accurate
+	assert(refStat.success || !fastStat.success);
+
 	// *** record statistics ***
 
 	if (csv_) {

@@ -239,19 +239,177 @@ bool recognize_path(EdgeList::iterator begin, EdgeList::iterator end)
 	return true;
 }
 
-DiskGraph::DiskGraph(std::vector<Disk>&& disks)
-	: disks_(move(disks))
+
+GraphTraversal::GraphTraversal() noexcept
+	: disk_(nullptr), order_()
 {
 }
+
+GraphTraversal::GraphTraversal(Disk* from, Configuration::EmbedOrder order) noexcept
+	: disk_(from), order_(order)
+{
+}
+
+GraphTraversal& GraphTraversal::operator++() noexcept
+{
+	assert(disk_);
+
+	switch (order_) {
+	case Configuration::EmbedOrder::DEPTH_FIRST:
+		if (disk_->child) {
+			disk_ = disk_->child;
+			return *this;
+		}
+
+		while (!disk_->nextSibling && disk_->parent)
+			disk_ = disk_->parent;
+
+		break;
+
+	case Configuration::EmbedOrder::BREADTH_FIRST:
+		if (0 == disk_->depth && disk_->child) {
+			disk_ = disk_->child;
+			return *this;
+		}
+
+		if (0 < disk_->depth && !disk_->nextSibling) {
+			if (1 == disk_->depth) {
+				disk_ = disk_->parent->child;
+			}
+			else {
+				assert(2 == disk_->depth);
+
+				if (disk_->parent->nextSibling)
+					disk_ = disk_->parent->nextSibling;
+				else {
+					disk_ = disk_->parent->parent;
+					goto next_spine;
+				}
+			}
+
+			// search sibling branches for leaves
+			while (!disk_->child && disk_->nextSibling)
+				disk_ = disk_->nextSibling;
+
+			if (disk_->child) {
+				disk_ = disk_->child;
+				return *this;
+			}
+			else {
+				disk_ = disk_->parent; // next spine
+			}
+		}
+
+		break;
+
+	default:
+		assert(0);
+
+	}
+
+next_spine:
+	disk_ = disk_->nextSibling;
+	return *this;
+}
+
+Disk& GraphTraversal::operator*() const noexcept
+{
+	return *disk_;
+}
+
+Disk* GraphTraversal::operator->() const noexcept
+{
+	return disk_;
+}
+
+bool GraphTraversal::operator==(const GraphTraversal& rhs) const noexcept
+{
+	return disk_ == rhs.disk_;
+}
+
+bool GraphTraversal::operator!=(const GraphTraversal& rhs) const noexcept
+{
+	return disk_ != rhs.disk_;
+}
+
+
+DiskGraph::DiskGraph(std::vector<Disk>&& disks, Disk* tip)
+	: disks_(move(disks)), tip_(tip)
+{
+	if (disks_.empty()) {
+		assert(!tip_);
+		return; // leave tip unchanged
+	}
+
+	if (!tip_)
+		tip_ = &disks_[0];
+
+	assert(!tip_->prevSibling);
+	assert(!tip_->parent);
+}
+
+DiskGraph::DiskGraph(const DiskGraph& rhs)
+	: disks_(rhs.disks_), tip_(rhs.tip_)
+{
+	fixDiskPointer(rhs, tip_);
+
+	for (Disk& disk : disks_) {
+		fixDiskPointer(rhs, disk.parent);
+		fixDiskPointer(rhs, disk.prevSibling);
+		fixDiskPointer(rhs, disk.nextSibling);
+		fixDiskPointer(rhs, disk.child);
+	}
+}
+
+DiskGraph::DiskGraph(DiskGraph&& rhs) noexcept = default;
+
+DiskGraph& DiskGraph::operator=(const DiskGraph& rhs)
+{
+	disks_ = rhs.disks_;
+	tip_ = rhs.tip_;
+
+	fixDiskPointer(rhs, tip_);
+
+	for (Disk& disk : disks_) {
+		fixDiskPointer(rhs, disk.parent);
+		fixDiskPointer(rhs, disk.prevSibling);
+		fixDiskPointer(rhs, disk.nextSibling);
+		fixDiskPointer(rhs, disk.child);
+	}
+
+	return *this;
+}
+
+DiskGraph& DiskGraph::operator=(DiskGraph&& rhs) noexcept = default;
 
 std::vector<Disk>& DiskGraph::disks() noexcept
 {
 	return disks_;
 }
 
+Disk* DiskGraph::tip() noexcept
+{
+	return tip_;
+}
+
 const std::vector<Disk>& DiskGraph::disks() const noexcept
 {
 	return disks_;
+}
+
+const Disk* DiskGraph::tip() const noexcept
+{
+	return tip_;
+}
+
+GraphTraversal DiskGraph::traversal(Configuration::EmbedOrder order) noexcept
+{
+	return GraphTraversal(tip_, order);
+}
+
+GraphTraversal DiskGraph::end() const noexcept
+{
+	return {};
 }
 
 std::size_t DiskGraph::size()  const noexcept
@@ -279,141 +437,111 @@ const Disk* DiskGraph::findDisk(DiskId id) const
 	return const_cast<DiskGraph*>(this)->findDisk(id); // reuse implementation
 }
 
-void DiskGraph::reorder(Configuration::EmbedOrder order)
-{
-	// Primary order: spine position.
-	std::unordered_map<DiskId, std::size_t> primary;
-
-	const std::size_t length = this->length();
-
-	// TODO: more efficient implementation (when disk structure exists)
-	// assign primary order to spine nodes
-	DiskId parent = NODISK;
-	for (std::size_t p = 0; p < length; p++) {
-		auto it = std::ranges::find_if(disks_, [parent](const Disk& d) { return 0 == d.depth && parent == d.parent; });
-		assert(disks_.end() != it);
-		primary[it->id] = p;
-		parent = it->id;
-	}
-
-	// propragate primary order to branches and spines
-	while (primary.size() < disks_.size()) {
-		// TODO: inefficiency
-		// find a disk that needs a primary entry
-		const Disk* disk = nullptr;
-		for (std::size_t j = 0; j < disks_.size(); j++) {
-			disk = &disks_[j];
-			if (!primary.contains(disk->id)
-				&& primary.contains(disk->parent)) {
-				break;
-			}
-		}
-		assert(disk);
-		primary[disk->id] = primary[disk->parent];
-	}
-
-	auto before = [&primary, order](const Disk& a, const Disk& b)
-	{
-		auto pa = primary[a.id], pb = primary[b.id];
-
-		if (pa == pb) { // same spine
-			if (a.depth > 0 && b.depth > 0
-				&& Configuration::EmbedOrder::DEPTH_FIRST == order) {
-				int ba = 1 == a.depth ? a.id : a.parent;
-				int bb = 1 == b.depth ? b.id : b.parent;
-
-				if (ba == bb) { // same branch
-					return a.depth < b.depth;
-				}
-				else {
-					return ba < bb;
-				}
-			}
-			else {
-				return a.depth < b.depth;
-			}
-		}
-		else {
-			return pa < pb;
-		}
-	};
-
-	std::ranges::sort(disks_.begin(), disks_.end(), before);
-}
-
 DiskGraph DiskGraph::fromCaterpillar(const Caterpillar& caterpillar)
 {
 	std::vector<Disk> disks(caterpillar.countVertices());
+	Disk* tip = nullptr;
 
 	DiskId id = 0;
-	DiskId spineId = -1;
 
 	for (int leaves : caterpillar.leaves()) {
-		auto& v = disks[id];
-		v.id = id;
-		v.parent = spineId;
-		v.depth = 0;
-		v.failure = false;
-		spineId = id;
+		auto& spine = disks[id];
+		spine.id = id;
+		spine.parent = nullptr;
+		spine.prevSibling = nullptr;
+		spine.nextSibling = tip;
+		tip->prevSibling = &spine;
+		tip = &spine;
+		spine.child = nullptr;
+		spine.depth = 0;
+		spine.failure = false;
 		id++;
 
-		for (int leaf = 0; leaf < leaves; leaf++) {
-			auto& v = disks[id];
-			v.id = id;
-			v.parent = spineId;
-			v.depth = 1;
-			v.failure = false;
+		for (int l = 0; l < leaves; l++) {
+			auto& leaf = disks[id];
+			leaf.id = id;
+			leaf.parent = &spine;
+			leaf.prevSibling = nullptr;
+			leaf.nextSibling = spine.child;
+			spine.child->prevSibling = &leaf;
+			spine.child = &leaf;
+			leaf.child = nullptr;
+			leaf.depth = 1;
+			leaf.failure = false;
 			id++;
 		}
 	}
 
-	return DiskGraph{ move(disks) };
+	return DiskGraph{ move(disks), tip };
 }
 
 DiskGraph DiskGraph::fromLobster(const Lobster& lobster)
 {
 	std::vector<Disk> disks(lobster.countVertices());
-	const auto& spine = lobster.spine();
+	Disk* tip = nullptr;
 
-	DiskId id = 0;
-	DiskId spineId = NODISK;
+	const auto& lobst = lobster.spine();
+	DiskId id = lobster.countVertices() - 1;
 
-	for (int i = 0; i < spine.size(); i++) {
-		auto& s = disks[id];
-		s.id = id;
-		s.parent = spineId;
-		s.depth = 0;
-		s.children = 0;
-		s.embedded = false;
-		spineId = id;
-		id++;
+	// create spines and branches in "reverse" because
+	// of the way sibling/child pointers are linked up
+	for (int i = lobst.size() - 1; i >= 0; i--) {
+		std::size_t descendents = std::reduce(lobst[i].begin(), lobst[i].end(), 5);
+		auto& spine = disks[id - descendents];
+		spine.id = id - descendents;
+		spine.parent = nullptr;
+		spine.prevSibling = nullptr;
+		spine.nextSibling = tip;
+		if (tip)
+			tip->prevSibling = &spine;
+		tip = &spine;
+		spine.child = nullptr;
+		spine.depth = 0;
+		spine.children = 0;
+		spine.embedded = false;
 
-		for (int j = 0; j < 5; j++) {
-			if (Lobster::NO_BRANCH == spine[i][j])
+		for (int j = 4; j >= 0; j--) {
+			int leaves = lobst[i][j];
+
+			if (Lobster::NO_BRANCH == leaves)
 				continue;
 
-			s.children++;
-			auto& b = disks[id];
-			b.id = id;
-			b.parent = spineId;
-			b.depth = 1;
-			b.children = spine[i][j];
-			b.embedded = false;
-			id++;
+			spine.children++;
+			auto& branch = disks[id - leaves];
+			branch.id = id - leaves;
+			branch.parent = &spine;
+			branch.prevSibling = nullptr;
+			branch.nextSibling = spine.child;
+			if (spine.child)
+				spine.child->prevSibling = &branch;
+			spine.child = &branch;
+			branch.child = nullptr;
+			branch.depth = 1;
+			branch.children = leaves;
+			branch.embedded = false;
 
-			for (int k = 0; k < spine[i][j]; k++) {
-				auto& l = disks[id];
-				l.id = id;
-				l.parent = b.id;
-				l.depth = 2;
-				l.children = 0;
-				l.embedded = false;
-				id++;
+			for (int k = 0; k < lobst[i][j]; k++) {
+				auto& leaf = disks[id - k];
+				leaf.id = id - k;
+				leaf.parent = &branch;
+				leaf.prevSibling = nullptr;
+				leaf.nextSibling = branch.child;
+				if (branch.child)
+					branch.child->prevSibling = &leaf;
+				branch.child = &leaf;
+				leaf.child = nullptr;
+				leaf.depth = 2;
+				leaf.children = 0;
+				leaf.embedded = false;
 			}
+
+			id -= leaves + 1;
 		}
+
+		id--; // skip over the spine's own id
 	}
 
-	return DiskGraph{ move(disks) };
+	return DiskGraph{ move(disks), tip };
 }
 
 EdgeList DiskGraph::toEdgeList() const
@@ -421,8 +549,18 @@ EdgeList DiskGraph::toEdgeList() const
 	EdgeList edgeList;
 
 	for (const Disk& disk : disks())
-		if (NODISK != disk.parent)
-			edgeList.push_back({ disk.parent, disk.id });
+		if (disk.parent)
+			edgeList.push_back({ disk.parent->id, disk.id });
 
 	return edgeList;
+}
+
+// Ensure that the pointer which was copied from the base graph
+// points to the equivalent object in the copy graph.
+void DiskGraph::fixDiskPointer(const DiskGraph& base, Disk*& pointer) noexcept
+{
+	if (pointer)
+		pointer = pointer
+			- const_cast<Disk*>(&*base.disks_.begin())
+			+ &*disks_.begin();
 }

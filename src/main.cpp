@@ -224,11 +224,12 @@ void write_output_graph_stream(const DiskGraph& graph, std::ostream& stream)
 	stream << std::setprecision(2);
 
 	for (const auto& v : graph.disks()) {
+		const Disk* p = v.parent;
 		if (v.failure) {
-			stream << "FAILED to place disk " << v.id << " -> " << v.parent << ".\n";
+			stream << "FAILED to place disk " << v.id << " -> " << (p ? p->id : -1) << ".\n";
 		}
 		else {
-			stream << v.id << " -> " << v.parent << "  (" << v.x << ", " << v.y << ")\n";
+			stream << v.id << " -> " << (p ? p->id : -1) << "  (" << v.x << ", " << v.y << ")\n";
 		}
 	}
 }

@@ -7,6 +7,7 @@
 #include <set>
 #include "utility/grid.h"
 #include "utility/geometry.h"
+#include "utility/graph.h"
 #include "embed.h"
 
 /**
@@ -106,17 +107,17 @@ class DynamicProblem
 
 public:
 
-	explicit DynamicProblem(InputDisks& input);
+	explicit DynamicProblem(DiskGraph& graph);
 
 private:
 
-	DynamicProblem(InputDisks& input, const Grid& solution, Coord spineHead, Coord branchHead);
+	DynamicProblem(GraphTraversal begin, GraphTraversal end, const Grid& solution, Coord spineHead, Coord branchHead);
 
 public:
 
 	std::vector<DynamicProblem> subproblems() const;
 
-	void setSolution(const Grid& solution, Coord spineHead, Coord branchHead);
+	void setSolution(const Grid& solution, GraphTraversal position, Coord spineHead, Coord branchHead);
 
 	const Grid& solution() const noexcept;
 	Coord spineHead() const noexcept;
@@ -137,7 +138,8 @@ private:
 	Grid solution_; // disks embedded so far
 	Coord spineHead_;
 	Coord branchHead_;
-	InputDisks* input_;
+	GraphTraversal position_;
+	GraphTraversal end_;
 	int depth_;
 
 };
@@ -157,7 +159,7 @@ private:
  * @param depth current problem depth
  * @return a fundament like @c base, but all unreachable coords are blocked
  */
-Fundament reachableEventually(Fundament base, Coord head, const InputDisks& input, int depth) noexcept;
+Fundament reachableEventually(Fundament base, Coord head, GraphTraversal position, GraphTraversal end) noexcept;
 
 /**
  * @brief This queue supports the ordered expansion of DynamicProblems
@@ -223,6 +225,6 @@ class DynamicProblemEmbedder : public WholesaleEmbedder
 
 public:
 
-	virtual bool embed(std::vector<Disk>& disks) override;
+	virtual bool embed(DiskGraph& graph) override;
 
 };

@@ -6,21 +6,14 @@
 
 TEST(Dynamic, fundament_blocked)
 {
-	std::vector<Disk> disks = {
-		// id, parent, depth, children, embedded, grid_x, grid_sly
-		{0, -1, 0, 4, true, 0, 0},
-		{1,  0, 1, 0, true, -1, 0},
-		{2,  0, 1, 0, true, -1, 1},
-		{3,  0, 1, 0, true, 0, -1},
-		{4,  3, 2, 0, true, 0, -2},
-		{5, 0, 0, 0, true, 1, 0}
-	};
-
+	Disk dummy;
 	Grid grid(6);
-	for (std::size_t i = 0; i < 6; i++) {
-		grid.put({ disks[i].grid_x, disks[i].grid_sly }, disks[i]);
-	}
-
+	grid.put({ 0, 0 }, dummy);
+	grid.put({ -1, 0 }, dummy);
+	grid.put({ -1, 1 }, dummy);
+	grid.put({ 0, -1 }, dummy);
+	grid.put({ 0, -2 }, dummy);
+	grid.put({ 1, 0 }, dummy);
 	Coord head{ 1, 0 };
 
 	Fundament fundament(grid, head);
@@ -63,26 +56,19 @@ TEST(Dynamic, fundament_reachable)
 	//   - x -
 	//    - -
 	//     -
-	std::vector<Disk> disks = {
-		// id, parent, depth, children, embedded, grid_x, grid_sly
-		{0, 0, 0, 0, true,  0,  0},
-		{1, 0, 0, 0, true, -1,  0},
-		{2, 0, 0, 0, true, -2,  0},
-		{3, 0, 0, 0, true, -2,  1},
-		{4, 0, 0, 0, true, -2,  2},
-		{5, 0, 0, 0, true,  0, -1},
-		{6, 0, 0, 0, true,  1, -2},
-		{7, 0, 0, 0, true,  1,  0}
-	};
-
 	Grid grid(8);
-	for (std::size_t i = 0; i < 8; i++) {
-		grid.put({ disks[i].grid_x, disks[i].grid_sly }, disks[i]);
-	}
 
-	Coord head{ 0, 0 };
+	Disk dummy;
+	grid.put({ 0, 0 }, dummy);
+	grid.put({ -1, 0 }, dummy);
+	grid.put({ -2, 0 }, dummy);
+	grid.put({ -2, 1 }, dummy);
+	grid.put({ -2, 2 }, dummy);
+	grid.put({ 0, -1 }, dummy);
+	grid.put({ 1, -2 }, dummy);
+	grid.put({ 1, 0 }, dummy);
 
-	Fundament fundament(grid, head);
+	Fundament fundament(grid, { 0, 0 });
 
 	Coord from{ 0, 1 };
 	Fundament reachable = fundament.reachable(from, 2);
@@ -177,37 +163,36 @@ TEST(Dynamic, signature_dominates)
 TEST(Dynamic, subproblem)
 {
 	// input lobster
-	std::vector<Disk> disks = {
-		// id, parent, depth, children, embedded, grid_x, grid_sly
-		{0, -1, 0, 6, true, 0, 0},
-		{1,  0, 1, 0, true, -1, 0},
-		{2,  0, 1, 0, true, -1, 1},
-		{3,  0, 1, 0, true, 0, -1},
-		{4,  0, 1, 0, true, 1, -1},
-		{5,  0, 0},
-		{6,  5, 1}
-	};
+	std::vector<Disk> disks(7); // TODO: use fully defined disks
+	disks[0].depth = disks[5].depth = 0;
+
+	for (int i : {1, 2, 3, 4, 6})
+		disks[i].depth = 1;
 
 	// partial solution - cut off not-yet solved disks
 	Grid solution(7);
-	for (std::size_t i = 0; i < 5; i++) {
-		solution.put({ disks[i].grid_x, disks[i].grid_sly }, disks[i]);
-	}
-
-	DynamicProblem problem(disks);
-	problem.setSolution(solution, { 0, 0 }, { 1, -1 });
+	solution.put({ 0, 0 }, disks[0]);
+	solution.put({ -1, 0 }, disks[1]);
+	solution.put({ -1, 1 }, disks[2]);
+	solution.put({ 0, -1 }, disks[3]);
+	solution.put({ 1, -1 }, disks[4]);
+	
+	DiskGraph graph(move(disks));
+	DynamicProblem problem(graph);
+	GraphTraversal position(&graph.disks()[5], Configuration::EmbedOrder::DEPTH_FIRST);
+	problem.setSolution(solution, position, { 0, 0 }, { 1, -1 });
 	EXPECT_EQ(problem.depth(), 5);
 
 	std::vector<DynamicProblem> result = problem.subproblems();
 	ASSERT_EQ(result.size(), 2);
 
 	Coord expectedCoord{ 1, 0 };
-	EXPECT_EQ(result[0].solution().at(expectedCoord), &disks[5]);
+	EXPECT_EQ(result[0].solution().at(expectedCoord), &graph.disks()[5]);
 	EXPECT_EQ(result[0].spineHead(), expectedCoord);
 	EXPECT_EQ(result[0].depth(), 6);
 
 	expectedCoord = { 0, 1 };
-	EXPECT_EQ(result[1].solution().at(expectedCoord), &disks[5]);
+	EXPECT_EQ(result[1].solution().at(expectedCoord), &graph.disks()[5]);
 	EXPECT_EQ(result[1].spineHead(), expectedCoord);
 	EXPECT_EQ(result[1].depth(), 6);
 }
@@ -223,33 +208,36 @@ TEST(Dynamic, reachableEventually)
 	//   - - -
 	//    - -
 	//     -
-	std::vector<Disk> disks = {
-		// id, parent, depth, children, embedded, grid_x, grid_sly
-		{0, -1, 0, 3, true,  0,  0},
-		{1,  0, 1, 0, true, -1,  0},
-		{2,  0, 1, 0, true,  0, -1},
-		{3,  0, 1, 2, true,  0,  1},
-		{4,  3, 2, 0, true, -1,  2},
-		{5,  3, 2},
-		{6,  0, 0},
-		{7,  6, 0, 2},
-		{8,  7, 1, 1},
-		{9,  8, 2, 0},
-		{10, 7, 1, 0}
-	};
+	std::vector<Disk> disks(11);
+	// Define disks as far as necessary for traversal
+	for (int i : {0, 6, 7})
+		disks[i].depth = 0;
+	for (int i : {1, 2, 3, 8, 10})
+		disks[i].depth = 1;
+	for (int i : {4, 5, 9})
+		disks[i].depth = 2;
+	disks[5].parent = &disks[3];
+	disks[3].parent = &disks[0];
+	disks[0].nextSibling = &disks[6];
+	disks[6].nextSibling = &disks[7];
+	disks[7].child = &disks[8];
+	disks[8].child = &disks[9];
+	disks[9].nextSibling = &disks[10];
 
 	int depth = 5;
 
 	// partial solution - cut off not-yet solved disks
 	Grid solution(10);
-	for (std::size_t i = 0; i < depth; i++) {
-		solution.put({ disks[i].grid_x, disks[i].grid_sly }, disks[i]);
-	}
+	solution.put({ 0, 0 }, disks[0]);
+	solution.put({ -1, 0 }, disks[1]);
+	solution.put({ 0, -1 }, disks[2]);
+	solution.put({ 0, 1 }, disks[3]);
+	solution.put({ -1, 2 }, disks[4]);
 
 	Fundament base(solution, { 0, 0 });
 	Coord head{ 0, 1 };
-
-	Fundament actual = reachableEventually(base, head, disks, depth);
+	GraphTraversal position(&disks[5], Configuration::EmbedOrder::DEPTH_FIRST);
+	Fundament actual = reachableEventually(base, head, position, {});
 
 	//     x
 	//    x -
@@ -269,19 +257,15 @@ TEST(Dynamic, reachableEventually)
  */
 TEST(Dynamic, queue)
 {
-	std::vector<Disk> disks = {
-		// id, parent, depth, children, embedded, grid_x, grid_sly
-		{0, -1, 0, 6, true, 0, 0},
-		{1,  0, 1, 0, true, -1, 0},
-		{2,  0, 1, 0, true, 1, -1},
-		{3,  0, 0, 0, true, 1, 0},
-		{4,  3, 1, 0, false, 2, 0}
-	};
+	std::vector<Disk> disks(5);
+	disks[0].depth = disks[3].depth = 0;
+	disks[1].depth = disks[2].depth = disks[4].depth = 1;
+	DiskGraph graph(move(disks));
 
 	// p1 has depth 3, p2 has depth 4. Theferore p2 should be popped first.
 	// p3 is equivalent to p1 and should not enter the queue.
 	// (mirrored fundament, irrelevant branch head)
-	DynamicProblem p1(disks), p2(disks), p3(disks);
+	DynamicProblem p1(graph), p2(graph), p3(graph);
 
 	// prepare p1
 	//     -
@@ -294,9 +278,11 @@ TEST(Dynamic, queue)
 	//    - -
 	//     -
 	Grid solution1(5);
-	for(int i = 0; i < 3; i++)
-		solution1.put({ disks[i].grid_x, disks[i].grid_sly }, disks[i]);
-	p1.setSolution(solution1, { 0, 0 }, { 0, -1 });
+	solution1.put({ 0, 0 }, graph.disks()[0]);
+	solution1.put({ -1, 0 }, graph.disks()[1]);
+	solution1.put({ 1, -1 }, graph.disks()[2]);
+	GraphTraversal position1(&graph.disks()[3], Configuration::EmbedOrder::DEPTH_FIRST);
+	p1.setSolution(solution1, position1, { 0, 0 }, { 0, -1 });
 
 	// prepare p2
 	//     -
@@ -309,9 +295,12 @@ TEST(Dynamic, queue)
 	//    - -
 	//     -
 	Grid solution2(5);
-	for (int i = 0; i < 4; i++)
-		solution2.put({ disks[i].grid_x, disks[i].grid_sly }, disks[i]);
-	p2.setSolution(solution2, { 1, 0 }, { 1, 0 });
+	solution2.put({ 0, 0 }, graph.disks()[0]);
+	solution2.put({ -1, 0 }, graph.disks()[1]);
+	solution2.put({ 1, -1 }, graph.disks()[2]);
+	solution2.put({ 1, 0 }, graph.disks()[3]);
+	GraphTraversal position2(&graph.disks()[4], Configuration::EmbedOrder::DEPTH_FIRST);
+	p2.setSolution(solution2, position2, { 1, 0 }, { 1, 0 });
 
 	// prepare p3
 	//     -
@@ -324,10 +313,10 @@ TEST(Dynamic, queue)
 	//    - -
 	//     -
 	Grid solution3(5);
-	solution3.put({ 0, 0 }, disks[0]);
-	solution3.put({ -1, 1 }, disks[1]);
-	solution3.put({ 0, 1 }, disks[2]);
-	p3.setSolution(solution3, { 0, 0 }, { -1, 0 });
+	solution3.put({ 0, 0 }, graph.disks()[0]);
+	solution3.put({ -1, 1 }, graph.disks()[1]);
+	solution3.put({ 0, 1 }, graph.disks()[2]);
+	p3.setSolution(solution3, position1, { 0, 0 }, { -1, 0 });
 
 	// p1 and p3 are equal because of mirroring and reachability
 	EXPECT_FALSE(ProblemQueue::equivalent(p1, p2));
@@ -359,17 +348,13 @@ TEST(Dynamic, queue)
  */
 TEST(Dynamic, queue_dominant)
 {
-	std::vector<Disk> disks = {
-		// id, parent, depth, children, embedded, grid_x, grid_sly
-		{0, -1, 0, 1, true, 0, 0},
-		{1,  0, 1, 0, true, 0, 1},
-		{2,  0, 0, 0, true, 1, 0},
-		{3,  2, 0, 1, true, 2, 0},
-		{4,  3, 1, 0, false, 0, 0},
-		{5,  4, 2, 0, false, 0, 0}
-	};
+	std::vector<Disk> disks(6);
+	disks[0].depth = disks[2].depth = disks[3].depth = 0;
+	disks[1].depth = disks[4].depth = 1;
+	disks[5].depth = 2;
+	DiskGraph graph(move(disks));
 
-	DynamicProblem p1(disks), p2(disks);
+	DynamicProblem p1(graph), p2(graph);
 
 	// prepare p1
 	//     -
@@ -382,9 +367,12 @@ TEST(Dynamic, queue_dominant)
 	//    - -
 	//     -
 	Grid solution1(6);
-	for (int i = 0; i < 4; i++)
-		solution1.put({ disks[i].grid_x, disks[i].grid_sly }, disks[i]);
-	p1.setSolution(solution1, { 2, 0 }, { 2, 0 });
+	solution1.put({ 0, 0 }, graph.disks()[0]);
+	solution1.put({ 0, 1 }, graph.disks()[1]);
+	solution1.put({ 1, 0 }, graph.disks()[2]);
+	solution1.put({ 2, 0 }, graph.disks()[3]);
+	GraphTraversal position(&graph.disks()[4], Configuration::EmbedOrder::DEPTH_FIRST);
+	p1.setSolution(solution1, position, { 2, 0 }, { 2, 0 });
 
 	// prepare p2 - "better" than p1
 	//     -
@@ -397,11 +385,11 @@ TEST(Dynamic, queue_dominant)
 	//    - -
 	//     -
 	Grid solution2(6);
-	solution2.put({ 0, 0 }, disks[0]);
-	solution2.put({ 0, -1 }, disks[1]);
-	solution2.put({ 1, 0 }, disks[2]);
-	solution2.put({ 2, 0 }, disks[3]);
-	p2.setSolution(solution2, { 2, 0 }, { 2, 0 });
+	solution2.put({ 0, 0 }, graph.disks()[0]);
+	solution2.put({ 0, -1 }, graph.disks()[1]);
+	solution2.put({ 1, 0 }, graph.disks()[2]);
+	solution2.put({ 2, 0 }, graph.disks()[3]);
+	p2.setSolution(solution2, position, { 2, 0 }, { 2, 0 });
 
 	ProblemQueue queue;
 	queue.push(p2);
@@ -412,4 +400,13 @@ TEST(Dynamic, queue_dominant)
 
 	queue.pop();
 	ASSERT_TRUE(queue.empty());
+}
+
+TEST(Dynamic, embed_dynamic)
+{
+	const auto NB = Lobster::NO_BRANCH;
+	Lobster lobster({ {2, 2, 2, 1, 1}, {2, 2, 2, NB, NB} });
+	DiskGraph graph = DiskGraph::fromLobster(lobster);
+	DynamicProblemEmbedder embedder;
+	EXPECT_TRUE(embedder.embed(graph));
 }

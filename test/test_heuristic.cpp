@@ -3,25 +3,43 @@
 #include "gtest/gtest.h"
 #include "heuristic.h"
 
+namespace
+{
+
 // a simple easy example caterpillar: spine [0] with 3 leaves, spine [1] with 4 leaves
 DiskGraph make_caterpillar()
 {
 	std::vector<Disk> disks(9);
 
-	for (DiskId id = 0; id < 9; id++) {
-		if (id < 2) {
-			disks[id].parent = id - 1;
-			disks[id].depth = 0;
-		}
-		else {
-			disks[id].parent = id < 5 ? 0 : 1;
-			disks[id].depth = 1;
-		}
+	disks[0].id = 0;
+	disks[0].depth = 0;
+	disks[0].parent = nullptr;
+	disks[0].nextSibling = &disks[1];
+	disks[0].child = &disks[2];
 
+	disks[1].id = 1;
+	disks[1].depth = 0;
+	disks[1].parent = nullptr;
+	disks[1].prevSibling = &disks[0];
+	disks[1].child = &disks[5];
+
+	for (DiskId id = 2; id < 9; id++) {
+		disks[id].parent = &disks[id < 5 ? 0 : 1];
+		disks[id].depth = 1;
 		disks[id].id = id;
 	}
 
+	for (DiskId id = 3; id < 9; id++)
+		if (id != 5)
+			disks[id].prevSibling = &disks[id - 1];
+
+	for (DiskId id = 2; id < 8; id++)
+		if (id != 4)
+			disks[id].nextSibling = &disks[id + 1];
+
 	return DiskGraph(move(disks));
+}
+
 }
 
 TEST(Embed, embed_proper)
@@ -37,11 +55,11 @@ TEST(Embed, embed_proper)
 
 	auto& disks = graph.disks();
 	EXPECT_NEAR(disks[0].x, 0, 0.01);      EXPECT_NEAR(disks[0].y, 0, 0.01);
-	EXPECT_NEAR(disks[4].x, 1, 0.01);      EXPECT_NEAR(disks[4].y, 0, 0.01);
+	EXPECT_NEAR(disks[1].x, 1, 0.01);      EXPECT_NEAR(disks[1].y, 0, 0.01);
 
-	EXPECT_NEAR(disks[1].x, -1, 0.01);     EXPECT_NEAR(disks[1].y, 0, 0.01);
-	EXPECT_NEAR(disks[2].x, -0.395, 0.01); EXPECT_NEAR(disks[2].y, -0.91889f, 0.01);
-	EXPECT_NEAR(disks[3].x, -0.395, 0.01); EXPECT_NEAR(disks[3].y, 0.91889f, 0.01);
+	EXPECT_NEAR(disks[2].x, -1, 0.01);     EXPECT_NEAR(disks[2].y, 0, 0.01);
+	EXPECT_NEAR(disks[3].x, -0.395, 0.01); EXPECT_NEAR(disks[3].y, -0.91889f, 0.01);
+	EXPECT_NEAR(disks[4].x, -0.395, 0.01); EXPECT_NEAR(disks[4].y, 0.91889f, 0.01);
 
 	EXPECT_NEAR(disks[5].x, .705, 0.01);   EXPECT_NEAR(disks[5].y, -0.95466f, 0.01);
 	EXPECT_NEAR(disks[6].x, .705, 0.01);   EXPECT_NEAR(disks[6].y, 0.95466f, 0.01);
@@ -54,22 +72,40 @@ DiskGraph make_lobster()
 {
 	std::vector<Disk> disks(14);
 
-	for (DiskId id = 0; id < 14; id++) {
-		if (id < 2) {
-			disks[id].parent = id - 1;
-			disks[id].depth = 0;
-		}
-		else if (id < 9) {
-			disks[id].parent = id < 5 ? 0 : 1;
+	disks[0].id = 0;
+	disks[0].depth = 0;
+	disks[0].parent = nullptr;
+	disks[0].nextSibling = &disks[1];
+	disks[0].child = &disks[2];
+
+	disks[1].id = 1;
+	disks[1].depth = 0;
+	disks[1].parent = nullptr;
+	disks[1].prevSibling = &disks[0];
+	disks[1].child = &disks[5];
+
+	for (DiskId id = 2; id < 14; id++) {
+		if (id < 9) {
+			disks[id].parent = &disks[id < 5 ? 0 : 1];
 			disks[id].depth = 1;
+			if (id < 6)
+				disks[id].child = &disks[id == 2 ? 9 : id + 8];
 		}
 		else {
-			disks[id].parent = id < 10 ? 2 : id - 8;
+			disks[id].parent = &disks[id < 10 ? 2 : id - 8];
 			disks[id].depth = 2;
 		}
 
 		disks[id].id = id;
 	}
+
+	for (DiskId id = 3; id < 11; id++)
+		if (id != 5 && id != 9)
+			disks[id].prevSibling = &disks[id - 1];
+
+	for (DiskId id = 2; id < 10; id++)
+		if (id != 4 && id != 8)
+			disks[id].nextSibling = &disks[id + 1];
 
 	return DiskGraph(move(disks));
 }
@@ -87,23 +123,23 @@ TEST(Embed, embed_weak)
 
 	auto& disks = graph.disks();
 	// sbllblblsblbbb   spines: 0 8  branches: 1 4 6 9 11 12 13  leaves: 2 3 5 7 10
-	EXPECT_NEAR(disks[0].x, 0, 0.01);      EXPECT_NEAR(disks[0].y, 0, 0.01);         EXPECT_EQ(disks[0].grid_x, 0);    EXPECT_EQ(disks[0].grid_sly, 0);
-	EXPECT_NEAR(disks[8].x, 1, 0.01);      EXPECT_NEAR(disks[8].y, 0, 0.01);         EXPECT_EQ(disks[8].grid_x, 1);    EXPECT_EQ(disks[1].grid_sly, 0);
+	EXPECT_NEAR(disks[0].x, 0, 0.01);     EXPECT_NEAR(disks[0].y, 0, 0.01);        EXPECT_EQ(disks[0].grid_x, 0);   EXPECT_EQ(disks[0].grid_sly, 0);
+	EXPECT_NEAR(disks[1].x, 1, 0.01);     EXPECT_NEAR(disks[1].y, 0, 0.01);        EXPECT_EQ(disks[1].grid_x, 1);   EXPECT_EQ(disks[1].grid_sly, 0);
 
-	EXPECT_NEAR(disks[1].x, -1, 0.01);   EXPECT_NEAR(disks[1].y, 0, 0.01);       EXPECT_EQ(disks[1].grid_x, -1); EXPECT_EQ(disks[1].grid_sly, 0);
-	EXPECT_NEAR(disks[4].x, -0.5, 0.01); EXPECT_NEAR(disks[4].y, -0.866f, 0.01); EXPECT_EQ(disks[4].grid_x, 0);  EXPECT_EQ(disks[4].grid_sly, -1);
-	EXPECT_NEAR(disks[6].x, -0.5, 0.01); EXPECT_NEAR(disks[6].y, 0.866f, 0.01);  EXPECT_EQ(disks[6].grid_x, -1); EXPECT_EQ(disks[6].grid_sly, 1);
+	EXPECT_NEAR(disks[2].x, -1, 0.01);    EXPECT_NEAR(disks[2].y, 0, 0.01);        EXPECT_EQ(disks[2].grid_x, -1);  EXPECT_EQ(disks[2].grid_sly, 0);
+	EXPECT_NEAR(disks[3].x, -0.5, 0.01);  EXPECT_NEAR(disks[3].y, -0.866f, 0.01);  EXPECT_EQ(disks[3].grid_x, 0);   EXPECT_EQ(disks[3].grid_sly, -1);
+	EXPECT_NEAR(disks[4].x, -0.5, 0.01);  EXPECT_NEAR(disks[4].y, 0.866f, 0.01);   EXPECT_EQ(disks[4].grid_x, -1);  EXPECT_EQ(disks[4].grid_sly, 1);
 
-	EXPECT_NEAR(disks[9].x, .5, 0.01);    EXPECT_NEAR(disks[9].y, 0.866f, 0.01);   EXPECT_EQ(disks[9].grid_x, 0);   EXPECT_EQ(disks[9].grid_sly, 1);
-	EXPECT_NEAR(disks[11].x, .5, 0.01);   EXPECT_NEAR(disks[11].y, -0.866f, 0.01); EXPECT_EQ(disks[11].grid_x, 1);  EXPECT_EQ(disks[11].grid_sly, -1);
-	EXPECT_NEAR(disks[12].x, 1.5, 0.01);  EXPECT_NEAR(disks[12].y, -0.866f, 0.01); EXPECT_EQ(disks[12].grid_x, 2);  EXPECT_EQ(disks[12].grid_sly, -1);
-	EXPECT_NEAR(disks[13].x, 1.5, 0.01);  EXPECT_NEAR(disks[13].y, 0.866f, 0.01);  EXPECT_EQ(disks[13].grid_x, 1);  EXPECT_EQ(disks[13].grid_sly, 1);
+	EXPECT_NEAR(disks[5].x, .5, 0.01);    EXPECT_NEAR(disks[5].y, 0.866f, 0.01);   EXPECT_EQ(disks[5].grid_x, 0);   EXPECT_EQ(disks[5].grid_sly, 1);
+	EXPECT_NEAR(disks[6].x, .5, 0.01);    EXPECT_NEAR(disks[6].y, -0.866f, 0.01);  EXPECT_EQ(disks[6].grid_x, 1);   EXPECT_EQ(disks[6].grid_sly, -1);
+	EXPECT_NEAR(disks[7].x, 1.5, 0.01);   EXPECT_NEAR(disks[7].y, -0.866f, 0.01);  EXPECT_EQ(disks[7].grid_x, 2);   EXPECT_EQ(disks[7].grid_sly, -1);
+	EXPECT_NEAR(disks[8].x, 1.5, 0.01);   EXPECT_NEAR(disks[8].y, 0.866f, 0.01);   EXPECT_EQ(disks[8].grid_x, 1);   EXPECT_EQ(disks[8].grid_sly, 1);
 
-	EXPECT_NEAR(disks[2].x, -2, 0.01);     EXPECT_NEAR(disks[2].y, 0, 0.01);         EXPECT_EQ(disks[2].grid_x, -2);   EXPECT_EQ(disks[2].grid_sly, 0);
-	EXPECT_NEAR(disks[3].x, -1.5, 0.01);   EXPECT_NEAR(disks[3].y, 0.866f, 0.01);    EXPECT_EQ(disks[3].grid_x, -2);   EXPECT_EQ(disks[3].grid_sly, 1);
-	EXPECT_NEAR(disks[5].x, -1.5, 0.01);   EXPECT_NEAR(disks[5].y, -0.866f, 0.01);   EXPECT_EQ(disks[5].grid_x, -1);   EXPECT_EQ(disks[5].grid_sly, -1);
-	EXPECT_NEAR(disks[7].x, -1, 0.01);     EXPECT_NEAR(disks[7].y, 1.732f, 0.01);    EXPECT_EQ(disks[7].grid_x, -2);   EXPECT_EQ(disks[7].grid_sly, 2);
-	EXPECT_NEAR(disks[10].x, 0, 0.01);     EXPECT_NEAR(disks[10].y, 1.732f, 0.01);   EXPECT_EQ(disks[10].grid_x, -1);  EXPECT_EQ(disks[10].grid_sly, 2);
+	EXPECT_NEAR(disks[9].x, -2, 0.01);    EXPECT_NEAR(disks[9].y, 0, 0.01);        EXPECT_EQ(disks[9].grid_x, -2);  EXPECT_EQ(disks[9].grid_sly, 0);
+	EXPECT_NEAR(disks[10].x, -1.5, 0.01); EXPECT_NEAR(disks[10].y, 0.866f, 0.01);  EXPECT_EQ(disks[10].grid_x, -2); EXPECT_EQ(disks[10].grid_sly, 1);
+	EXPECT_NEAR(disks[11].x, -1.5, 0.01); EXPECT_NEAR(disks[11].y, -0.866f, 0.01); EXPECT_EQ(disks[11].grid_x, -1); EXPECT_EQ(disks[11].grid_sly, -1);
+	EXPECT_NEAR(disks[12].x, -1, 0.01);   EXPECT_NEAR(disks[12].y, 1.732f, 0.01);  EXPECT_EQ(disks[12].grid_x, -2); EXPECT_EQ(disks[12].grid_sly, 2);
+	EXPECT_NEAR(disks[13].x, 0, 0.01);    EXPECT_NEAR(disks[13].y, 1.732f, 0.01);  EXPECT_EQ(disks[13].grid_x, -1); EXPECT_EQ(disks[13].grid_sly, 2);
 }
 
 TEST(Embed, embed_weak_breadthfirst)
@@ -119,23 +155,23 @@ TEST(Embed, embed_weak_breadthfirst)
 
 	auto& disks = graph.disks();
 	// sbbbllllsbbbbl   spines: 0 8  branches: 1 2 3 9 10 11 12  leaves: 4 5 6 7 13
-	EXPECT_NEAR(disks[0].x, 0, 0.01);     EXPECT_NEAR(disks[0].y, 0, 0.01);        EXPECT_EQ(disks[0].grid_x, 0);    EXPECT_EQ(disks[0].grid_sly, 0);
-	EXPECT_NEAR(disks[8].x, 1, 0.01);     EXPECT_NEAR(disks[8].y, 0, 0.01);        EXPECT_EQ(disks[8].grid_x, 1);    EXPECT_EQ(disks[8].grid_sly, 0);
+	EXPECT_NEAR(disks[0].x, 0, 0.01);     EXPECT_NEAR(disks[0].y, 0, 0.01);        EXPECT_EQ(disks[0].grid_x, 0);   EXPECT_EQ(disks[0].grid_sly, 0);
+	EXPECT_NEAR(disks[1].x, 1, 0.01);     EXPECT_NEAR(disks[1].y, 0, 0.01);        EXPECT_EQ(disks[1].grid_x, 1);   EXPECT_EQ(disks[1].grid_sly, 0);
 
-	EXPECT_NEAR(disks[1].x, -1, 0.01);    EXPECT_NEAR(disks[1].y, 0, 0.01);        EXPECT_EQ(disks[1].grid_x, -1);   EXPECT_EQ(disks[1].grid_sly, 0);
-	EXPECT_NEAR(disks[2].x, -0.5, 0.01);  EXPECT_NEAR(disks[2].y, 0.866f, 0.01);   EXPECT_EQ(disks[2].grid_x, -1);   EXPECT_EQ(disks[2].grid_sly, 1);
-	EXPECT_NEAR(disks[3].x, -0.5, 0.01);  EXPECT_NEAR(disks[3].y, -0.866f, 0.01);  EXPECT_EQ(disks[3].grid_x, 0);    EXPECT_EQ(disks[3].grid_sly, -1);
+	EXPECT_NEAR(disks[2].x, -1, 0.01);    EXPECT_NEAR(disks[2].y, 0, 0.01);        EXPECT_EQ(disks[2].grid_x, -1);  EXPECT_EQ(disks[2].grid_sly, 0);
+	EXPECT_NEAR(disks[3].x, -0.5, 0.01);  EXPECT_NEAR(disks[3].y, 0.866f, 0.01);   EXPECT_EQ(disks[3].grid_x, -1);  EXPECT_EQ(disks[3].grid_sly, 1);
+	EXPECT_NEAR(disks[4].x, -0.5, 0.01);  EXPECT_NEAR(disks[4].y, -0.866f, 0.01);  EXPECT_EQ(disks[4].grid_x, 0);   EXPECT_EQ(disks[4].grid_sly, -1);
 
-	EXPECT_NEAR(disks[9].x, .5, 0.01);    EXPECT_NEAR(disks[9].y, 0.866f, 0.01);   EXPECT_EQ(disks[9].grid_x, 0);    EXPECT_EQ(disks[9].grid_sly, 1);
-	EXPECT_NEAR(disks[10].x, .5, 0.01);   EXPECT_NEAR(disks[10].y, -0.866f, 0.01); EXPECT_EQ(disks[10].grid_x, 1);   EXPECT_EQ(disks[10].grid_sly, -1);
-	EXPECT_NEAR(disks[11].x, 1.5, 0.01);  EXPECT_NEAR(disks[11].y, 0.866f, 0.01);  EXPECT_EQ(disks[11].grid_x, 1);   EXPECT_EQ(disks[11].grid_sly, 1);
-	EXPECT_NEAR(disks[12].x, 1.5, 0.01);  EXPECT_NEAR(disks[12].y, -0.866f, 0.01); EXPECT_EQ(disks[12].grid_x, 2);   EXPECT_EQ(disks[12].grid_sly, -1);
+	EXPECT_NEAR(disks[5].x, .5, 0.01);    EXPECT_NEAR(disks[5].y, 0.866f, 0.01);   EXPECT_EQ(disks[5].grid_x, 0);   EXPECT_EQ(disks[5].grid_sly, 1);
+	EXPECT_NEAR(disks[6].x, .5, 0.01);    EXPECT_NEAR(disks[6].y, -0.866f, 0.01);  EXPECT_EQ(disks[6].grid_x, 1);   EXPECT_EQ(disks[6].grid_sly, -1);
+	EXPECT_NEAR(disks[7].x, 1.5, 0.01);   EXPECT_NEAR(disks[7].y, 0.866f, 0.01);   EXPECT_EQ(disks[7].grid_x, 1);   EXPECT_EQ(disks[7].grid_sly, 1);
+	EXPECT_NEAR(disks[8].x, 1.5, 0.01);   EXPECT_NEAR(disks[8].y, -0.866f, 0.01);  EXPECT_EQ(disks[8].grid_x, 2);   EXPECT_EQ(disks[8].grid_sly, -1);
 
-	EXPECT_NEAR(disks[4].x, -2, 0.01);    EXPECT_NEAR(disks[4].y, 0, 0.01);        EXPECT_EQ(disks[4].grid_x, -2);   EXPECT_EQ(disks[4].grid_sly, 0);
-	EXPECT_NEAR(disks[5].x, -1.5, 0.01);  EXPECT_NEAR(disks[5].y, 0.866f, 0.01);   EXPECT_EQ(disks[5].grid_x, -2);   EXPECT_EQ(disks[5].grid_sly, 1);
-	EXPECT_NEAR(disks[6].x, -1, 0.01);    EXPECT_NEAR(disks[6].y, 1.732f, 0.01);   EXPECT_EQ(disks[6].grid_x, -2);   EXPECT_EQ(disks[6].grid_sly, 2);
-	EXPECT_NEAR(disks[7].x, -1.5, 0.01);  EXPECT_NEAR(disks[7].y, -0.866f, 0.01);  EXPECT_EQ(disks[7].grid_x, -1);   EXPECT_EQ(disks[7].grid_sly, -1);
-	EXPECT_NEAR(disks[13].x, 0, 0.01);    EXPECT_NEAR(disks[13].y, 1.732f, 0.01);  EXPECT_EQ(disks[13].grid_x, -1);  EXPECT_EQ(disks[13].grid_sly, 2);
+	EXPECT_NEAR(disks[9].x, -2, 0.01);    EXPECT_NEAR(disks[9].y, 0, 0.01);        EXPECT_EQ(disks[9].grid_x, -2);  EXPECT_EQ(disks[9].grid_sly, 0);
+	EXPECT_NEAR(disks[10].x, -1.5, 0.01); EXPECT_NEAR(disks[10].y, 0.866f, 0.01);  EXPECT_EQ(disks[10].grid_x, -2); EXPECT_EQ(disks[10].grid_sly, 1);
+	EXPECT_NEAR(disks[11].x, -1, 0.01);   EXPECT_NEAR(disks[11].y, 1.732f, 0.01);  EXPECT_EQ(disks[11].grid_x, -2); EXPECT_EQ(disks[11].grid_sly, 2);
+	EXPECT_NEAR(disks[12].x, -1.5, 0.01); EXPECT_NEAR(disks[12].y, -0.866f, 0.01); EXPECT_EQ(disks[12].grid_x, -1); EXPECT_EQ(disks[12].grid_sly, -1);
+	EXPECT_NEAR(disks[13].x, 0, 0.01);    EXPECT_NEAR(disks[13].y, 1.732f, 0.01);  EXPECT_EQ(disks[13].grid_x, -1); EXPECT_EQ(disks[13].grid_sly, 2);
 }
 
 // In this lobster, the branch on the second spine must be placed further out.
@@ -145,14 +181,14 @@ DiskGraph make_lobster_for_space_heuristic()
 
 	// spine
 	disks[0].id = 0;
-	disks[0].parent = -1;
+	disks[0].parent = nullptr;
 	disks[0].children = 3;
 	disks[0].depth = 0;
 
 	// branches
 	for (DiskId id = 1; id < 4; id++) {
 		disks[id].id = id;
-		disks[id].parent = 0;
+		disks[id].parent = &disks[0];
 		disks[id].depth = 1;
 	}
 	disks[1].children = 3;
@@ -161,7 +197,7 @@ DiskGraph make_lobster_for_space_heuristic()
 	// leaves
 	for (DiskId id = 4; id < 11; id++) {
 		disks[id].id = id;
-		disks[id].parent = id > 6 ? 3 : 1;
+		disks[id].parent = &disks[id > 6 ? 3 : 1];
 		disks[id].depth = 2;
 	}
 
@@ -207,7 +243,11 @@ TEST(Embed, space_heuristic)
 TEST(Embed, bend_direction)
 {
 	auto embedder = GridEmbedImpl{ 5 };
-	Disk disk[5] = { Disk{ 0, 0, 0, 0, false } };
+	Disk disk[5];
+	for (int i = 0; i < 5; i++) {
+		disk[i].depth = 0;
+		disk[i].children = 0;
+	}
 	embedder.putDiskAt(disk[0], { 0, 0 });
 
 	embedder.principalDirection = Dir::RIGHT_DOWN;
@@ -235,7 +275,7 @@ TEST(Embed, bend_direction)
 TEST(Embed, determinate_principal)
 {
 	auto embedder = GridEmbedImpl{ 5 };
-	Disk disk[5] = { Disk{ 0, 0, 0, 0, false } };
+	Disk disk[5];
 	embedder.putDiskAt(disk[0], { 0, 0 });
 	embedder.putDiskAt(disk[1], { 1, 0 });
 

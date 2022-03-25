@@ -62,7 +62,7 @@ void Ipe::writeDisk(const Disk& disk)
 
 	writeCircle(disk.x, disk.y, disk.id, appearance);
 
-	if (const auto* parent = graph_->findDisk(disk.parent)) {
+	if (const Disk* parent = disk.parent) {
 		writeLine(disk.x, disk.y, parent->x, parent->y);
 	}
 }

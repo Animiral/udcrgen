@@ -3,6 +3,19 @@
 #include "gtest/gtest.h"
 #include "utility/graph.h"
 
+namespace
+{
+
+// a simple easy example lobster for traversal
+DiskGraph make_lobster()
+{
+	const auto NB = Lobster::NO_BRANCH;
+	Lobster lobster({ {2, 1, NB, NB, NB}, {1, NB, NB, NB, NB} });
+	return DiskGraph::fromLobster(lobster);
+}
+
+}
+
 /**
  * Ensure that we can convert a text representation to a Caterpillar graph.
  */
@@ -71,34 +84,34 @@ TEST(Graph, recognize_path_continuous)
 	EXPECT_TRUE(equal(graph.begin(), graph.end(), expected.begin(), edges_equal)) << "expected: The input path is in continuous order";
 }
 
-TEST(Graph, reorder)
+TEST(Graph, traversal)
 {
-	std::vector<Disk> disks{
-		{3, NODISK, 0, 2},
-		{4, 3, 0, 0},
-		{5, 3, 1, 0},
-		{7, 3, 1, 1},
-		{9, 5, 2, 0}
-	};
+	DiskGraph graph = make_lobster();
+	GraphTraversal traversal = graph.traversal(Configuration::EmbedOrder::DEPTH_FIRST);
 
-	DiskGraph graph(move(disks));
-	graph.reorder(Configuration::EmbedOrder::DEPTH_FIRST);
+	ASSERT_NE(traversal, graph.end()); EXPECT_EQ(traversal->depth, 0); ++traversal;
+	ASSERT_NE(traversal, graph.end()); EXPECT_EQ(traversal->depth, 1); ++traversal;
+	ASSERT_NE(traversal, graph.end()); EXPECT_EQ(traversal->depth, 2); ++traversal;
+	ASSERT_NE(traversal, graph.end()); EXPECT_EQ(traversal->depth, 2); ++traversal;
+	ASSERT_NE(traversal, graph.end()); EXPECT_EQ(traversal->depth, 1); ++traversal;
+	ASSERT_NE(traversal, graph.end()); EXPECT_EQ(traversal->depth, 2); ++traversal;
+	ASSERT_NE(traversal, graph.end()); EXPECT_EQ(traversal->depth, 0); ++traversal;
+	ASSERT_NE(traversal, graph.end()); EXPECT_EQ(traversal->depth, 1); ++traversal;
+	ASSERT_NE(traversal, graph.end()); EXPECT_EQ(traversal->depth, 2); ++traversal;
+	EXPECT_EQ(traversal, graph.end());
 
-	// leaf must be ordered after its branch
-	EXPECT_EQ(3, graph.disks()[0].id);
-	EXPECT_EQ(5, graph.disks()[1].id);
-	EXPECT_EQ(9, graph.disks()[2].id);
-	EXPECT_EQ(7, graph.disks()[3].id);
-	EXPECT_EQ(4, graph.disks()[4].id);
+	traversal = graph.traversal(Configuration::EmbedOrder::BREADTH_FIRST);
 
-	graph.reorder(Configuration::EmbedOrder::BREADTH_FIRST);
-
-	// leaf must be ordered after all branches
-	EXPECT_EQ(3, graph.disks()[0].id);
-	EXPECT_EQ(5, graph.disks()[1].id);
-	EXPECT_EQ(7, graph.disks()[2].id);
-	EXPECT_EQ(9, graph.disks()[3].id);
-	EXPECT_EQ(4, graph.disks()[4].id);
+	ASSERT_NE(traversal, graph.end()); EXPECT_EQ(traversal->depth, 0); ++traversal;
+	ASSERT_NE(traversal, graph.end()); EXPECT_EQ(traversal->depth, 1); ++traversal;
+	ASSERT_NE(traversal, graph.end()); EXPECT_EQ(traversal->depth, 1); ++traversal;
+	ASSERT_NE(traversal, graph.end()); EXPECT_EQ(traversal->depth, 2); ++traversal;
+	ASSERT_NE(traversal, graph.end()); EXPECT_EQ(traversal->depth, 2); ++traversal;
+	ASSERT_NE(traversal, graph.end()); EXPECT_EQ(traversal->depth, 2); ++traversal;
+	ASSERT_NE(traversal, graph.end()); EXPECT_EQ(traversal->depth, 0); ++traversal;
+	ASSERT_NE(traversal, graph.end()); EXPECT_EQ(traversal->depth, 1); ++traversal;
+	ASSERT_NE(traversal, graph.end()); EXPECT_EQ(traversal->depth, 2); ++traversal;
+	EXPECT_EQ(traversal, graph.end());
 }
 
 /**
@@ -107,33 +120,40 @@ TEST(Graph, reorder)
 TEST(Graph, fromLobster)
 {
 	const auto NB = Lobster::NO_BRANCH;
-	Lobster lobster({ {2, 1, NB, NB, NB}, {NB, NB, NB, NB, NB} });
+	Lobster lobster({ {2, 1, NB, NB, NB}, {1, NB, NB, NB, NB} });
 
 	auto graph = DiskGraph::fromLobster(lobster);
 	auto& disks = graph.disks();
 
-	ASSERT_EQ(disks.size(), 7);
-	
+	ASSERT_EQ(disks.size(), 9);
+
 	EXPECT_EQ(disks[0].depth, 0);
 	EXPECT_EQ(disks[0].children, 2);
 
 	EXPECT_EQ(disks[1].depth, 1);
-	EXPECT_EQ(disks[1].parent, disks[0].id);
+	EXPECT_EQ(disks[1].parent, &disks[0]);
 	EXPECT_EQ(disks[1].children, 2);
 
 	EXPECT_EQ(disks[2].depth, 2);
-	EXPECT_EQ(disks[2].parent, disks[1].id);
+	EXPECT_EQ(disks[2].parent, &disks[1]);
 
 	EXPECT_EQ(disks[3].depth, 2);
-	EXPECT_EQ(disks[3].parent, disks[1].id);
+	EXPECT_EQ(disks[3].parent, &disks[1]);
 
 	EXPECT_EQ(disks[4].depth, 1);
-	EXPECT_EQ(disks[4].parent, disks[0].id);
+	EXPECT_EQ(disks[4].parent, &disks[0]);
 	EXPECT_EQ(disks[4].children, 1);
 
 	EXPECT_EQ(disks[5].depth, 2);
-	EXPECT_EQ(disks[5].parent, disks[4].id);
+	EXPECT_EQ(disks[5].parent, &disks[4]);
 
 	EXPECT_EQ(disks[6].depth, 0);
-	EXPECT_EQ(disks[6].children, 0);
+	EXPECT_EQ(disks[6].children, 1);
+
+	EXPECT_EQ(disks[7].depth, 1);
+	EXPECT_EQ(disks[7].parent, &disks[6]);
+	EXPECT_EQ(disks[7].children, 1);
+
+	EXPECT_EQ(disks[8].depth, 2);
+	EXPECT_EQ(disks[8].parent, &disks[7]);
 }

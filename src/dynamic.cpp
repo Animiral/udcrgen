@@ -134,42 +134,45 @@ bool Signature::dominates(const Signature& rhs) const noexcept
 	return (fundament.mask & rhs.fundament.mask) == fundament.mask;
 }
 
-DynamicProblem::DynamicProblem(InputDisks& input)
-	: solution_(input.size()),
+DynamicProblem::DynamicProblem(DiskGraph& graph)
+	: solution_(graph.size()),
 	spineHead_(),
 	branchHead_(),
-	input_(&input),
+	position_(graph.traversal(Configuration::EmbedOrder::DEPTH_FIRST)),
+	end_(graph.end()),
 	depth_(0)
 {
 }
 
-DynamicProblem::DynamicProblem(InputDisks& input, const Grid& solution, Coord spineHead, Coord branchHead)
+DynamicProblem::DynamicProblem(GraphTraversal begin, GraphTraversal end, const Grid& solution, Coord spineHead, Coord branchHead)
 	: solution_(solution),
 	spineHead_(spineHead),
 	branchHead_(branchHead),
-	input_(&input),
+	position_(begin),
+	end_(end),
 	depth_(static_cast<int>(solution.size()))
 {
 }
 
 std::vector<DynamicProblem> DynamicProblem::subproblems() const
 {
-	Disk* disk = &input_->at(depth_);
+	Disk& disk = *position_;
+	GraphTraversal nextPosition = ++GraphTraversal(position_);
 
 	// always place the first disk at (0,0)
 	if (0 == depth_) {
-		Grid solution(input_->size());
-		solution.put({ 0, 0 }, *disk);
+		Grid solution(solution_.size() + 1);
+		solution.put({ 0, 0 }, disk);
 		Coord spineHead = { 0, 0 };
-		return { DynamicProblem(*input_, solution, spineHead, {}) };
+		return { DynamicProblem(nextPosition, end_, solution, spineHead, {}) };
 	}
 
 	// place disk next to the appropriate head
 	Coord head;
-	if (2 == disk->depth) {
+	if (2 == disk.depth) {
 		head = branchHead_;
 	}
-	else if (disk->depth < 2) {
+	else if (disk.depth < 2) {
 		head = spineHead_;
 	}
 	else {
@@ -189,7 +192,7 @@ std::vector<DynamicProblem> DynamicProblem::subproblems() const
 	Coord* end = candidates + 6;
 
 	// spine is x-monotone -> limit to forward placement options
-	if (0 == disk->depth) {
+	if (0 == disk.depth) {
 		begin = candidates + 3;
 	}
 
@@ -201,18 +204,19 @@ std::vector<DynamicProblem> DynamicProblem::subproblems() const
 
 	for (auto it = begin; it != end; ++it) {
 		Grid solution = solution_;
-		solution.put(*it, *disk);
-		Coord spineHead = 0 == disk->depth ? *it : spineHead_;
-		Coord branchHead = 1 == disk->depth ? *it : branchHead_;
-		subproblems.push_back({ *input_, solution, spineHead, branchHead });
+		solution.put(*it, disk);
+		Coord spineHead = 0 == disk.depth ? *it : spineHead_;
+		Coord branchHead = 1 == disk.depth ? *it : branchHead_;
+		subproblems.push_back({ nextPosition, end_, solution, spineHead, branchHead });
 	}
 
 	return subproblems;
 }
 
-void DynamicProblem::setSolution(const Grid& solution, Coord spineHead, Coord branchHead)
+void DynamicProblem::setSolution(const Grid& solution, GraphTraversal position, Coord spineHead, Coord branchHead)
 {
 	solution_ = solution;
+	position_ = position;
 	spineHead_ = spineHead;
 	branchHead_ = branchHead;
 	depth_ = static_cast<int>(solution.size());
@@ -244,13 +248,13 @@ Signature DynamicProblem::signature() const noexcept
 	Coord head{ 0, 0 };
 
 	// consider branch head only if it is relevant at this point (upcoming leaf)
-	Disk* upcomingDisk = depth_ < input_->size() ? &(*input_)[depth_] : nullptr;
+	Disk* upcomingDisk = position_ != end_ ? &*position_ : nullptr;
 	if (upcomingDisk != nullptr && 2 == upcomingDisk->depth) {
 		head = { branchHead_.x - spineHead_.x, branchHead_.sly - spineHead_.sly };
 	}
 
 	// disregard unreachable spaces
-	fundament = reachableEventually(fundament, head, *input_, depth_);
+	fundament = reachableEventually(fundament, head, position_, end_);
 
 	// derive transformed alternative from fundament by mirroring, choose one.
 	std::bitset<25> mirrored = fundament.mask;
@@ -278,23 +282,20 @@ Signature DynamicProblem::signature() const noexcept
 }
 
 
-Fundament reachableEventually(Fundament base, Coord head, const InputDisks& input, int depth) noexcept
+Fundament reachableEventually(Fundament base, Coord head, GraphTraversal position, GraphTraversal end) noexcept
 {
-	int d = depth; // input disk index under inspection
-
 	// spaces reachable by placing leaves next to the branch head
 	Fundament leafReach;
-	if (d < input.size() && 2 == input[d].depth) {
+	if (position != end && 2 == position->depth) {
 		leafReach = base.reachable(head, 1);
 
 		// advance to next non-leaf
-		while (d < input.size() && 2 <= input[d].depth)
-			d++;
+		while (position != end && 2 <= position->depth)
+			++position;
 	}
 	else {
 		leafReach.mask.set(); // nothing reachable by leaves on branch head
 	}
-	d--; // special case: make sure not to skip input[d] later
 
 	// spaces reachable by placing spines and their descendants
 	Fundament extReach;
@@ -304,15 +305,14 @@ Fundament reachableEventually(Fundament base, Coord head, const InputDisks& inpu
 	Fundament spinePlaces;
 	spinePlaces.mask = 0x1ffeffful; // unblocked center = spine head
 
-	while (d < input.size() && !spinePlaces.mask.all()) {
+	while (position != end && !spinePlaces.mask.all()) {
 		// determine reach = max depth of nodes on current spine
 		int reach = 0;
-		d++; // advance from previous spine (or special case see above)
-		while (d < input.size() && 0 != input[d].depth) {
-			if (input[d].depth > reach)
-				reach = input[d].depth;
+		while (position != end && 0 != position->depth) {
+			if (position->depth > reach)
+				reach = position->depth;
 
-			d++;
+			++position;
 		}
 
 		// unblock all within reach from all candidate spine locations
@@ -334,6 +334,9 @@ Fundament reachableEventually(Fundament base, Coord head, const InputDisks& inpu
 
 		extReach.mask &= nextSpinePlaces.mask; // unblock locations reachable by spine alone
 		spinePlaces = nextSpinePlaces;
+
+		if (position != end)
+			++position; // advance from previous spine
 	}
 
 	Fundament result;
@@ -418,20 +421,20 @@ bool ProblemQueue::equivalent(const DynamicProblem& lhs, const DynamicProblem& r
 	return lhs.signature() == rhs.signature();
 }
 
-bool DynamicProblemEmbedder::embed(std::vector<Disk>& disks)
+bool DynamicProblemEmbedder::embed(DiskGraph& graph)
 {
 	// performance counters
 	int pushCounter = 0;
 	int popCounter = 0;
 
 	ProblemQueue queue;
-	queue.push(DynamicProblem(disks));
+	queue.push(DynamicProblem(graph));
 	pushCounter++;
 
 	while (!queue.empty()) {
 		const DynamicProblem& next = queue.top();
 
-		if (next.depth() == disks.size()) {
+		if (next.depth() == graph.size()) {
 			// accept solution - this solves all parent problems
 			next.solution().apply();
 			break;
@@ -451,7 +454,7 @@ bool DynamicProblemEmbedder::embed(std::vector<Disk>& disks)
 
 	if (queue.empty()) {
 		// no embedding found - mark all disks failed
-		for (Disk& disk : disks) {
+		for (Disk& disk : graph.disks()) {
 			disk.failure = true;
 		}
 		trace("No solution found.");

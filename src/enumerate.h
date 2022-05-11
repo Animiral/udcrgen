@@ -7,6 +7,7 @@
 #include "embed.h"
 #include "output/svg.h"
 #include "output/csv.h"
+#include "output/archive.h"
 #include "config.h"
 #include <vector>
 
@@ -114,6 +115,15 @@ public:
 	void setCsv(Csv* csv) noexcept;
 
 	/**
+	 * @brief Configure the archive handler.
+	 *
+	 * If set, write a file in degree format for every evaluated instance.
+	 *
+	 * @param archive pointer to an archive handler or @c nullptr to disable
+	 */
+	void setArchive(Archive* archive) noexcept;
+
+	/**
 	 * Access statistics gathered.
 	 */
 	const std::vector<Stat>& stats() const noexcept;
@@ -150,6 +160,7 @@ private:
 
 	Svg* output_;
 	Csv* csv_;
+	Archive* archive_;
 	std::vector<Stat> stats_;
 
 };

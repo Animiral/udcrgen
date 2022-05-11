@@ -16,6 +16,7 @@ add_library(udcr STATIC
 	"src/output/csv.cpp" "src/output/csv.h"
 	"src/output/svg.cpp" "src/output/svg.h"
 	"src/output/ipe.cpp" "src/output/ipe.h"
+	"src/output/archive.h" "src/output/archive.cpp"
 	"src/output/translate.cpp" "src/output/translate.h"
 	"src/utility/geometry.cpp" "src/utility/geometry.h"
 	"src/utility/graph.cpp" "src/utility/graph.h"
@@ -29,7 +30,7 @@ target_include_directories(udcr PRIVATE ${PROJECT_SOURCE_DIR}/src)
 add_executable(udcrgen "src/main.cpp"
 	"src/config.h" "src/embed.h" "src/heuristic.h" "src/dynamic.h" "src/enumerate.h"
 	"src/utility/graph.h" "src/utility/exception.h" "src/utility/grid.h" "src/utility/geometry.h" "src/utility/stat.h"
-	"src/output/translate.h" "src/output/ipe.h" "src/output/svg.h" "src/output/csv.h")
+	"src/output/translate.h" "src/output/ipe.h" "src/output/svg.h" "src/output/csv.h" "src/output/archive.h")
 target_link_libraries(udcrgen udcr)
 
 # This is the generator executable, which produces test cases.
@@ -48,8 +49,8 @@ add_executable(unittests
 	"test/test_heuristic.cpp" "src/heuristic.h"
 	"test/test_enumerate.cpp" "src/enumerate.h" "src/output/csv.h" "src/output/svg.h" "src/output/translate.h"
 	"test/test_config.cpp" "src/config.h"
-	"src/utility/exception.h" "src/utility/geometry.h" "src/utility/stat.h"
-	)
+	"test/test_output.cpp" "src/output/archive.h"
+	"src/utility/exception.h" "src/utility/geometry.h" "src/utility/stat.h")
 target_link_libraries(unittests ${GTEST_BOTH_LIBRARIES} udcr)
 target_include_directories(unittests PRIVATE ${PROJECT_SOURCE_DIR}/src)
 add_test(unittests unittests)

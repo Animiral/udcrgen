@@ -1,6 +1,7 @@
 # designated directories for ad-hoc program inputs and outputs
 cases/
 dump/
+archive/
 
 # gitignore for C++
 # Compiled Object files

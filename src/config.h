@@ -48,6 +48,8 @@ public:
     std::filesystem::path inputFile;
     std::filesystem::path outputFile;
     std::filesystem::path statsFile;
+    std::filesystem::path archiveYes;
+    std::filesystem::path archiveNo;
     InputFormat inputFormat = InputFormat::EDGELIST;
     OutputFormat outputFormat = OutputFormat::SVG;
     EmbedOrder embedOrder = EmbedOrder::DEPTH_FIRST;

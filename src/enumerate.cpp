@@ -6,7 +6,7 @@
 Enumerate::Enumerate(Embedder& fast, WholesaleEmbedder& reference, int minSize, int maxSize) noexcept
 	: fast_(&fast), embedOrder_(Configuration::EmbedOrder::DEPTH_FIRST),
 	reference_(&reference), minSize_(minSize), maxSize_(maxSize),
-	current_(), evaluation_(), output_(nullptr), csv_(nullptr), stats_()
+	current_(), evaluation_(), output_(nullptr), csv_(nullptr), archive_(nullptr), stats_()
 {
 	assert(minSize >= 0);
 	assert(minSize < maxSize);
@@ -118,6 +118,10 @@ Evaluation Enumerate::test(const Lobster& lobster)
 		stats_.push_back(refStat);
 	}
 
+	if (archive_) {
+		archive_->write(lobster, refStat.success);
+	}
+
 	// *** produce output if we are on the "line" between feasible/infeasible ***
 	if (output_) {
 		output_->ensureBatch();
@@ -157,6 +161,11 @@ void Enumerate::setOutput(Svg* output) noexcept
 void Enumerate::setCsv(Csv* csv) noexcept
 {
 	csv_ = csv;
+}
+
+void Enumerate::setArchive(Archive* archive) noexcept
+{
+	archive_ = archive;
 }
 
 const std::vector<Stat>& Enumerate::stats() const noexcept

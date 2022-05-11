@@ -48,7 +48,7 @@ struct Parser
     {
         LITERAL,
         ALGORITHM,
-        INPUT_FILE, OUTPUT_FILE, STATS_FILE,
+        INPUT_FILE, OUTPUT_FILE, STATS_FILE, ARCHIVE_YES, ARCHIVE_NO,
         INPUT_FORMAT, OUTPUT_FORMAT,
         EMBED_ORDER,
         
@@ -71,6 +71,8 @@ struct Parser
         if ("-i"s == opt || "--input-file"s == opt)    return Token::INPUT_FILE;
         if ("-o"s == opt || "--output-file"s == opt)   return Token::OUTPUT_FILE;
         if ("-s"s == opt || "--stats-file"s == opt)    return Token::STATS_FILE;
+        if ("--archive-yes"s == opt)                   return Token::ARCHIVE_YES;
+        if ("--archive-no"s == opt)                    return Token::ARCHIVE_NO;
         if ("-j"s == opt || "--input-format"s == opt)  return Token::INPUT_FORMAT;
         if ("-f"s == opt || "--output-format"s == opt) return Token::OUTPUT_FORMAT;
         if ("-e"s == opt || "--embed-order"s == opt)   return Token::EMBED_ORDER;
@@ -248,6 +250,8 @@ void Configuration::readArgv(int argc, const char* argv[])
         case Parser::Token::INPUT_FILE:      inputFile = parser.pathArg(); break;
         case Parser::Token::OUTPUT_FILE:     outputFile = parser.pathArg(); break;
         case Parser::Token::STATS_FILE:      statsFile = parser.pathArg(); break;
+        case Parser::Token::ARCHIVE_YES:     archiveYes = parser.pathArg(); break;
+        case Parser::Token::ARCHIVE_NO:      archiveNo = parser.pathArg(); break;
         case Parser::Token::INPUT_FORMAT:    inputFormat = parser.inputFormat(); break;
         case Parser::Token::OUTPUT_FORMAT:   outputFormat = parser.outputFormat(); break;
         case Parser::Token::EMBED_ORDER:     embedOrder = parser.embedOrder(); break;
@@ -328,6 +332,8 @@ void Configuration::dump(std::ostream& stream) const
     }
     stream << ")\n";
     stream << "\tStats File: " << statsFile << "\n";
+    stream << "\tArchive Directory (yes-instances): " << archiveYes << "\n";
+    stream << "\tArchive Directory (no-instances): " << archiveNo << "\n\n";
 
     stream << "\tEmbed Order: ";
     switch (embedOrder) {

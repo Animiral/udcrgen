@@ -174,6 +174,14 @@ void run_benchmark()
 		enumerate.setCsv(&csv);
 	}
 
+	Archive archive;
+	bool doArchive = !configuration.archiveYes.empty() || !configuration.archiveNo.empty();
+
+	if (doArchive) {
+		archive.setPaths(configuration.archiveYes, configuration.archiveNo);
+		enumerate.setArchive(&archive);
+	}
+
 	svg.intro();
 	enumerate.run();
 	svg.outro();

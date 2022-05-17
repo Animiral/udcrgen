@@ -1,6 +1,7 @@
 #include "geometry.h"
 #include <cmath>
 #include <cstdlib>
+#include <cassert>
 
 Vec2 Vec2::operator-(Vec2 vec) const noexcept
 {
@@ -80,10 +81,65 @@ bool Coord::operator==(Coord c) const noexcept
 	return x == c.x && sly == c.sly;
 }
 
+Vec2 vec(Coord coord) noexcept
+{
+	return { coord.x + coord.sly * .5f, coord.sly * 0.86602540378443864676372317075294f };
+}
+
+Coord operator+(Coord coord, Dir dir) noexcept
+{
+	switch (dir) {
+	case Dir::LEFT:       return { coord.x - 1, coord.sly };
+	case Dir::LEFT_UP:    return { coord.x - 1, coord.sly + 1 };
+	case Dir::LEFT_DOWN:  return { coord.x, coord.sly - 1 };
+	case Dir::RIGHT_UP:   return { coord.x, coord.sly + 1 };
+	case Dir::RIGHT_DOWN: return { coord.x + 1, coord.sly - 1 };
+	case Dir::RIGHT:      return { coord.x + 1, coord.sly };
+	default: assert(0); return coord;
+	}
+}
+
+std::array<Coord, 6> neighbors(Coord coord) noexcept
+{
+	return { Coord
+		{ coord.x - 1, coord.sly },
+		{ coord.x - 1, coord.sly + 1 },
+		{ coord.x, coord.sly - 1 },
+		{ coord.x, coord.sly + 1 },
+		{ coord.x + 1, coord.sly - 1 },
+		{ coord.x + 1, coord.sly }
+	};
+}
+
+std::array<Coord, 12> neighbors2(Coord coord) noexcept
+{
+	return { Coord
+		{ coord.x - 2, coord.sly },
+		{ coord.x - 2, coord.sly + 1 },
+		{ coord.x - 2, coord.sly + 2 },
+		{ coord.x - 1, coord.sly - 1 },
+		{ coord.x - 1, coord.sly + 2 },
+		{ coord.x, coord.sly + 2 },
+		{ coord.x, coord.sly - 2 },
+		{ coord.x + 1, coord.sly + 1 },
+		{ coord.x + 1, coord.sly - 2 },
+		{ coord.x + 2, coord.sly },
+		{ coord.x + 2, coord.sly - 1 },
+		{ coord.x + 2, coord.sly - 2 }
+	};
+}
+
 Dir operator+(Dir dir, Rel rel) noexcept
 {
-	if (Rel::HERE == rel)
-		return dir;
+	assert(Rel::HERE != rel); // use Rel::FORWARD for identity instead
 
 	return static_cast<Dir>((static_cast<int>(dir) + static_cast<int>(rel)) % 6);
+}
+
+Coord step(Coord from, Dir dir, Rel rel) noexcept
+{
+	if (Rel::HERE == rel)
+		return from;
+	else
+		return from + (dir + rel);
 }

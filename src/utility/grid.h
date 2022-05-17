@@ -28,20 +28,6 @@ public:
 	Disk* at(Coord coord) const;
 
 	/**
-	 * @brief Return the coordinate after taking a step in a particular relative direction.
-	 *
-	 * @param from origin coordinate to step from
-	 * @param dir principal step direction ("FORWARD")
-	 * @param rel actual step direction relative to the principal
-	 */
-	Coord step(Coord from, Dir dir, Rel rel) const;
-
-	/**
-	 * Turn the given coordinates into a 2D Euclidean plane vector.
-	 */
-	Vec2 vec(Coord coord) const;
-
-	/**
 	 * Store the given disk reference at the specified coordinates.
 	 */
 	void put(Coord coord, Disk& disk);

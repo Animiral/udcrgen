@@ -130,23 +130,23 @@ GridEmbedImpl::Affinity GridEmbedImpl::determineAffinity(Coord center) const noe
 {
 	// affinity is based on the available free space in the vicinity
 	Coord upperArea[] = {
-		grid_.step(center, principalDirection, Rel::BACK_UP),
-		grid_.step(grid_.step(center, principalDirection, Rel::BACK_UP), principalDirection, Rel::BACK),
-		grid_.step(grid_.step(center, principalDirection, Rel::BACK_UP), principalDirection, Rel::BACK_UP),
-		grid_.step(grid_.step(center, principalDirection, Rel::BACK_UP), principalDirection, Rel::FWD_UP),
-		grid_.step(center, principalDirection, Rel::FWD_UP),
-		grid_.step(grid_.step(center, principalDirection, Rel::FWD_UP), principalDirection, Rel::FWD_UP),
-		grid_.step(grid_.step(center, principalDirection, Rel::FWD_UP), principalDirection, Rel::FORWARD)
+		step(center, principalDirection, Rel::BACK_UP),
+		step(step(center, principalDirection, Rel::BACK_UP), principalDirection, Rel::BACK),
+		step(step(center, principalDirection, Rel::BACK_UP), principalDirection, Rel::BACK_UP),
+		step(step(center, principalDirection, Rel::BACK_UP), principalDirection, Rel::FWD_UP),
+		step(center, principalDirection, Rel::FWD_UP),
+		step(step(center, principalDirection, Rel::FWD_UP), principalDirection, Rel::FWD_UP),
+		step(step(center, principalDirection, Rel::FWD_UP), principalDirection, Rel::FORWARD)
 	};
 
 	Coord lowerArea[] = {
-		grid_.step(center, principalDirection, Rel::BACK_DOWN),
-		grid_.step(grid_.step(center, principalDirection, Rel::BACK_DOWN), principalDirection, Rel::BACK),
-		grid_.step(grid_.step(center, principalDirection, Rel::BACK_DOWN), principalDirection, Rel::BACK_DOWN),
-		grid_.step(grid_.step(center, principalDirection, Rel::BACK_DOWN), principalDirection, Rel::FWD_DOWN),
-		grid_.step(center, principalDirection, Rel::FWD_DOWN),
-		grid_.step(grid_.step(center, principalDirection, Rel::FWD_DOWN), principalDirection, Rel::FWD_DOWN),
-		grid_.step(grid_.step(center, principalDirection, Rel::FWD_DOWN), principalDirection, Rel::FORWARD)
+		step(center, principalDirection, Rel::BACK_DOWN),
+		step(step(center, principalDirection, Rel::BACK_DOWN), principalDirection, Rel::BACK),
+		step(step(center, principalDirection, Rel::BACK_DOWN), principalDirection, Rel::BACK_DOWN),
+		step(step(center, principalDirection, Rel::BACK_DOWN), principalDirection, Rel::FWD_DOWN),
+		step(center, principalDirection, Rel::FWD_DOWN),
+		step(step(center, principalDirection, Rel::FWD_DOWN), principalDirection, Rel::FWD_DOWN),
+		step(step(center, principalDirection, Rel::FWD_DOWN), principalDirection, Rel::FORWARD)
 	};
 
 	int upperWeight = 0;
@@ -171,45 +171,24 @@ Dir GridEmbedImpl::determinePrincipal(Coord tip) const noexcept
 	int bestValue = 200; // higher value = more blocked spaces, less desirable
 
 	for (int i = 0; i < 6; i++) {
-		Coord center = grid_.step(tip, candidates[i], Rel::FORWARD);
+		Coord center = tip + candidates[i];
 
 		// affinity is based on the available free space in the vicinity
-		Coord branchPoints[] = {
-			grid_.step(center, principalDirection, Rel::FORWARD),
-			grid_.step(center, principalDirection, Rel::BACK),
-			grid_.step(center, principalDirection, Rel::BACK_UP),
-			grid_.step(center, principalDirection, Rel::FWD_UP),
-			grid_.step(center, principalDirection, Rel::BACK_DOWN),
-			grid_.step(center, principalDirection, Rel::FWD_DOWN)
-		};
-
-		Coord leafPoints[] = {
-			grid_.step(grid_.step(center, principalDirection, Rel::FORWARD), principalDirection, Rel::FORWARD),
-			grid_.step(grid_.step(center, principalDirection, Rel::FORWARD), principalDirection, Rel::FWD_UP),
-			grid_.step(grid_.step(center, principalDirection, Rel::FORWARD), principalDirection, Rel::FWD_DOWN),
-			grid_.step(grid_.step(center, principalDirection, Rel::FWD_UP), principalDirection, Rel::FWD_UP),
-			grid_.step(grid_.step(center, principalDirection, Rel::FWD_DOWN), principalDirection, Rel::FWD_DOWN),
-			grid_.step(grid_.step(center, principalDirection, Rel::BACK_UP), principalDirection, Rel::FWD_UP),
-			grid_.step(grid_.step(center, principalDirection, Rel::BACK_UP), principalDirection, Rel::BACK_UP),
-			grid_.step(grid_.step(center, principalDirection, Rel::BACK_DOWN), principalDirection, Rel::FWD_DOWN),
-			grid_.step(grid_.step(center, principalDirection, Rel::BACK_DOWN), principalDirection, Rel::BACK_DOWN),
-			grid_.step(grid_.step(center, principalDirection, Rel::BACK), principalDirection, Rel::BACK),
-			grid_.step(grid_.step(center, principalDirection, Rel::BACK), principalDirection, Rel::BACK_UP),
-			grid_.step(grid_.step(center, principalDirection, Rel::BACK), principalDirection, Rel::BACK_DOWN)
-		};
+		std::array<Coord, 6> branchPoints = neighbors(center);
+		std::array<Coord, 12> leafPoints = neighbors2(center);
 
 		int value = 0;
 
 		if (grid_.at(center))
 			value += 100;
 
-		for (int j = 0; j < 6; j++) {
-			if (grid_.at(branchPoints[j]))
+		for (Coord c : branchPoints) {
+			if (grid_.at(c))
 				value += 2;
 		}
 
-		for (int j = 0; j < 12; j++) {
-			if (grid_.at(leafPoints[j]))
+		for (Coord c : leafPoints) {
+			if (grid_.at(c))
 				value += 1;
 		}
 
@@ -224,17 +203,8 @@ Dir GridEmbedImpl::determinePrincipal(Coord tip) const noexcept
 
 int GridEmbedImpl::countFreeNeighbors(Coord center) const noexcept
 {
-	Coord neighbors[] = {
-		grid_.step(center, principalDirection, Rel::BACK),
-		grid_.step(center, principalDirection, Rel::BACK_UP),
-		grid_.step(center, principalDirection, Rel::BACK_DOWN),
-		grid_.step(center, principalDirection, Rel::FWD_UP),
-		grid_.step(center, principalDirection, Rel::FWD_DOWN),
-		grid_.step(center, principalDirection, Rel::FORWARD)
-	};
-
-	return std::count_if(neighbors, neighbors + 6,
-		[this](Coord c) { return !grid_.at(c); });
+	std::array<Coord, 6> ns = neighbors(center);
+	return std::count_if(ns.begin(), ns.end(), [this](Coord c) { return !grid_.at(c); });
 }
 
 void GridEmbedImpl::putDiskNear(Disk& disk, Coord coord, Affinity affinity) noexcept
@@ -259,7 +229,7 @@ void GridEmbedImpl::putDiskNear(Disk& disk, Coord coord, Affinity affinity) noex
 	}
 
 	for (; candidates != end; ++candidates) {
-		Coord target = grid_.step(coord, principalDirection, *candidates);
+		Coord target = step(coord, principalDirection, *candidates);
 
 		if (!grid_.at(target) &&
 			// space heuristic: we must leave space for leaves
@@ -279,7 +249,7 @@ void GridEmbedImpl::putDiskAt(Disk& disk, Coord coord) noexcept
 	grid_.put(coord, disk);
 	disk.grid_x = coord.x;
 	disk.grid_sly = coord.sly;
-	Vec2 diskVec = grid_.vec(coord);
+	Vec2 diskVec = vec(coord);
 	disk.x = diskVec.x;
 	disk.y = diskVec.y;
 }
@@ -326,8 +296,7 @@ void WeakEmbedder::embedSpine(Disk& disk) noexcept
 
 		// bend heuristic
 		impl_.principalDirection = impl_.determinePrincipal(prevCoord);
-
-		coord = impl_.grid().step(prevCoord, impl_.principalDirection, Rel::FORWARD);
+		coord = prevCoord + impl_.principalDirection;
 	}
 
 	if (impl_.grid().at(coord)) {

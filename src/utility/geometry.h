@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <array>
+
 /**
  * Used to represent points and directions.
  */
@@ -75,9 +77,31 @@ struct Coord
 };
 
 /**
+ * Turn this coordinate into a 2D Euclidean plane vector.
+ */
+Vec2 vec(Coord coord) noexcept;
+
+/**
  * Absolute step directions on the triangular grid.
  */
 enum class Dir { LEFT_DOWN = 0, LEFT = 1, LEFT_UP = 2, RIGHT_UP = 3, RIGHT = 4, RIGHT_DOWN = 5 };
+
+/**
+ * Return the coordinate adjacent to the input coordinate in the given absolute direction.
+ */
+Coord operator+(Coord coord, Dir dir) noexcept;
+
+/**
+ * Return all coordinates on the triangular grid which are adjacent
+ * to the given center coordinate.
+ */
+std::array<Coord, 6> neighbors(Coord coord) noexcept;
+
+/**
+ * Return all coordinates on the triangular grid which have a distance of two steps
+ * to the given center coordinate.
+ */
+std::array<Coord, 12> neighbors2(Coord coord) noexcept;
 
 /**
  * @brief Relative step directions on the triangular grid.
@@ -90,7 +114,19 @@ enum class Dir { LEFT_DOWN = 0, LEFT = 1, LEFT_UP = 2, RIGHT_UP = 3, RIGHT = 4, 
 enum class Rel { FORWARD = 0, FWD_DOWN = 1, BACK_DOWN = 2,
 	BACK = 3, BACK_UP = 4, FWD_UP = 5, HERE = 6 };
 
+/**
+ * Return the direction relative to the given absolute direction.
+ */
 Dir operator+(Dir dir, Rel rel) noexcept;
+
+/**
+ * @brief Return the coordinate after taking a step in a particular relative direction.
+ *
+ * @param from origin coordinate to step from
+ * @param dir principal step direction ("FORWARD")
+ * @param rel actual step direction relative to the principal
+ */
+Coord step(Coord from, Dir dir, Rel rel) noexcept;
 
 using DiskId = int;
 constexpr DiskId NODISK = -1;

@@ -183,10 +183,11 @@ std::vector<DynamicProblem> DynamicProblem::subproblems() const
 	Fundament fundament(solution_, spineHead_);
 
 	// we have up to 6 choices to place the upcoming disk
+	// order is significant later!
 	Rel rels[6] = { Rel::BACK, Rel::BACK_UP, Rel::BACK_DOWN, Rel::FORWARD, Rel::FWD_UP, Rel::FWD_DOWN };
 	Coord candidates[6];
 	std::transform(rels, rels + 6, candidates, [this, head](Rel rel)
-		{ return solution_.step(head, Dir::RIGHT, rel); });
+		{ return step(head, Dir::RIGHT, rel); });
 
 	Coord* begin = candidates;
 	Coord* end = candidates + 6;

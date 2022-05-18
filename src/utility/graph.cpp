@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <unordered_map>
 #include <string>
+#include <cstring>
 #include <cassert>
 #include <numeric>
 
@@ -56,6 +57,8 @@ Caterpillar Caterpillar::fromText(std::istream& stream)
 
 	return caterpillar;
 }
+
+const int Lobster::NO_BRANCH = -1;
 
 Lobster::Lobster() noexcept = default;
 

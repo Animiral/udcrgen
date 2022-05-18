@@ -13,6 +13,7 @@
 #include <iomanip>
 #include <cassert>
 #include <cerrno>
+#include <cstring>
 
 namespace
 {

@@ -5,6 +5,7 @@
 
 #include <string>
 #include <numeric>
+#include <ranges>
 #include <type_traits>
 #include <iostream>
 #include <stdexcept>

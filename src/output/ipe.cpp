@@ -1,6 +1,7 @@
 #include "ipe.h"
 #include "utility/exception.h"
 #include <iomanip>
+#include <cstring>
 
 Ipe::Ipe(const DiskGraph& graph, std::ostream& stream) noexcept :
 	graph_(&graph), scale_(16.f), translate_(scale_), stream_(&stream)

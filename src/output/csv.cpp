@@ -1,4 +1,5 @@
 #include "csv.h"
+#include <cstring>
 #include "utility/exception.h"
 
 Csv::Csv(char separator) noexcept

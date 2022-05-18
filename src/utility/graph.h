@@ -67,7 +67,7 @@ class Lobster
 public:
 
 	using Spine = std::array<int, 5>; // single spine node
-	static const int NO_BRANCH = -1;
+	static const int NO_BRANCH; // = -1
 
 	Lobster() noexcept;
 	Lobster(Lobster&& ) noexcept;

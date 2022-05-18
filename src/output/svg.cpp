@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <tuple>
 #include <cassert>
+#include <cstring>
 
 Svg::Svg(std::ostream& stream) noexcept :
 	fileStream_(), stream_(&stream),

@@ -1,6 +1,7 @@
 #include "input.h"
 #include "utility/exception.h"
 #include <string>
+#include <cstring>
 #include <cassert>
 
 std::istream& readint(std::istream& stream, int& output, int minValue, int maxValue)

@@ -1,6 +1,4 @@
 #include "translate.h"
-#include <algorithm>
-#include <numeric>
 #include <cassert>
 
 Translate::Translate(float scale) noexcept
@@ -26,29 +24,16 @@ void Translate::setLimits(float top, float right, float bottom, float left, floa
 	margin_ = margin;
 }
 
-namespace
-{
-	// type of std::min and std::max
-	using Select = const float& (*)(const float&, const float&);
-
-	float merge(float value, const Disk& disk, Select select, float Disk::*member) noexcept
-	{
-		return (*select)(value, disk.*member);
-	}
-}
-
 void Translate::setLimits(const DiskGraph& graph, float margin) noexcept
 {
-	const auto& disks = graph.disks();
+	float minX = 0.f, minY = 0.f, maxX = 0.f, maxY = 0.f;
 
-	float minX = std::reduce(disks.begin(), disks.end(), 0.f,
-		[](float value, const Disk& disk) { return merge(value, disk, &std::min<float>, &Disk::x); });
-	float maxX = std::reduce(disks.begin(), disks.end(), 0.f,
-		[](float value, const Disk& disk) { return merge(value, disk, &std::max<float>, &Disk::x); });
-	float minY = std::reduce(disks.begin(), disks.end(), 0.f,
-		[](float value, const Disk& disk) { return merge(value, disk, &std::min<float>, &Disk::y); });
-	float maxY = std::reduce(disks.begin(), disks.end(), 0.f,
-		[](float value, const Disk& disk) { return merge(value, disk, &std::max<float>, &Disk::y); });
+	for (const Disk& d : graph.disks()) {
+		if (d.x < minX) minX = d.x;
+		if (d.x > maxX) maxX = d.x;
+		if (d.y < minY) minY = d.y;
+		if (d.y > maxY) maxY = d.y;
+	}
 
 	left_ = minX - .5f;
 	right_ = maxX + .5f;

@@ -31,6 +31,7 @@ add_executable(udcrgen "src/main.cpp"
 	"src/config.h" "src/embed.h" "src/heuristic.h" "src/dynamic.h" "src/enumerate.h"
 	"src/utility/graph.h" "src/utility/exception.h" "src/utility/grid.h" "src/utility/geometry.h" "src/utility/stat.h"
 	"src/output/translate.h" "src/output/ipe.h" "src/output/svg.h" "src/output/csv.h" "src/output/archive.h")
+target_include_directories(udcrgen PRIVATE ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(udcrgen udcr)
 
 # This is the generator executable, which produces test cases.

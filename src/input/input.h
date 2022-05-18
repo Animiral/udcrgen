@@ -6,6 +6,7 @@
 #pragma once
 
 #include <istream>
+#include <limits>
 
 /**
  * @brief Read an integer from the given input stream.

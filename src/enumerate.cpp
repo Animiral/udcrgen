@@ -126,6 +126,7 @@ Evaluation Enumerate::test(const Lobster& lobster)
 	if (output_) {
 		output_->ensureBatch();
 
+		// TODO: an interesting instance leaves no space next to spines/branches
 		if (evaluation_.fastSuccess && !fastStat.success)
 			output_->write(evaluation_.fastResult, format("fast {} spines {} total", fastStat.spines, fastStat.size));
 

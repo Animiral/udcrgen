@@ -58,9 +58,9 @@ public:
     float gap = .1f; //!< size of gap between non-contact disks in strong UDCRs
 
     // benchmark-specific keys
-    int spineMin = 5;
-    int spineMax = 6;
-    int batchSize = 100;
+    int spineMin = 2;
+    int spineMax = 3;
+    int batchSize = 0;
 
     /**
      * @brief Throw an exception if the configuration values are not sensible.

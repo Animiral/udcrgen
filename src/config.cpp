@@ -305,6 +305,8 @@ void Configuration::validate() const
     if (Algorithm::BENCHMARK != algorithm && inputFile.empty())
         throw ConfigException("Please specify an input file.");
 
+    // TODO: only SVG format in BENCHMARK mode
+
     if (spineMin >= spineMax)
         throw ConfigException(format("spine-min must be smaller than spine-max. ({} >= {})", spineMin, spineMax));
 }

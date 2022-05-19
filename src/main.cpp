@@ -162,7 +162,9 @@ void run_benchmark()
 	WeakEmbedder fastEmbedder;
 	DynamicProblemEmbedder referenceEmbedder;
 	Enumerate enumerate(fastEmbedder, referenceEmbedder, configuration.spineMin, configuration.spineMax);
+	enumerate.setEmbedOrder(configuration.embedOrder);
 
+	// TODO: empty output file option = no SVG output from benchmark
 	Svg svg(configuration.outputFile);
 	svg.setBatchSize(configuration.batchSize);
 	enumerate.setOutput(&svg);

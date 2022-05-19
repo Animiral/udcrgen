@@ -2,7 +2,16 @@
 
 This program will create embeddings (drawings) of caterpillar and lobster graphs, if possible.
 
-A separate generator program is included which systematically generates relevant graph instances.
+In <q>benchmark mode</q>, the program systematically generates relevant graph instances and produces statistics on the embedding results.
+
+## Supported Graph Classes
+
+The algorithms implemented here pertain to lobsters and caterpillars exclusively.
+
+Caterpillars are trees which consist of a central chain (the <q>spine</q>) and any number of leaves connected to the spine.
+Lobsters are trees which consist of a <q>spine</q>, any number of <q>branch</q> vertices connected to the spine and any number of leaves connected to the branches.
+
+For details, consult the accompanying thesis paper.
 
 ## Usage of `udcrgen`
 
@@ -12,47 +21,118 @@ udcrgen [OPTIONS...] input.graph
 
 The following options are available:
 
-* `-a`, `--algorithm` `[knp|cleve]`
+* `-a`, `--algorithm` `[knp|cleve|dynamic-program|benchmark]`
 * `-i`, `--input-file` `<FILE>`
 * `-o`, `--output-file` `<FILE>`
-* `-j`, `--input-format` `<FORMAT>`
-* `-f`, `--output-format` `<FORMAT>`
-* `-e`, `--embed-order` `[lbs|bls|lsb|bsl|sbl|slb]`
- `-g`, `--gap` `<GAP>`
+* `-s`, `--stats-file` `<FILE>`
+* `--archive-yes` `<DIRECTORY>`
+* `--archive-no` `<DIRECTORY>`
+* `-j`, `--input-format` `[degrees|edgelist]`
+* `-f`, `--output-format` `[svg|ipe|dump]`
+* `-e`, `--embed-order` `[depth-first|breadth-first]`
+* `-g`, `--gap` `<GAP>`
+* `--spine-min` `<LENGTH>`
+* `--spine-max` `<LENGTH>`
+* `--batch-size` `<SIZE>`
 * `--`: end of options
 
-For details on every command line item and synonymous options, please refer to the relevant following subsection.
+For details on every command line item and synonymous options, please refer to the relevant following section.
 
-### Supported Graph Classes
+## Algorithms
 
-Caterpillars are trees which consist of a central chain (the “spine”) and any number of leaves connected to the spine.
+The program supports three different algorithms to run on a single input instance. The last option, benchmark mode, generates a range of instances on which two different approaches are compared.
 
-Lobsters are trees which consist of a “spine”, any number of “branch” vertices connected to the spine and any number of leaves connected to the branches.
+### Klemz, Nöllenburg and Prutkin
 
-For details, consult the accompanying thesis paper.
-
-### Algorithms
-
-The program supports two classes of algorithms.
-
-#### Klemz, Nöllenburg and Prutkin
-
-This is the default.
-It implements *proper* unit disk contact, i.e. two vertices are connected if and only if the disks in their output representation are in contact.
+This algorithm implements *proper* unit disk contact, i.e. two vertices are connected if and only if the disks in their output representation are in contact.
 Use `-a knp`, `-a strict` or `-a strong` to choose this method.
 *knp* stands for _Boris Klemz, Martin Nöllenburg, and Roman Prutkin_, authors of the paper _Recognizing weighted disk contact graphs_, which contains a description of this algorithm on caterpillars.
 
 This program uses a configurable parameter called *gap* to visually distinguish disks which are not in contact.
 Use `-g <gap>` to set the floating-point value. The default is `0.1`. The diameter of the unit disks before scaling is `1`.
 
-#### Cleve
+The proper contact algorithm works exclusively on caterpillar graphs. Lobsters are not supported.
 
-The alternative implements *weak* unit disk contact, i.e. if two vertices are connected, their two corresponding disks in the output are in contact.
-Use `-a cleve` or `-a weak` to chose this method.
-It is based on a description of the algorithm on caterpillars in the paper by _Jonas Cleve_: _Weak Unit Disk Contact Representations for
-Graphs without Embedding_.
+### Cleve
 
-### Formats
+This is the default.
+
+It implements a heuristic to realize an embedding with *weak* unit disk contact, i.e. if two vertices are connected, their two corresponding disks in the output are in contact.
+Use `-a cleve` or `-a weak` to choose this method.
+A description of the algorithm on caterpillars can be found in the paper by _Jonas Cleve_: _Weak Unit Disk Contact Representations for Graphs without Embedding_.
+
+This implementation extends the approach to lobsters, while refining it with a *bend* heuristic: the spine may extend not just in a straight line, but in any of the six cardinal directions of the triangular coordinate grid.
+
+See **Heuristic Options** for command-line options on this algorithm.
+
+### Dynamic Program
+
+This is a new algorithm based on a conjecture in the paper by _Sujoy Bhore, Maarten Löffler, Martin Nöllenburg and Soeren Nickel_: _Unit Disk Representations of Embedded Trees, Outerplanar and Multi-Legged Graphs_.
+
+The conjecture is that if a weak contact embedding exists on the triangular grid for a lobster, then it admits an x-monotone embedding, i.e. an embedding in which the spine nodes are laid out with strictly increasing x coordinates.
+
+If the conjecture holds, then it is possible to embed any tri-grid lobster in linear time by considering all the possible variations up to some specific node in order and solving the remaining partial lobster recursively. Because of x-monotonicity, only a constant number of recently blocked spaces need to be checked for collisions. The actual embedding locations of the partial solution can be disregarded.
+
+The implemented algorithm does exactly this, thereby providing a way to potentially refute the conjecture by failing to embed some lobster which is otherwise known to have a (not necessarily x-monotone) embedding. On the other hand, if we enumerate all lobsters of certain lengths with *benchmark* mode and, for every lobster known to have a tri-grid embedding, we find an x-monotone embedding, this result is evidence to support the conjecture.
+
+### Benchmark
+
+With `-a benchmark`, the program runs in benchmark mode. It differs from all other algorithm settings in that there is no single input graph to be read from a file. Instead, it generates input lobsters on the fly by enumerating the possible combinations of branches on spines and leaves on branches.
+
+To save on computation, the enumeration skips over instances which are strict extensions (with more branches or leaves) of a smaller instance of which it already knows that it cannot find an embedding. Similarly, the graphs always lean *heavy* on one end, skipping their <q>mirror graph</q> with the weight on the other end.
+
+The program processes all generated instances with two algorithms: the `weak` contact heuristic and the `dynamic-program`.
+It then records the success or failure of the respective algorithm to embed the input lobster in the statistics.
+Naturally, we consider the dynamic program to be the reference algorithm, while the heuristic might not find a solution even if one exists.
+
+The benchmark produces three types of output:
+
+* SVG collection: successfully embedded <q>interesting</q> instances are written to HTML files
+* Statistics: records on every generated input instance in CSV format
+* Archive: every generated input instance in a separate file in degree-notation, ordered in directories by embedding success
+
+An <q>interesting</q> instance in this context refers to a lobster for which the produced embedding leaves no space next to any spine or branch.
+This indicates that the embedding cannot be extended to a larger instance.
+
+See **Benchmark Options** for relevant command-line options.
+
+## File and Directory Options
+
+Generally, if the user does not pass some path parameter, the associated feature is disabled.
+
+* If the `--stats-file` is not specified, there is no CSV output.
+* If the `--archive-yes` or `--archive-no` directories are not specified in *benchmark* mode, the associated instances are not written out.
+
+These exceptions apply:
+
+* The user must specify an `--input-file`, except in *benchmark* mode.
+* If the `--output-file` is not specified, the program derives the output file name from the input file name.
+* If the `--output-file` is not specified in *benchmark* mode, there is simply no SVG output.
+
+## Heuristic Options
+
+These options affect the heuristic used for embedding the graphs.
+
+Use `-e lbs` to make the embedder place *l*eaf disks as soon as possible, *b*ranch disks as soon as possible and *s*pine disks as the last priority.
+All other permutations are also valid. For example, with `-e sbl`, the complete spine will be placed before all the branches and finally all leaves.
+Regardless of preference, no disk can ever be embedded before its parent disk.
+
+## Benchmark Options
+
+In *benchmark mode*, the file given in the `--output-file` parameter is the destination for not just one, but all solved problem instances.
+Because the benchmark generates an enormous amount of instances, the output file can be limited in size. Use `--batch-size` to specify the maximum number of solutions for one SVG container file. If the batch size is unspecified or explicitly set to `0`, the program writes all SVGs to one single file.
+Once the output file has reached maximum size, further solutions will be written to `file_N.html`, where `file.html` is the configured output file name and `N` is the increasing batch number.
+
+The only supported output format (`-f` parameter) in this mode is `svg`.
+
+If the optional `--archive-yes` or `--archive-no` configuration options are set to directory path(s), lobster instances which the program enumerates during the benchmark are written, one file each, into (subdirectories of) these directories.
+The file format is in degree representation, one line per spine.
+
+Limit the scope of the instances generated for the benchmark with the `--spine-min` and `--spine-max` options.
+The benchmark applies to all lobsters with a number of spine nodes greater than or equal to the minimum and smaller than the (exclusive!) maximum.
+If the spine size limits are unspecified, the defaults are `2` (min) and `3` (max), a very small benchmark.
+
+## Formats
 
 The program currently has two input formats: `degrees` and `edgelist`.
 Both are simple, whitespace-separated custom representations of graphs.
@@ -73,17 +153,44 @@ Using `-f dump`, the program will output a text file generated from the internal
 * _p_ is the number of the parent vertex to which _v_ connects and
 * _(x, y)_ is the central coordinate of the embedded unit disk representing _v_.
 
-### Heuristic Options
+## Statistics
 
-These options affect the heuristic used for embedding the graphs.
+Every time the program applies one of its algorithms to an input graph, it builds a statistical record of the result.
+This record includes:
 
-Use `-e lbs` to make the embedder place *l*eaf disks as soon as possible, *b*ranch disks as soon as possible and *s*pine disks as the last priority.
-All other permutations are also valid. For example, with `-e sbl`, the complete spine will be placed before all the branches and finally all leaves.
-Regardless of preference, no disk can ever be embedded before its parent disk.
+* the algorithm name (same as the `-a` command-line option),
+* the total number of graph nodes in the instance,
+* the number of spine nodes in the instance,
+* success: `true` if the algorithm found an embedding, `false` otherwise,
+* the run time of the algorithm in milliseconds.
+
+The program appends the statistical record to the CSV file specified as the `--stats-file` parameter.
+One record corresponds to one CSV line.
+In the case of *benchmark* mode, all enumerated problem instances are recorded in the results.
+
+## Logging
+
+The program implements log messages at different *levels*. It prints all messages which have a level above or at the configured *log level*, which can be set using the `--log-level` command-line option.
+
+The available levels are, from highest to lowest:
+
+* `error`: conditions which directly prevent the program from operating,
+* `info`: a record of key occurrences during execution, and
+* `trace`: a detailed record of execution steps.
+
+The default level is `info`.
+
+For example, the following messages are logged:
+
+| Message                             | Level |
+|-------------------------------------|-------|
+| (Topic) Exception: ...              | error |
+| Configuration: (complete list)      | info  |
+| Embed (node type) at (coordinates). | trace |
 
 ## Usage of `gencases`
 
-The program does not offer any options at the moment.
+`gencases` is a separate, obsolete, binary included in this program.
 It populates the current directory with a predefined number of input files of the following categories, where `XX` is the number of spine vertices in the input:
 
 * `maxbranchesXX.txt`: straight-spine lobsters with a lot of branches
@@ -91,17 +198,19 @@ It populates the current directory with a predefined number of input files of th
 * `onesided_bentXX.txt`: lobsters in with every other branch is very heavy, forcing bends
 * `onesided_straightXX.txt`: lobsters in with every other branch is very heavy, but still allow for a straight spine
 
+These cases form a benchmark of sorts, but are unused because the newer *benchmark* functionality in the main program is more thorough.
+
 ## Build Instructions
 
 This project uses the CMake build system.
 
 It only depends on the [GoogleTest library](https://github.com/google/googletest) for unit testing.
 
-Run the following commands from the root of the repository directory to build.
+Run the following commands from the root of the repository directory to build with optimizations for release.
 
 ```
 $ mkdir build
 $ cd build
-$ cmake ..
+$ CMAKE_BUILD_TYPE=RELEASE cmake ..
 $ cmake --build .
 ```

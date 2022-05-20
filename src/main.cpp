@@ -5,12 +5,14 @@
 #include "enumerate.h"
 #include "utility/graph.h"
 #include "utility/exception.h"
+#include "utility/log.h"
 #include "output/ipe.h"
 #include "output/svg.h"
 #include "output/csv.h"
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <memory>
 #include <cassert>
 #include <cerrno>
 #include <cstring>
@@ -19,6 +21,10 @@ namespace
 {
 	Configuration configuration;
 
+	std::unique_ptr<FileLog> fileLog; // optional: log to file
+	std::unique_ptr<StreamLog> stderrLog; // optional: log to stderr
+	std::unique_ptr<DuplicateLog> bothLog; // optional: log to file and stderr
+
 	// These functions implement the phases of the program according to the configuration:
 	// configure -> input -> processing -> output.
 	//
@@ -26,6 +32,7 @@ namespace
 	// and the input file and input graph are ignored/empty. In that case, the output
 	// is a stats file in CSV format.
 	void build_configuration(int argc, const char* argv[]);
+	void setup_log();
 	DiskGraph read_input_graph();
 	void run_algorithm(DiskGraph& graph);
 	void run_benchmark();
@@ -40,6 +47,7 @@ int main(int argc, const char* argv[])
 	try
 	{
 		build_configuration(argc, argv);
+		setup_log();
 
 		if (Configuration::Algorithm::BENCHMARK == configuration.algorithm) {
 			run_benchmark();
@@ -51,15 +59,15 @@ int main(int argc, const char* argv[])
 		}
 	}
 	catch (const Exception& e) {
-		std::cerr << e.fullMessage() << "\n";
+		error(e.fullMessage());
 		return 1;
 	}
 	catch (const std::exception& e) {
-		std::cerr << "Error: " << e.what() << "\n";
+		error("Error: {}", e.what());
 		return 1;
 	}
 
-	std::cout << "All Done.\n";
+	info("All Done.");
 	return 0;
 }
 
@@ -71,6 +79,11 @@ void build_configuration(int argc, const char* argv[])
 	configuration.readArgv(argc, argv);
 	configuration.validate();
 	configuration.dump(std::cout);
+}
+
+void setup_log()
+{
+	theLog = new StreamLog(std::cerr);
 }
 
 DiskGraph read_input_graph()

@@ -1,5 +1,6 @@
 #include "dynamic.h"
 #include "utility/util.h"
+#include "utility/log.h"
 #include "utility/exception.h"
 #include <algorithm>
 

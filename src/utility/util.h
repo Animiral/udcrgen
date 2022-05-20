@@ -29,12 +29,6 @@ std::string format(std::string fmt, Arg arg, Args... args)
     }
 }
 
-template<typename ...Args>
-void trace(std::string fmt, Args... args)
-{
-    std::cerr << format(fmt, args...) << "\n";
-}
-
 /**
  * Join the given string-like objects with the given separator.
  *

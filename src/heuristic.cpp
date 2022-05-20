@@ -1,5 +1,6 @@
 #include "heuristic.h"
 #include "utility/util.h"
+#include "utility/log.h"
 #include "utility/exception.h"
 #include <algorithm>
 #include <cassert>

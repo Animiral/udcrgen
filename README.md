@@ -34,6 +34,9 @@ The following options are available:
 * `--spine-min` `<LENGTH>`
 * `--spine-max` `<LENGTH>`
 * `--batch-size` `<SIZE>`
+* `-v`, `--log-level` `[error|info|trace]`
+* `--log-mode` `[stderr|file|both|none]`
+* `--log-file` `<FILE>`
 * `--`: end of options
 
 For details on every command line item and synonymous options, please refer to the relevant following section.
@@ -180,6 +183,13 @@ The available levels are, from highest to lowest:
 
 The default level is `info`.
 
+Configure the log to write to the standard error stream, a log file, both, or none with the `--log-mode` option.
+The default mode is `stderr`.
+
+Configure the log file with the `--log-file` option.
+The default log file is `udcrgen.log`, where `udcrgen` is the command name (<q>0th argument</q>) used to invoke the program.
+If the log file is specified, then the default log mode is `file`.
+
 For example, the following messages are logged:
 
 | Message                             | Level |
@@ -187,6 +197,8 @@ For example, the following messages are logged:
 | (Topic) Exception: ...              | error |
 | Configuration: (complete list)      | info  |
 | Embed (node type) at (coordinates). | trace |
+
+Log errors, such as failure to write to the log file, are handled by silently ignoring them, allowing the program to continue operating without log output.
 
 ## Usage of `gencases`
 

@@ -44,6 +44,16 @@ public:
      */
     enum class EmbedOrder { DEPTH_FIRST, BREADTH_FIRST };
 
+    /**
+     * Ordered set of log message levels which can be restricted.
+     */
+    enum class LogLevel { ERROR, INFO, TRACE };
+
+    /**
+     * The log mode describes where log messages should go.
+     */
+    enum class LogMode { DEFAULT, STDERR, FILE, BOTH, NONE };
+
     Algorithm algorithm = Algorithm::CLEVE;
     std::filesystem::path inputFile;
     std::filesystem::path outputFile;
@@ -61,6 +71,10 @@ public:
     int spineMin = 2;
     int spineMax = 3;
     int batchSize = 0;
+
+    LogLevel logLevel = LogLevel::INFO;
+    LogMode logMode = LogMode::DEFAULT;
+    std::filesystem::path logFile;
 
     /**
      * @brief Throw an exception if the configuration values are not sensible.
@@ -80,3 +94,5 @@ public:
     static const char* algorithmString(Algorithm algorithm) noexcept;
 
 };
+
+int operator<=>(Configuration::LogLevel a, Configuration::LogLevel b) noexcept;

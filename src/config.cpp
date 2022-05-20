@@ -56,6 +56,8 @@ struct Parser
 
         SPINE_MIN, SPINE_MAX, BATCH_SIZE,
 
+        LOG_LEVEL, LOG_MODE, LOG_FILE,
+
         OPT_END
     };
 
@@ -83,6 +85,10 @@ struct Parser
         if ("--spine-max"s == opt)                     return Token::SPINE_MAX;
         if ("--batch-size"s == opt)                    return Token::BATCH_SIZE;
 
+        if ("-v"s == opt || "--log-level"s == opt)     return Token::LOG_LEVEL;
+        if ("--log-mode"s == opt)                      return Token::LOG_MODE;
+        if ("--log-file"s == opt)                      return Token::LOG_FILE;
+
         if ("--"s == opt)                              return Token::OPT_END;
 
         return Token::LITERAL;
@@ -96,8 +102,6 @@ struct Parser
      */
     Configuration::Algorithm algorithm()
     {
-        using namespace std::string_literals;
-
         const auto opt = next();
 
         if ("knp"s == opt || "strict"s == opt || "strong"s == opt) return Configuration::Algorithm::KLEMZ_NOELLENBURG_PRUTKIN;
@@ -116,8 +120,6 @@ struct Parser
      */
     Configuration::InputFormat inputFormat()
     {
-        using namespace std::string_literals;
-
         const auto opt = next();
 
         if ("degrees"s == opt)  return Configuration::InputFormat::DEGREES;
@@ -134,8 +136,6 @@ struct Parser
      */
     Configuration::OutputFormat outputFormat()
     {
-        using namespace std::string_literals;
-
         const auto opt = next();
 
         if ("svg"s == opt)   return Configuration::OutputFormat::SVG;
@@ -153,14 +153,49 @@ struct Parser
      */
     Configuration::EmbedOrder embedOrder()
     {
-        using namespace std::string_literals;
-
         const auto opt = next();
 
         if ("dfs"s == opt || "depth-first"s == opt)    return Configuration::EmbedOrder::DEPTH_FIRST;
         if ("bfs"s == opt || "breadth-first"s == opt)  return Configuration::EmbedOrder::BREADTH_FIRST;
 
         throw ConfigException("Unknown embed order: "s += opt);
+    }
+
+    /**
+     * Interpret the next argument value as a log level.
+     *
+     * @return: the argument parsed into a LogLevel
+     * @throw ConfigException: if the argument cannot be interpreted
+     */
+    Configuration::LogLevel logLevel()
+    {
+        const auto opt = next();
+
+        if ("error"s == opt)  return Configuration::LogLevel::ERROR;
+        if ("info"s == opt)   return Configuration::LogLevel::INFO;
+        if ("trace"s == opt)  return Configuration::LogLevel::TRACE;
+
+        throw ConfigException("Unknown log level: "s += opt);
+    }
+
+    /**
+     * Interpret the next argument value as a log mode.
+     *
+     * The log mode value @c DEFAULT is reserved and will not be parsed.
+     *
+     * @return: the argument parsed into a LogMode
+     * @throw ConfigException: if the argument cannot be interpreted
+     */
+    Configuration::LogMode logMode()
+    {
+        const auto opt = next();
+
+        if ("stderr"s == opt)  return Configuration::LogMode::STDERR;
+        if ("file"s == opt)    return Configuration::LogMode::FILE;
+        if ("both"s == opt)    return Configuration::LogMode::BOTH;
+        if ("none"s == opt)    return Configuration::LogMode::NONE;
+
+        throw ConfigException("Unknown log mode: "s += opt);
     }
 
     /**
@@ -262,6 +297,10 @@ void Configuration::readArgv(int argc, const char* argv[])
         case Parser::Token::SPINE_MAX:       spineMax = parser.intArg(); break;
         case Parser::Token::BATCH_SIZE:      batchSize = parser.intArg(); break;
 
+        case Parser::Token::LOG_LEVEL:       logLevel = parser.logLevel(); break;
+        case Parser::Token::LOG_MODE:        logMode = parser.logMode(); break;
+        case Parser::Token::LOG_FILE:        logFile = parser.pathArg(); break;
+
         case Parser::Token::OPT_END:
             //inputFiles.insert(inputFiles.end(), &parser.argv[1], &parser.argv[parser.argc]);
             parser.argc = 1;
@@ -295,6 +334,19 @@ void Configuration::readArgv(int argc, const char* argv[])
         outputFile = inputFile;
         outputFile.replace_extension(ext);
     }
+
+    if (LogMode::DEFAULT == logMode) {
+        if (logFile.empty())
+            logMode = LogMode::STDERR;
+        else
+            logMode = LogMode::FILE;
+    }
+    else {
+        if ((LogMode::FILE == logMode || LogMode::BOTH == logMode) && logFile.empty()) {
+            logFile = argv[0];
+            logFile.append(".log");
+        }
+    }
 }
 
 void Configuration::validate() const
@@ -302,13 +354,17 @@ void Configuration::validate() const
     if (Algorithm::BENCHMARK == algorithm && !inputFile.empty())
         throw ConfigException("Benchmark does not use an input file.");
 
+    if (Algorithm::BENCHMARK == algorithm && OutputFormat::SVG != outputFormat)
+        throw ConfigException("Benchmark supports only SVG as output format.");
+
     if (Algorithm::BENCHMARK != algorithm && inputFile.empty())
         throw ConfigException("Please specify an input file.");
 
-    // TODO: only SVG format in BENCHMARK mode
-
     if (spineMin >= spineMax)
         throw ConfigException(format("spine-min must be smaller than spine-max. ({} >= {})", spineMin, spineMax));
+
+    if ((LogMode::STDERR == logMode || LogMode::NONE == logMode) && !logFile.empty())
+        throw ConfigException("Please specify a log mode that includes file logging if you specify a log file.");
 }
 
 void Configuration::dump(std::ostream& stream) const
@@ -350,6 +406,26 @@ void Configuration::dump(std::ostream& stream) const
     stream << "\t(Benchmark) maximum spine length: " << spineMax << "\n";
     stream << "\t(Benchmark) batch size: " << batchSize << "\n\n";
 
+    stream << "\tLog level: ";
+    switch (logLevel) {
+    case LogLevel::ERROR: stream << "error"; break;
+    case LogLevel::INFO: stream << "info"; break;
+    case LogLevel::TRACE: stream << "trace"; break;
+    }
+    stream << "\n";
+
+    stream << "\tLog mode: ";
+    switch (logMode) {
+    case LogMode::DEFAULT: assert(0); stream << "(default)"; break;
+    case LogMode::STDERR: stream << "stderr"; break;
+    case LogMode::FILE: stream << "file"; break;
+    case LogMode::BOTH: stream << "both"; break;
+    case LogMode::NONE: stream << "none"; break;
+    }
+    stream << "\n";
+
+    stream << "\tLog file: " << logFile << "\n\n";
+
     if (stream.bad())
         throw ConfigException("Bad stream while describing configuration.");
 }
@@ -363,4 +439,9 @@ const char* Configuration::algorithmString(Algorithm algorithm) noexcept
     case Algorithm::BENCHMARK: return "benchmark";
     default: assert(0); return "?";
     }
+}
+
+int operator<=>(Configuration::LogLevel a, Configuration::LogLevel b) noexcept
+{
+    return static_cast<int>(b) - static_cast<int>(a);
 }

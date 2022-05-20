@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # All implementation details of the recognition algorithm, generator etc.
-# are compiled in this library, on which all the executables depend.
+# are compiled in this library, on which the main and test executables depend.
 add_library(udcr STATIC
 	"src/dynamic.cpp" "src/dynamic.h"
 	"src/heuristic.cpp" "src/heuristic.h"
@@ -22,6 +22,7 @@ add_library(udcr STATIC
 	"src/utility/graph.cpp" "src/utility/graph.h"
 	"src/utility/grid.cpp" "src/utility/grid.h"
 	"src/utility/util.cpp" "src/utility/util.h"
+	"src/utility/log.cpp" "src/utility/log.h"
 	"src/utility/exception.cpp" "src/utility/exception.h"
 	"src/utility/stat.h")
 target_include_directories(udcr PRIVATE ${PROJECT_SOURCE_DIR}/src)
@@ -29,7 +30,7 @@ target_include_directories(udcr PRIVATE ${PROJECT_SOURCE_DIR}/src)
 # This is the main executable.
 add_executable(udcrgen "src/main.cpp"
 	"src/config.h" "src/embed.h" "src/heuristic.h" "src/dynamic.h" "src/enumerate.h"
-	"src/utility/graph.h" "src/utility/exception.h" "src/utility/grid.h" "src/utility/geometry.h" "src/utility/stat.h"
+	"src/utility/graph.h" "src/utility/exception.h" "src/utility/grid.h" "src/utility/geometry.h" "src/utility/log.h" "src/utility/stat.h"
 	"src/output/translate.h" "src/output/ipe.h" "src/output/svg.h" "src/output/csv.h" "src/output/archive.h")
 target_include_directories(udcrgen PRIVATE ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(udcrgen udcr)
@@ -51,7 +52,7 @@ add_executable(unittests
 	"test/test_enumerate.cpp" "src/enumerate.h" "src/output/csv.h" "src/output/svg.h" "src/output/translate.h"
 	"test/test_config.cpp" "src/config.h"
 	"test/test_output.cpp" "src/output/archive.h"
-	"src/utility/exception.h" "src/utility/geometry.h" "src/utility/stat.h")
+	"src/utility/exception.h" "src/utility/geometry.h" "src/utility/stat.h" "src/utility/log.h" "src/utility/log.cpp")
 target_link_libraries(unittests ${GTEST_BOTH_LIBRARIES} udcr)
 target_include_directories(unittests PRIVATE ${PROJECT_SOURCE_DIR}/src)
 add_test(unittests unittests)

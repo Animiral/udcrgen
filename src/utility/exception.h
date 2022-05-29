@@ -20,7 +20,14 @@ class Exception : public std::exception
 public:
 
     Exception();
-    explicit Exception(const std::string& message, const std::exception* cause = nullptr);
+
+    explicit Exception(const std::string& message, auto&&... args)
+        : message_(format(message, args...)), causeMessage_()
+    {
+    }
+
+    explicit Exception(const std::string& message, const std::exception* cause);
+
     Exception(const Exception& rhs);
     Exception& operator=(const Exception& rhs);
 
@@ -58,7 +65,14 @@ class ConfigException : public Exception
 
 public:
 
-    explicit ConfigException(const std::string& message, const std::exception* cause = nullptr);
+    /**
+     * @brief Construct the Exception with a formatted message.
+     */
+    explicit ConfigException(auto&&... args)
+        : Exception(args...)
+    {
+    }
+
     virtual const char* title() const noexcept override;
 
 };
@@ -87,6 +101,14 @@ public:
     explicit InputException(const std::string& message, const std::filesystem::path& file = {},
         const std::string& token = "", const std::exception* cause = nullptr);
 
+    /**
+     * @brief Construct the Exception with a formatted message.
+     */
+    explicit InputException(auto&&... args)
+        : Exception(args...)
+    {
+    }
+
     virtual const char* title() const noexcept override;
 
 };
@@ -101,7 +123,13 @@ class EmbedException : public Exception
 
 public:
 
-    explicit EmbedException(const std::string& message);
+    /**
+     * @brief Construct the Exception with a formatted message.
+     */
+    explicit EmbedException(auto&&... args)
+        : Exception(args...)
+    {
+    }
     virtual const char* title() const noexcept override;
 
 };
@@ -125,6 +153,14 @@ public:
      */
     explicit OutputException(const std::string& message, const std::filesystem::path& file = {},
         const std::exception* cause = nullptr);
+
+    /**
+     * @brief Construct the Exception with a formatted message.
+     */
+    explicit OutputException(auto&&... args)
+        : Exception(args...)
+    {
+    }
 
     virtual const char* title() const noexcept override;
 

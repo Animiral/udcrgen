@@ -176,14 +176,14 @@ private:
 
 };
 
-MemoryLog stage1log; // initial log until configuration is established
-Log* theLog = &stage1log; // global log object
+extern MemoryLog stage1log; // initial log until configuration is established
+extern Log* theLog; // global log object
 
 /**
  * Logging convenience function which supports string formatting.
  */
 template<typename ...Args>
-void error(std::string fmt, Args... args) noexcept
+void error(const std::string& fmt, Args... args) noexcept
 {
     theLog->write(format(fmt, args...), Configuration::LogLevel::ERROR);
 }
@@ -192,7 +192,7 @@ void error(std::string fmt, Args... args) noexcept
  * Logging convenience function which supports string formatting.
  */
 template<typename ...Args>
-void info(std::string fmt, Args... args) noexcept
+void info(const std::string& fmt, Args... args) noexcept
 {
     theLog->write(format(fmt, args...), Configuration::LogLevel::INFO);
 }
@@ -201,7 +201,7 @@ void info(std::string fmt, Args... args) noexcept
  * Logging convenience function which supports string formatting.
  */
 template<typename ...Args>
-void trace(std::string fmt, Args... args) noexcept
+void trace(const std::string& fmt, Args... args) noexcept
 {
     theLog->write(format(fmt, args...), Configuration::LogLevel::TRACE);
 }

@@ -118,3 +118,6 @@ std::ostream& DuplicateLog::stream() noexcept
 {
     return *this;
 }
+
+MemoryLog stage1log; // initial log until configuration is established
+Log* theLog = &stage1log; // global log object

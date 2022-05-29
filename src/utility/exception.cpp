@@ -1,3 +1,4 @@
+#include <cassert>
 #include "exception.h"
 
 Exception::Exception()
@@ -5,19 +6,18 @@ Exception::Exception()
 {
 }
 
-Exception::Exception(const std::string& fmt, const std::exception* cause)
-    : message_(fmt), causeMessage_()
+Exception::Exception(const std::string& message, const std::exception* cause)
+    : message_(message), causeMessage_()
 {
-    if (cause) {
-        causeMessage_ = "\n\tcaused by ";
+    assert(cause);
+    causeMessage_ = "\n\tcaused by ";
 
-        auto derivedCause = dynamic_cast<const Exception*>(cause);
-        if (derivedCause) {
-            causeMessage_.append(derivedCause->fullMessage());
-        }
-        else {
-            causeMessage_.append("Exception: ").append(cause->what());
-        }
+    auto derivedCause = dynamic_cast<const Exception*>(cause);
+    if (derivedCause) {
+        causeMessage_.append(derivedCause->fullMessage());
+    }
+    else {
+        causeMessage_.append("Exception: ").append(cause->what());
     }
 }
 
@@ -50,11 +50,6 @@ const char* Exception::title() const noexcept
 std::string Exception::fullMessage() const
 {
     return std::string(title()).append(": ").append(what()).append(causeMessage_);
-}
-
-ConfigException::ConfigException(const std::string& message, const std::exception* cause)
-    : Exception(message, cause)
-{
 }
 
 const char* ConfigException::title() const noexcept
@@ -104,11 +99,6 @@ namespace
 
         return message;
     }
-}
-
-EmbedException::EmbedException(const std::string& message)
-    : Exception(message)
-{
 }
 
 const char* EmbedException::title() const noexcept

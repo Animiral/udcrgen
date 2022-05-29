@@ -28,10 +28,10 @@ std::istream& readint(std::istream& stream, int& output, int minValue, int maxVa
 
     using namespace std::string_literals;
     if (o < minValue) {
-        throw InputException(format("Read value {} is less than min value {}."s, o, minValue));
+        throw InputException("Read value {} is less than min value {}.", o, minValue);
     }
     if (o > maxValue) {
-        throw InputException(format("Read value {} is greater than max value {}."s, o, maxValue));
+        throw InputException("Read value {} is greater than max value {}.", o, maxValue);
     }
 
     output = o;

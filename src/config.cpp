@@ -218,7 +218,7 @@ struct Parser
         }
 
         if (value < minValue)
-            throw ConfigException(format("Integer argument value too small: {} (< {})", value, minValue));
+            throw ConfigException("Integer argument value too small: {} (< {})", value, minValue);
 
         return value;
     }
@@ -245,10 +245,10 @@ struct Parser
         }
 
         if (value < minValue)
-            throw ConfigException(format("Floating-point argument value too small: {} (< {})", value, minValue));
+            throw ConfigException("Floating-point argument value too small: {} (< {})", value, minValue);
 
         if (value > maxValue)
-            throw ConfigException(format("Floating-point argument value too large: {} (> {})", value, maxValue));
+            throw ConfigException("Floating-point argument value too large: {} (> {})", value, maxValue);
 
         return value;
     }
@@ -361,7 +361,7 @@ void Configuration::validate() const
         throw ConfigException("Please specify an input file.");
 
     if (spineMin >= spineMax)
-        throw ConfigException(format("spine-min must be smaller than spine-max. ({} >= {})", spineMin, spineMax));
+        throw ConfigException("spine-min must be smaller than spine-max. ({} >= {})", spineMin, spineMax);
 
     if ((LogMode::STDERR == logMode || LogMode::NONE == logMode) && !logFile.empty())
         throw ConfigException("Please specify a log mode that includes file logging if you specify a log file.");

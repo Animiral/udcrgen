@@ -6,27 +6,44 @@
 #include <string>
 #include <numeric>
 #include <ranges>
-#include <type_traits>
-#include <iostream>
+#include <ostream>
+#include <sstream>
 #include <stdexcept>
 #include <cassert>
 
 /**
  * Minimally functional string formatting to substitute for std::format.
- * The standard <format> header is not yet supported.
+ * The standard <format> header is not yet supported (by gcc).
  */
-std::string format(std::string fmt);
+std::ostream& format(std::ostream& stream, const std::string& fmt);
 
-template<typename Arg, typename ...Args>
-std::string format(std::string fmt, Arg arg, Args... args)
+/**
+ * Minimally functional string formatting to substitute for std::format.
+ * The standard <format> header is not yet supported (by gcc).
+ */
+std::ostream& format(std::ostream& stream, const std::string& fmt, auto&& arg, auto&&... args)
 {
     const auto index = fmt.find("{}", 0);
     if (index != std::string::npos) {
-        return fmt.substr(0, index) + std::to_string(arg) + format(fmt.substr(index + 2), args...);
+        stream << fmt.substr(0, index);
+        stream << arg;
+        format(stream, fmt.substr(index + 2), args...);
     }
     else {
-        return fmt;
+        stream << fmt;
     }
+    return stream;
+}
+
+/**
+ * Minimally functional string formatting to substitute for std::format.
+ * The standard <format> header is not yet supported (by gcc).
+ */
+std::string format(const std::string& fmt, auto&&... args)
+{
+    std::ostringstream stream;
+    format(stream, fmt, args...);
+    return stream.str();
 }
 
 /**

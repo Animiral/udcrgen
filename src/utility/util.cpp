@@ -1,6 +1,8 @@
 #include <string>
+#include "util.h"
 
-std::string format(std::string fmt)
+std::ostream& format(std::ostream& stream, const std::string& fmt)
 {
-    return fmt;
+    stream << fmt;
+    return stream;
 }

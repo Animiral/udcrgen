@@ -1,5 +1,6 @@
 #include "config.h"
 #include "utility/util.h"
+#include "utility/log.h"
 #include "utility/exception.h"
 #include <string>
 #include <iomanip>
@@ -171,9 +172,10 @@ struct Parser
     {
         const auto opt = next();
 
-        if ("error"s == opt)  return Configuration::LogLevel::ERROR;
-        if ("info"s == opt)   return Configuration::LogLevel::INFO;
-        if ("trace"s == opt)  return Configuration::LogLevel::TRACE;
+        if ("silent"s == opt)  return Configuration::LogLevel::SILENT;
+        if ("error"s == opt)   return Configuration::LogLevel::ERROR;
+        if ("info"s == opt)    return Configuration::LogLevel::INFO;
+        if ("trace"s == opt)   return Configuration::LogLevel::TRACE;
 
         throw ConfigException("Unknown log level: "s += opt);
     }
@@ -193,7 +195,6 @@ struct Parser
         if ("stderr"s == opt)  return Configuration::LogMode::STDERR;
         if ("file"s == opt)    return Configuration::LogMode::FILE;
         if ("both"s == opt)    return Configuration::LogMode::BOTH;
-        if ("none"s == opt)    return Configuration::LogMode::NONE;
 
         throw ConfigException("Unknown log mode: "s += opt);
     }
@@ -274,6 +275,8 @@ struct Parser
 
 void Configuration::readArgv(int argc, const char* argv[])
 {
+    argv0 = std::filesystem::path(argv[0]).filename();
+
     Parser parser{ argc, argv };
     const char* token = parser.next();
 
@@ -311,7 +314,31 @@ void Configuration::readArgv(int argc, const char* argv[])
 
         token = parser.next();
     }
+}
 
+void Configuration::validate() const
+{
+    if (Algorithm::BENCHMARK == algorithm && !inputFile.empty())
+        throw ConfigException("Benchmark does not use an input file.");
+
+    if (Algorithm::BENCHMARK == algorithm && OutputFormat::SVG != outputFormat)
+        throw ConfigException("Benchmark supports only SVG as output format.");
+
+    if (Algorithm::BENCHMARK != algorithm && inputFile.empty())
+        throw ConfigException("Please specify an input file.");
+
+    if (spineMin >= spineMax)
+        throw ConfigException("spine-min must be smaller than spine-max. ({} >= {})", spineMin, spineMax);
+
+    if (LogLevel::SILENT == logLevel && (LogMode::DEFAULT != logMode || !logFile.empty()))
+        throw ConfigException("No other log options may be combined with silent mode.");
+
+    if ((LogMode::STDERR == logMode) && !logFile.empty())
+        throw ConfigException("Please specify a log mode that includes file logging if you specify a log file.");
+}
+
+void Configuration::finalize()
+{
     // autocomplete non-defaults
     if (outputFile.empty() && !inputFile.empty()) { // infer output file name from input file name
         const char* ext = nullptr;
@@ -343,91 +370,58 @@ void Configuration::readArgv(int argc, const char* argv[])
     }
     else {
         if ((LogMode::FILE == logMode || LogMode::BOTH == logMode) && logFile.empty()) {
-            logFile = argv[0];
+            logFile = argv0;
             logFile.append(".log");
         }
     }
 }
 
-void Configuration::validate() const
+void Configuration::dump() const
 {
-    if (Algorithm::BENCHMARK == algorithm && !inputFile.empty())
-        throw ConfigException("Benchmark does not use an input file.");
+    theLog->writeRaw(LogLevel::INFO, "\n=== Configuration ===\n\n");
 
-    if (Algorithm::BENCHMARK == algorithm && OutputFormat::SVG != outputFormat)
-        throw ConfigException("Benchmark supports only SVG as output format.");
+    theLog->writeRaw(LogLevel::INFO, "Working directory: {}\n", std::filesystem::current_path());
+    theLog->writeRaw(LogLevel::INFO, "Algorithm: {}\n\n", algorithmString(algorithm));
 
-    if (Algorithm::BENCHMARK != algorithm && inputFile.empty())
-        throw ConfigException("Please specify an input file.");
-
-    if (spineMin >= spineMax)
-        throw ConfigException("spine-min must be smaller than spine-max. ({} >= {})", spineMin, spineMax);
-
-    if ((LogMode::STDERR == logMode || LogMode::NONE == logMode) && !logFile.empty())
-        throw ConfigException("Please specify a log mode that includes file logging if you specify a log file.");
-}
-
-void Configuration::dump(std::ostream& stream) const
-{
-    stream << "Configuration:\n\n";
-
-    stream << "(Running from: " << std::filesystem::current_path() << ")\n";
-
-    stream << "\tAlgorithm: " << algorithmString(algorithm) << "\n";
-
-    stream << "\tInput File: " << inputFile << " (";
-    switch (inputFormat) {
-    case InputFormat::DEGREES: stream << "degrees"; break;
-    case InputFormat::EDGELIST: stream << "edgelist"; break;
+    theLog->writeRaw(LogLevel::INFO, "= Files =\n");
+    if (Algorithm::BENCHMARK == algorithm) {
+        theLog->writeRaw(LogLevel::INFO, "\tArchive Directory (yes-instances): {}\n", archiveYes);
+        theLog->writeRaw(LogLevel::INFO, "\tArchive Directory (no-instances): {}\n", archiveNo);
     }
-    stream << ")\n";
-
-    stream << "\tOutput File: " << outputFile << " (";
-    switch (outputFormat) {
-    case OutputFormat::SVG: stream << "svg"; break;
-    case OutputFormat::IPE: stream << "ipe"; break;
-    case OutputFormat::DUMP: stream << "dump"; break;
+    else {
+        theLog->writeRaw(LogLevel::INFO, "\tInput File: {} ({})\n", inputFile, inputFormatString(inputFormat));
+        theLog->writeRaw(LogLevel::INFO, "\tOutput File: {} ({})\n", outputFile, outputFormatString(outputFormat));
     }
-    stream << ")\n";
-    stream << "\tStats File: " << statsFile << "\n";
-    stream << "\tArchive Directory (yes-instances): " << archiveYes << "\n";
-    stream << "\tArchive Directory (no-instances): " << archiveNo << "\n\n";
+    theLog->writeRaw(LogLevel::INFO, "\tStats File: {}\n\n", statsFile);
 
-    stream << "\tEmbed Order: ";
-    switch (embedOrder) {
-    case EmbedOrder::DEPTH_FIRST: stream << "depth-first"; break;
-    case EmbedOrder::BREADTH_FIRST: stream << "breadth-first"; break;
+    if (Algorithm::DYNAMIC_PROGRAM != algorithm) {
+        theLog->writeRaw(LogLevel::INFO, "= Algorithmic Parameters =\n");
     }
-    stream << "\n\n";
 
-    stream << "\tGap: " << std::setprecision(3) << gap << "\n\n";
-
-    stream << "\t(Benchmark) minimum spine length: " << spineMin << "\n";
-    stream << "\t(Benchmark) maximum spine length: " << spineMax << "\n";
-    stream << "\t(Benchmark) batch size: " << batchSize << "\n\n";
-
-    stream << "\tLog level: ";
-    switch (logLevel) {
-    case LogLevel::ERROR: stream << "error"; break;
-    case LogLevel::INFO: stream << "info"; break;
-    case LogLevel::TRACE: stream << "trace"; break;
+    if (Algorithm::BENCHMARK == algorithm) {
+        theLog->writeRaw(LogLevel::INFO, "\tMinimum spine length: {}\n", spineMin);
+        theLog->writeRaw(LogLevel::INFO, "\tMaximum spine length: {}\n", spineMax);
+        theLog->writeRaw(LogLevel::INFO, "\tBatch size: {}\n", batchSize);
     }
-    stream << "\n";
-
-    stream << "\tLog mode: ";
-    switch (logMode) {
-    case LogMode::DEFAULT: assert(0); stream << "(default)"; break;
-    case LogMode::STDERR: stream << "stderr"; break;
-    case LogMode::FILE: stream << "file"; break;
-    case LogMode::BOTH: stream << "both"; break;
-    case LogMode::NONE: stream << "none"; break;
+    if (Algorithm::KLEMZ_NOELLENBURG_PRUTKIN == algorithm) {
+        theLog->writeRaw(LogLevel::INFO, "\tGap: {}{}\n\n", std::setprecision(3), gap);
     }
-    stream << "\n";
+    if (Algorithm::CLEVE == algorithm || Algorithm::BENCHMARK == algorithm) {
+        theLog->writeRaw(LogLevel::INFO, "\tEmbed Order: {}\n\n", embedOrderString(embedOrder));
+    }
 
-    stream << "\tLog file: " << logFile << "\n\n";
+    theLog->writeRaw(LogLevel::INFO, "= Logging =\n");
+    theLog->writeRaw(LogLevel::INFO, "\tLog level: {}\n", logLevelString(logLevel));
 
-    if (stream.bad())
-        throw ConfigException("Bad stream while describing configuration.");
+    if (LogLevel::SILENT != logLevel) {
+        theLog->writeRaw(LogLevel::INFO, "\tLog mode: {}\n", logModeString(logMode));
+        if (LogMode::FILE == logMode || LogMode::BOTH == logMode) {
+            theLog->writeRaw(LogLevel::INFO, "\tLog file: {}\n", logFile);
+        }
+    }
+    theLog->writeRaw(LogLevel::INFO, "\n");
+
+    theLog->writeRaw(LogLevel::INFO, "=== Configuration ===\n\n");
 }
 
 const char* Configuration::algorithmString(Algorithm algorithm) noexcept
@@ -437,6 +431,56 @@ const char* Configuration::algorithmString(Algorithm algorithm) noexcept
     case Algorithm::CLEVE: return "cleve";
     case Algorithm::DYNAMIC_PROGRAM: return "dynamic-program";
     case Algorithm::BENCHMARK: return "benchmark";
+    default: assert(0); return "?";
+    }
+}
+
+const char* Configuration::inputFormatString(InputFormat inputFormat) noexcept
+{
+    switch (inputFormat) {
+    case InputFormat::DEGREES: return "degrees";
+    case InputFormat::EDGELIST: return "edgelist";
+    default: assert(0); return "?";
+    }
+}
+
+const char* Configuration::outputFormatString(OutputFormat outputFormat) noexcept
+{
+    switch (outputFormat) {
+    case OutputFormat::SVG: return "svg";
+    case OutputFormat::IPE: return "ipe";
+    case OutputFormat::DUMP: return "dump";
+    default: assert(0); return "?";
+    }
+}
+
+const char* Configuration::embedOrderString(EmbedOrder embedOrder) noexcept
+{
+    switch (embedOrder) {
+    case EmbedOrder::DEPTH_FIRST: return "depth-first";
+    case EmbedOrder::BREADTH_FIRST: return "breadth-first";
+    default: assert(0); return "?";
+    }
+}
+
+const char* Configuration::logLevelString(LogLevel logLevel) noexcept
+{
+    switch (logLevel) {
+    case LogLevel::SILENT: return "silent";
+    case LogLevel::ERROR: return "error";
+    case LogLevel::INFO: return "info";
+    case LogLevel::TRACE: return "trace";
+    default: assert(0); return "?";
+    }
+}
+
+const char* Configuration::logModeString(LogMode logMode) noexcept
+{
+    switch (logMode) {
+    case LogMode::DEFAULT: return "(default)";
+    case LogMode::STDERR: return "stderr";
+    case LogMode::FILE: return "file";
+    case LogMode::BOTH: return "both";
     default: assert(0); return "?";
     }
 }

@@ -2,6 +2,7 @@
 #include <chrono>
 #include <ctime>
 #include <string>
+#include <iostream>
 #include <ios>
 
 Log::Log() noexcept
@@ -10,21 +11,6 @@ Log::Log() noexcept
 }
 
 Log::~Log() noexcept = default;
-
-void Log::write(const std::string& line, Configuration::LogLevel level) noexcept
-{
-    if (level_ <= level) {
-        std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        std::string nowstr(30, '\0');
-        std::strftime(&nowstr[0], nowstr.size(), "%Y-%m-%d %H:%M:%S ", std::localtime(&now));
-
-        using namespace std::string_literals;
-        std::string levels[] = { "[ERROR] "s, "[INFO] "s, "[TRACE] "s };
-        std::string levelstr = levels[static_cast<std::size_t>(level)];
-
-        writeImpl(nowstr + levelstr + line + "\n");
-    }
-}
 
 Configuration::LogLevel Log::level() const noexcept
 {
@@ -36,21 +22,62 @@ void Log::setLevel(Configuration::LogLevel level) noexcept
     level_ = level;
 }
 
+std::string Log::tag(Configuration::LogLevel level) const noexcept
+{
+    std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    std::string nowstr(30, '\0');
+    std::size_t written = std::strftime(&nowstr[0], nowstr.size(), "%Y-%m-%d %H:%M:%S ", std::localtime(&now));
+
+    using namespace std::string_literals;
+    std::string levels[] = { "[!!] "s, "[ERROR] "s, "[INFO] "s, "[TRACE] "s };
+    std::string levelstr = levels[static_cast<std::size_t>(level)];
+
+    return nowstr.substr(0, written) + levelstr;
+}
+
+
+MemoryLog::~MemoryLog() noexcept
+{
+    shutdown();
+}
 
 void MemoryLog::replay(Log& successor) noexcept
 {
-    // choose highest level to make sure the messages are written
-    successor.writeRaw(contents_.str(), Configuration::LogLevel::ERROR);
+    for (const Item& item : memory_)
+        successor.writeRaw(item.level, item.contents);
+
+    memory_.resize(0);
+    shutdown_ = true;
 }
 
-void MemoryLog::writeImpl(const std::string& line) noexcept
+void MemoryLog::shutdown() noexcept
 {
-    contents_ << line;
+    for (const Item& item : memory_) {
+        if (level() <= item.level)
+            std::clog << item.contents;
+    }
+
+    memory_.resize(0);
+    shutdown_ = true;
 }
 
-std::ostream& MemoryLog::stream() noexcept
+void MemoryLog::writeImpl(const std::string& item) noexcept
 {
-    return contents_;
+    if (shutdown_) {
+        std::clog << item;
+    }
+    else {
+        Configuration::LogLevel level; // stupid reconstruction of message level
+
+        if (item.npos != item.find("[INFO]"))
+            level = Configuration::LogLevel::INFO;
+        else if (item.npos != item.find("[TRACE]"))
+            level = Configuration::LogLevel::TRACE;
+        else
+            level = Configuration::LogLevel::ERROR;
+
+        memory_.push_back({ level, item });
+    }
 }
 
 
@@ -59,14 +86,9 @@ FileLog::FileLog(const std::filesystem::path& filepath) noexcept
 {
 }
 
-void FileLog::writeImpl(const std::string& line) noexcept
+void FileLog::writeImpl(const std::string& item) noexcept
 {
-    file_ << line;
-}
-
-std::ostream& FileLog::stream() noexcept
-{
-    return file_;
+    file_ << item;
 }
 
 
@@ -75,19 +97,14 @@ StreamLog::StreamLog(std::ostream& stream) noexcept
 {
 }
 
-void StreamLog::writeImpl(const std::string& line) noexcept
+void StreamLog::writeImpl(const std::string& item) noexcept
 {
-    *stream_ << line;
-}
-
-std::ostream& StreamLog::stream() noexcept
-{
-    return *stream_;
+    *stream_ << item;
 }
 
 
 DuplicateLog::DuplicateLog(Log& first, Log& second) noexcept
-    : std::ostream(this), first_(&first), second_(&second)
+    : first_(&first), second_(&second)
 {
 }
 
@@ -101,23 +118,13 @@ Log& DuplicateLog::second() const noexcept
     return *second_;
 }
 
-int DuplicateLog::overflow(int c) noexcept
-{
-    writeImpl(std::string{ static_cast<char>(c) });
-    return 0;
-}
-
-void DuplicateLog::writeImpl(const std::string& line) noexcept
+void DuplicateLog::writeImpl(const std::string& item) noexcept
 {
     // choose highest level to make sure the messages are written
-    first_->writeRaw(line, Configuration::LogLevel::ERROR);
-    second_->writeRaw(line, Configuration::LogLevel::ERROR);
+    first_->writeRaw(Configuration::LogLevel::ERROR, item);
+    second_->writeRaw(Configuration::LogLevel::ERROR, item);
 }
 
-std::ostream& DuplicateLog::stream() noexcept
-{
-    return *this;
-}
 
 MemoryLog stage1log; // initial log until configuration is established
 Log* theLog = &stage1log; // global log object

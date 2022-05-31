@@ -22,7 +22,7 @@ namespace
 	Configuration configuration;
 
 	std::unique_ptr<FileLog> fileLog; // optional: log to file
-	std::unique_ptr<StreamLog> stderrLog; // optional: log to stderr
+	std::unique_ptr<StreamLog> streamLog; // optional: log to stderr
 	std::unique_ptr<DuplicateLog> bothLog; // optional: log to file and stderr
 
 	// These functions implement the phases of the program according to the configuration:
@@ -32,11 +32,11 @@ namespace
 	// and the input file and input graph are ignored/empty. In that case, the output
 	// is a stats file in CSV format.
 	void build_configuration(int argc, const char* argv[]);
-	void setup_log();
-	DiskGraph read_input_graph();
-	void run_algorithm(DiskGraph& graph);
+	void setup_log(); // init log and replay memory of stage 1 log
+	DiskGraph read_input_graph(); // single mode: read from specified file
+	void run_algorithm(DiskGraph& graph); // run single mode on graph (except benchmark)
 	void run_benchmark();
-	void write_output_graph(const DiskGraph& graph);
+	void write_output_graph(const DiskGraph& graph); // single mode: write to output file
 
 	// basic text dump for debugging
 	void write_output_graph_stream(const DiskGraph& graph, std::ostream& stream);
@@ -46,8 +46,8 @@ int main(int argc, const char* argv[])
 {
 	try
 	{
+		trace("{} started with {} args, parse configuration...", argv[0], argc);
 		build_configuration(argc, argv);
-		setup_log();
 
 		if (Configuration::Algorithm::BENCHMARK == configuration.algorithm) {
 			run_benchmark();
@@ -59,10 +59,12 @@ int main(int argc, const char* argv[])
 		}
 	}
 	catch (const Exception& e) {
+		stage1log.shutdown(); // emergency preserve logs
 		error(e.fullMessage());
 		return 1;
 	}
 	catch (const std::exception& e) {
+		stage1log.shutdown(); // emergency preserve logs
 		error("Error: {}", e.what());
 		return 1;
 	}
@@ -78,12 +80,37 @@ void build_configuration(int argc, const char* argv[])
 {
 	configuration.readArgv(argc, argv);
 	configuration.validate();
-	configuration.dump(std::cout);
+	configuration.finalize();
+	setup_log();
+	configuration.dump();
 }
 
 void setup_log()
 {
-	theLog = new StreamLog(std::cerr);
+	switch (configuration.logMode) {
+	default:
+	case Configuration::LogMode::DEFAULT:
+	case Configuration::LogMode::STDERR:
+		streamLog.reset(new StreamLog(std::clog));
+		theLog = streamLog.get();
+		break;
+
+	case Configuration::LogMode::FILE:
+		fileLog.reset(new FileLog(configuration.logFile));
+		theLog = fileLog.get();
+		break;
+
+	case Configuration::LogMode::BOTH:
+		streamLog.reset(new StreamLog(std::clog));
+		fileLog.reset(new FileLog(configuration.logFile));
+		bothLog.reset(new DuplicateLog(*streamLog, *fileLog));
+		theLog = bothLog.get();
+		break;
+
+	}
+
+	theLog->setLevel(configuration.logLevel);
+	stage1log.replay(*theLog);
 }
 
 DiskGraph read_input_graph()
@@ -92,7 +119,7 @@ DiskGraph read_input_graph()
 
 	DiskGraph graph;
 
-	std::cout << "Process input file " << configuration.inputFile << "...\n";
+	info("Process input file {}...", configuration.inputFile);
 	std::ifstream stream{ configuration.inputFile };
 	if (!stream.is_open())
 		throw InputException(std::strerror(errno), configuration.inputFile.string());

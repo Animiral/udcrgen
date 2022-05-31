@@ -47,13 +47,14 @@ public:
     /**
      * Ordered set of log message levels which can be restricted.
      */
-    enum class LogLevel { ERROR, INFO, TRACE };
+    enum class LogLevel { SILENT, ERROR, INFO, TRACE };
 
     /**
      * The log mode describes where log messages should go.
      */
-    enum class LogMode { DEFAULT, STDERR, FILE, BOTH, NONE };
+    enum class LogMode { DEFAULT, STDERR, FILE, BOTH };
 
+    std::filesystem::path argv0; //!< invoked program name
     Algorithm algorithm = Algorithm::CLEVE;
     std::filesystem::path inputFile;
     std::filesystem::path outputFile;
@@ -82,9 +83,15 @@ public:
     void validate() const;
 
     /**
-     * Write the parsed information in the configuration to the given stream.
+     * @brief Complete some configuration values whose defaults depend on
+     *        other parts of the configuration, such as the output file.
      */
-    void dump(std::ostream& stream) const;
+    void finalize();
+
+    /**
+     * Log the parsed information in the configuration.
+     */
+    void dump() const;
 
     /**
      * Return a human-readable representation of the algorithm enumeration value.
@@ -92,6 +99,41 @@ public:
      * This matches the expected command line value to select the algorithm to run.
      */
     static const char* algorithmString(Algorithm algorithm) noexcept;
+
+    /**
+     * Return a human-readable representation of the input format enumeration value.
+     *
+     * This matches the expected command line value to select the input format.
+     */
+    static const char* inputFormatString(InputFormat inputFormat) noexcept;
+
+    /**
+     * Return a human-readable representation of the output format enumeration value.
+     *
+     * This matches the expected command line value to select the output format.
+     */
+    static const char* outputFormatString(OutputFormat outputFormat) noexcept;
+
+    /**
+     * Return a human-readable representation of the embed order enumeration value.
+     *
+     * This matches the expected command line value to select the embed order.
+     */
+    static const char* embedOrderString(EmbedOrder embedOrder) noexcept;
+
+    /**
+     * Return a human-readable representation of the log level enumeration value.
+     *
+     * This matches the expected command line value to select the log level.
+     */
+    static const char* logLevelString(LogLevel logLevel) noexcept;
+
+    /**
+     * Return a human-readable representation of the log mode enumeration value.
+     *
+     * This matches the expected command line value to select the log mode.
+     */
+    static const char* logModeString(LogMode logMode) noexcept;
 
 };
 

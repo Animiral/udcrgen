@@ -34,8 +34,8 @@ The following options are available:
 * `--spine-min` `<LENGTH>`
 * `--spine-max` `<LENGTH>`
 * `--batch-size` `<SIZE>`
-* `-v`, `--log-level` `[error|info|trace]`
-* `--log-mode` `[stderr|file|both|none]`
+* `-v`, `--log-level` `[silent|error|info|trace]`
+* `--log-mode` `[stderr|file|both]`
 * `--log-file` `<FILE>`
 * `--`: end of options
 
@@ -177,13 +177,14 @@ The program implements log messages at different *levels*. It prints all message
 
 The available levels are, from highest to lowest:
 
+* `silent`: no messages are logged at this level,
 * `error`: conditions which directly prevent the program from operating,
 * `info`: a record of key occurrences during execution, and
 * `trace`: a detailed record of execution steps.
 
 The default level is `info`.
 
-Configure the log to write to the standard error stream, a log file, both, or none with the `--log-mode` option.
+Configure the log to write to the stderr stream, a log file, or both with the `--log-mode` option.
 The default mode is `stderr`.
 
 Configure the log file with the `--log-file` option.

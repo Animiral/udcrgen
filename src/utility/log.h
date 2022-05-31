@@ -29,18 +29,19 @@ public:
     /**
      * Print a one-line log message with decorations for the current timestamp and level.
      */
-    void write(const std::string& line, Configuration::LogLevel level) noexcept;
-
-    /**
-     * Print any value that is compatible with @c std::ostream without decorations.
-     *
-     * The user is responsible for ending with a newline before the next @c write.
-     */
-    template<typename T>
-    Log& writeRaw(const T& item, Configuration::LogLevel level) noexcept
+    void write(Configuration::LogLevel level, const std::string& fmt, auto&&... args) noexcept
     {
         if (level_ <= level)
-            stream() << item;
+            writeImpl(tag(level) + format(fmt, args...) + "\n");
+    }
+
+    /**
+     * Print a formatted log string without any decorations or newline.
+     */
+    Log& writeRaw(Configuration::LogLevel level, const std::string& fmt, auto&&... args) noexcept
+    {
+        if (level_ <= level)
+            writeImpl(format(fmt, args...));
 
         return *this;
     }
@@ -60,10 +61,11 @@ public:
 
 protected:
 
-    virtual void writeImpl(const std::string& line) noexcept = 0;
-    virtual std::ostream& stream() noexcept = 0;
+    virtual void writeImpl(const std::string& item) noexcept = 0;
 
 private:
+
+    std::string tag(Configuration::LogLevel level) const noexcept;
 
     Configuration::LogLevel level_;
 
@@ -74,27 +76,41 @@ private:
  *
  * It acts as a buffer for the startup phase of the program, during which the
  * log is not yet initialized according to the program options.
- *
- * After setting up the real log, this log can @c replay its contents as a
- * handover mechanism.
- *
- * As an exception to the base Log interface, @c writeRaw is only supported for strings.
  */
 class MemoryLog : public Log
 {
 
 public:
 
+    virtual ~MemoryLog() noexcept;
+
+    /**
+     * After setting up the real log, replay this log's memory as a
+     * handover mechanism. Afterwards, behave like a @c StreamLog
+     * targeted at std::clog
+     */
     void replay(Log& successor) noexcept;
+
+    /**
+     * Dump this log's memory to std::clog and afterwards behave like
+     * a @c StreamLog targeted at std::clog.
+     */
+    void shutdown() noexcept;
 
 protected:
 
-    virtual void writeImpl(const std::string& line) noexcept override;
-    virtual std::ostream& stream() noexcept override;
+    virtual void writeImpl(const std::string& item) noexcept override;
 
 private:
 
-    std::ostringstream contents_;
+    struct Item
+    {
+        Configuration::LogLevel level;
+        std::string contents;
+    };
+
+    std::vector<Item> memory_;
+    bool shutdown_;
 
 };
 
@@ -113,8 +129,7 @@ public:
 
 protected:
 
-    virtual void writeImpl(const std::string& line) noexcept override;
-    virtual std::ostream& stream() noexcept override;
+    virtual void writeImpl(const std::string& item) noexcept override;
 
 private:
 
@@ -137,8 +152,7 @@ public:
 
 protected:
 
-    virtual void writeImpl(const std::string& line) noexcept override;
-    virtual std::ostream& stream() noexcept override;
+    virtual void writeImpl(const std::string& item) noexcept override;
 
 private:
 
@@ -149,7 +163,7 @@ private:
 /**
  * This log forwards all log messages to two other logs.
  */
-class DuplicateLog : public Log, private std::streambuf, public std::ostream
+class DuplicateLog : public Log
 {
 
 public:
@@ -162,12 +176,9 @@ public:
     Log& first() const noexcept;
     Log& second() const noexcept;
 
-    int overflow(int c) noexcept override;
-
 protected:
 
-    virtual void writeImpl(const std::string& line) noexcept override;
-    virtual std::ostream& stream() noexcept override;
+    virtual void writeImpl(const std::string& item) noexcept override;
 
 private:
 
@@ -182,26 +193,23 @@ extern Log* theLog; // global log object
 /**
  * Logging convenience function which supports string formatting.
  */
-template<typename ...Args>
-void error(const std::string& fmt, Args... args) noexcept
+void error(const std::string& fmt, auto&&... args) noexcept
 {
-    theLog->write(format(fmt, args...), Configuration::LogLevel::ERROR);
+    theLog->write(Configuration::LogLevel::ERROR, fmt, args...);
 }
 
 /**
  * Logging convenience function which supports string formatting.
  */
-template<typename ...Args>
-void info(const std::string& fmt, Args... args) noexcept
+void info(const std::string& fmt, auto&&... args) noexcept
 {
-    theLog->write(format(fmt, args...), Configuration::LogLevel::INFO);
+    theLog->write(Configuration::LogLevel::INFO, fmt, args...);
 }
 
 /**
  * Logging convenience function which supports string formatting.
  */
-template<typename ...Args>
-void trace(const std::string& fmt, Args... args) noexcept
+void trace(const std::string& fmt, auto&&... args) noexcept
 {
-    theLog->write(format(fmt, args...), Configuration::LogLevel::TRACE);
+    theLog->write(Configuration::LogLevel::TRACE, fmt, args...);
 }

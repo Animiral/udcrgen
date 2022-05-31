@@ -57,7 +57,7 @@ void Csv::header()
 		<< "Size" << separator_
 		<< "Spines" << separator_
 		<< "Success" << separator_
-		<< "Duration(ms)" << "\n";
+		<< "Duration(usec)" << "\n";
 
 	if (stream_.fail())
 		throw OutputException(std::strerror(errno));

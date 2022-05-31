@@ -148,7 +148,7 @@ Stat embed(DiskGraph& graph, Embedder& embedder, Configuration::Algorithm algori
 		}
 	}
 
-	stat.duration = std::chrono::duration_cast<std::chrono::milliseconds>(clock.now() - start);
+	stat.duration = std::chrono::duration_cast<std::chrono::microseconds>(clock.now() - start);
 	return stat;
 }
 
@@ -169,6 +169,6 @@ Stat embedDynamic(DiskGraph& graph, WholesaleEmbedder& embedder)
 		stat.success = embedder.embed(graph);
 	}
 
-	stat.duration = std::chrono::duration_cast<std::chrono::milliseconds>(clock.now() - start);
+	stat.duration = std::chrono::duration_cast<std::chrono::microseconds>(clock.now() - start);
 	return stat;
 }

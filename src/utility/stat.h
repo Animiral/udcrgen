@@ -16,5 +16,5 @@ struct Stat
 	int spines; //!< number of spine input vertices
 
 	bool success; //!< true if an embedding was determined possible, false otherwise
-	std::chrono::milliseconds duration; //!< run duration of algorithm
+	std::chrono::microseconds duration; //!< run duration of algorithm
 };

@@ -5,6 +5,13 @@
 #include <cassert>
 #include <cstring>
 
+Svg::Svg() noexcept :
+	fileStream_(), stream_(),
+	basePath_(), batchSize_(0), batchNr_(0), batchCount_(0),
+	scale_(100.f), translate_(scale_)
+{
+}
+
 Svg::Svg(std::ostream& stream) noexcept :
 	fileStream_(), stream_(&stream),
 	basePath_(), batchSize_(0), batchNr_(0), batchCount_(0),

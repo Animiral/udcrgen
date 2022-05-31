@@ -19,6 +19,14 @@ class Svg
 public:
 
 	/**
+	 * @brief Construct the SVG renderer without a designated output target.
+	 *
+	 * Unless a stream is later established with @c open or @c use,
+	 * trying to write a graph will throw an exception.
+	 */
+	Svg() noexcept;
+
+	/**
 	 * @brief Construct the SVG renderer for writing to the given stream.
 	 */
 	explicit Svg(std::ostream& stream) noexcept;
@@ -40,7 +48,7 @@ public:
 	void open(std::filesystem::path basePath);
 
 	/**
-	 * @brief Explicitly close this @c Svg 's own output stream.
+	 * @brief Explicitly close this @c Svg 's own output file stream.
 	 */
 	void close();
 

@@ -204,10 +204,15 @@ void run_benchmark()
 	Enumerate enumerate(fastEmbedder, referenceEmbedder, configuration.spineMin, configuration.spineMax);
 	enumerate.setEmbedOrder(configuration.embedOrder);
 
-	// TODO: empty output file option = no SVG output from benchmark
-	Svg svg(configuration.outputFile);
-	svg.setBatchSize(configuration.batchSize);
-	enumerate.setOutput(&svg);
+	Svg svg;
+	bool doInstances = !configuration.outputFile.empty();
+
+	if (doInstances) {
+		svg.open(configuration.outputFile);
+		svg.setBatchSize(configuration.batchSize);
+		svg.intro();
+		enumerate.setOutput(&svg);
+	}
 
 	Csv csv;
 	bool doStats = !configuration.statsFile.empty();
@@ -225,12 +230,16 @@ void run_benchmark()
 		enumerate.setArchive(&archive);
 	}
 
-	svg.intro();
 	enumerate.run();
-	svg.outro();
 
-	svg.close();
-	csv.close();
+	if (doInstances) {
+		svg.outro();
+		svg.close();
+	}
+
+	if (doStats) {
+		csv.close();
+	}
 }
 
 void write_output_graph(const DiskGraph& graph)

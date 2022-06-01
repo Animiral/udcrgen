@@ -165,7 +165,7 @@ This record includes:
 * the total number of graph nodes in the instance,
 * the number of spine nodes in the instance,
 * success: `true` if the algorithm found an embedding, `false` otherwise,
-* the run time of the algorithm in milliseconds.
+* the run time of the algorithm in microseconds.
 
 The program appends the statistical record to the CSV file specified as the `--stats-file` parameter.
 One record corresponds to one CSV line.

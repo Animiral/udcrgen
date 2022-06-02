@@ -47,6 +47,32 @@ bool Fundament::blocked(Coord c) const noexcept
 	return mask.test(index(c));
 }
 
+void Fundament::block(Coord c) noexcept
+{
+	mask.set(index(c));
+}
+
+void Fundament::shift(Dir dir) noexcept
+{
+	// these are all our legitimate use cases
+	assert(Dir::RIGHT == dir || Dir::RIGHT_UP == dir || Dir::RIGHT_DOWN == dir);
+
+	switch (dir) {
+	case Dir::RIGHT_UP:
+		mask >>= 5;
+		break;
+
+	case Dir::RIGHT:
+		(mask >>= 6) &= 0b01111'01111'01111'01111'01111;
+		break;
+
+	case Dir::RIGHT_DOWN:
+		(mask >>= 1) &= 0b01111'01111'01111'01111'01111;
+		break;
+
+	}
+}
+
 Fundament Fundament::reachable(Coord from, int steps) const noexcept
 {
 	Fundament result;
@@ -136,97 +162,130 @@ bool Signature::dominates(const Signature& rhs) const noexcept
 }
 
 DynamicProblem::DynamicProblem(DiskGraph& graph)
-	: solution_(graph.size()),
-	spineHead_(),
-	branchHead_(),
+	: spineHead_({ -1, 0 }), // this causes first disk at {0, 0}
 	position_(graph.traversal(Configuration::EmbedOrder::DEPTH_FIRST)),
 	end_(graph.end()),
 	depth_(0)
 {
 }
 
-DynamicProblem::DynamicProblem(GraphTraversal begin, GraphTraversal end, const Grid& solution, Coord spineHead, Coord branchHead)
-	: solution_(solution),
-	spineHead_(spineHead),
-	branchHead_(branchHead),
-	position_(begin),
-	end_(end),
-	depth_(static_cast<int>(solution.size()))
+DynamicProblem::DynamicProblem(std::shared_ptr<const DynamicProblem> parent, Dir dir)
+	: fundament_(parent->fundament_),
+	spineHead_(parent->spineHead_),
+	branchHead_(parent->branchHead_),
+	position_(parent->position_),
+	end_(parent->end_),
+	depth_(parent->depth_ + 1),
+	parent_(move(parent)) // init last, do not invalidate ptr early
 {
+	switch (position_->depth) {
+	case 0: // spine
+		placement_ = spineHead_ + dir;
+		fundament_.shift(dir);
+		fundament_.block({ 0, 0 });
+		spineHead_ = placement_;
+		break;
+
+	case 1: // branch
+	{
+		placement_ = spineHead_ + dir;
+		Coord relCoord{ placement_.x - spineHead_.x, placement_.sly - spineHead_.sly };
+		fundament_.block(relCoord);
+		branchHead_ = placement_;
+		break;
+	}
+
+	case 2: // leaf
+	{
+		placement_ = branchHead_ + dir;
+		Coord relCoord{ placement_.x - spineHead_.x, placement_.sly - spineHead_.sly };
+		fundament_.block(relCoord);
+		break;
+	}
+
+	default:
+		throw EmbedException("Dynamic program can not embed graphs deeper than lobsters");
+
+	}
+
+	++position_;
 }
 
 std::vector<DynamicProblem> DynamicProblem::subproblems() const
 {
-	Disk& disk = *position_;
-	GraphTraversal nextPosition = ++GraphTraversal(position_);
+	int diskDepth = position_->depth;
 
-	// always place the first disk at (0,0)
 	if (0 == depth_) {
-		Grid solution(solution_.size() + 1);
-		solution.put({ 0, 0 }, disk);
-		Coord spineHead = { 0, 0 };
-		return { DynamicProblem(nextPosition, end_, solution, spineHead, {}) };
+		// arbitrarily choose dir to place the first disk at (0,0)
+		auto sharedThis = std::make_shared<const DynamicProblem>(*this);
+		return { DynamicProblem(move(sharedThis), Dir::RIGHT) };
 	}
 
 	// place disk next to the appropriate head
 	Coord head;
-	if (2 == disk.depth) {
+	if (2 == diskDepth) {
 		head = branchHead_;
 	}
-	else if (disk.depth < 2) {
+	else if (diskDepth < 2) {
 		head = spineHead_;
 	}
 	else {
 		throw EmbedException("Dynamic program can not embed graphs deeper than lobsters");
 	}
 
-	// create map of blocked spaces
-	Fundament fundament(solution_, spineHead_);
-
 	// we have up to 6 choices to place the upcoming disk
 	// order is significant later!
-	Rel rels[6] = { Rel::BACK, Rel::BACK_UP, Rel::BACK_DOWN, Rel::FORWARD, Rel::FWD_UP, Rel::FWD_DOWN };
-	Coord candidates[6];
-	std::transform(rels, rels + 6, candidates, [this, head](Rel rel)
-		{ return step(head, Dir::RIGHT, rel); });
 
-	Coord* begin = candidates;
-	Coord* end = candidates + 6;
+	Dir dirs[6] = { Dir::LEFT, Dir::LEFT_UP, Dir::LEFT_DOWN, Dir::RIGHT, Dir::RIGHT_UP, Dir::RIGHT_DOWN };
+	Dir* begin = dirs;
+	Dir* end = dirs + 6;
 
 	// spine is x-monotone -> limit to forward placement options
-	if (0 == disk.depth) {
-		begin = candidates + 3;
+	if (0 == diskDepth) {
+		begin = dirs + 3;
 	}
 
 	// do not consider blocked candidate spaces
-	end = std::remove_if(begin, end, [this, fundament](Coord c)
-		{ return fundament.blocked({ c.x - spineHead_.x, c.sly - spineHead_.sly }); });
+	end = std::remove_if(begin, end, [this, head](Dir d) {
+		Coord c = head + d;
+		return fundament_.blocked({ c.x - spineHead_.x, c.sly - spineHead_.sly });
+	});
 
+	if (begin == end)
+		return {}; // skip constructing shared this
+
+	auto sharedThis = std::make_shared<const DynamicProblem>(*this);
 	std::vector<DynamicProblem> subproblems;
 
 	for (auto it = begin; it != end; ++it) {
-		Grid solution = solution_;
-		solution.put(*it, disk);
-		Coord spineHead = 0 == disk.depth ? *it : spineHead_;
-		Coord branchHead = 1 == disk.depth ? *it : branchHead_;
-		subproblems.push_back({ nextPosition, end_, solution, spineHead, branchHead });
+		subproblems.push_back({ sharedThis, *it });
 	}
 
 	return subproblems;
 }
 
-void DynamicProblem::setSolution(const Grid& solution, GraphTraversal position, Coord spineHead, Coord branchHead)
+void DynamicProblem::setState(Fundament fundament, GraphTraversal position, Coord spineHead, Coord branchHead, int depth)
 {
-	solution_ = solution;
+	fundament_ = fundament;
 	position_ = position;
 	spineHead_ = spineHead;
 	branchHead_ = branchHead;
-	depth_ = static_cast<int>(solution.size());
+	depth_ = depth;
 }
 
-const Grid& DynamicProblem::solution() const noexcept
+const Fundament& DynamicProblem::fundament() const noexcept
 {
-	return solution_;
+	return fundament_;
+}
+
+Grid DynamicProblem::solution() const
+{
+	Grid solution(depth_);
+
+	for (auto* prob = this; prob->parent_; prob = prob->parent_.get())
+		solution.put(prob->placement_, *prob->parent_->position_);
+
+	return solution;
 }
 
 Coord DynamicProblem::spineHead() const noexcept
@@ -246,7 +305,6 @@ int DynamicProblem::depth() const noexcept
 
 Signature DynamicProblem::signature() const noexcept
 {
-	Fundament fundament = Fundament(solution_, spineHead_);
 	Coord head{ 0, 0 };
 
 	// consider branch head only if it is relevant at this point (upcoming leaf)
@@ -256,7 +314,7 @@ Signature DynamicProblem::signature() const noexcept
 	}
 
 	// disregard unreachable spaces
-	fundament = reachableEventually(fundament, head, position_, end_);
+	Fundament fundament = reachableEventually(fundament_, head, position_, end_);
 
 	// derive transformed alternative from fundament by mirroring, choose one.
 	std::bitset<25> mirrored = fundament.mask;

@@ -17,6 +17,7 @@ TEST(Dynamic, fundament_blocked)
 	Coord head{ 1, 0 };
 
 	Fundament fundament(grid, head);
+	EXPECT_EQ(fundament.mask, 0b00000'00000'00100'00011'00011);
 
 	EXPECT_TRUE(fundament.blocked({ 0, 0 })); // head (should always be true)
 	EXPECT_TRUE(fundament.blocked({ -1, 0 })); // disk 0 (spine)
@@ -43,6 +44,38 @@ TEST(Dynamic, fundament_blocked)
 	EXPECT_FALSE(fundament.blocked({ 0, -2 }));
 	EXPECT_FALSE(fundament.blocked({ 1, -2 }));
 	EXPECT_FALSE(fundament.blocked({ 2, -2 }));
+
+	// modify
+	fundament.block({ 0, -2 });
+	EXPECT_TRUE(fundament.blocked({ 0, -2 }));
+}
+
+TEST(Dynamic, fundament_shift)
+{
+	// base | shifted_ru | shifted_r | shifted_rd
+	//     x          -          -          -    
+	//    x -        x -        - -        x -   
+	//   x x -      x - -      x - -      - - -  
+	//  x - - -    x x - -    - - - -    x x - -  
+	// x x * - -  x - * - -  x x * - -  x x * - -  
+	//  x x x -    x x - -    x x - -    x x - -  
+	//   x x -      x x -      x - -      x x -  
+	//    x x        x -        x -        x -   
+	//     x          x          -          -    
+	Fundament base;
+	base.mask = 0b00001'00011'01101'11111'11111;
+
+	Fundament shifted_ru = base;
+	shifted_ru.shift(Dir::RIGHT_UP);
+	EXPECT_EQ(shifted_ru.mask, 0b00000'00001'00011'01101'11111);
+
+	Fundament shifted_r = base;
+	shifted_r.shift(Dir::RIGHT);
+	EXPECT_EQ(shifted_r.mask, 0b00000'00000'00001'00110'01111);
+
+	Fundament shifted_rd = base;
+	shifted_rd.shift(Dir::RIGHT_DOWN);
+	EXPECT_EQ(shifted_rd.mask, 0b00000'00001'00110'01111'01111);
 }
 
 TEST(Dynamic, fundament_reachable)
@@ -115,7 +148,7 @@ TEST(Dynamic, signature_dominates)
 	//    x x
 	//     x
 	Fundament fun1;
-	fun1.mask = 0b11111'11111'10110'11000'10000;
+	fun1.mask = 0b00001'00011'01101'11111'11111;
 	Signature sig1{ 10, fun1, {0, 0} };
 
 	//     x
@@ -128,7 +161,7 @@ TEST(Dynamic, signature_dominates)
 	//    x x
 	//     x
 	Fundament fun2;
-	fun2.mask = 0b11111'11111'11111'11000'10000;
+	fun2.mask = 0b00001'00011'11111'11111'11111;
 	Signature sig2{ 10, fun2, {0, 0} };
 
 	//     x
@@ -141,7 +174,7 @@ TEST(Dynamic, signature_dominates)
 	//    x x
 	//     x
 	Fundament fun3;
-	fun3.mask = 0b11111'11111'11100'11000'10000;
+	fun3.mask = 0b00001'00011'00111'11111'11111;
 	Signature sig3{ 10, fun3, {0, 0} };
 
 	EXPECT_TRUE(sig1.dominates(sig1));
@@ -177,10 +210,11 @@ TEST(Dynamic, subproblem)
 	solution.put({ 0, -1 }, disks[3]);
 	solution.put({ 1, -1 }, disks[4]);
 	
+	Fundament fundament(solution, { 0, 0 });
 	DiskGraph graph(move(disks));
 	DynamicProblem problem(graph);
 	GraphTraversal position(&graph.disks()[5], Configuration::EmbedOrder::DEPTH_FIRST);
-	problem.setSolution(solution, position, { 0, 0 }, { 1, -1 });
+	problem.setState(fundament, position, { 0, 0 }, { 1, -1 }, 5);
 	EXPECT_EQ(problem.depth(), 5);
 
 	std::vector<DynamicProblem> result = problem.subproblems();
@@ -281,8 +315,9 @@ TEST(Dynamic, queue)
 	solution1.put({ 0, 0 }, graph.disks()[0]);
 	solution1.put({ -1, 0 }, graph.disks()[1]);
 	solution1.put({ 1, -1 }, graph.disks()[2]);
+	Fundament fundament1(solution1, { 0, 0 });
 	GraphTraversal position1(&graph.disks()[3], Configuration::EmbedOrder::DEPTH_FIRST);
-	p1.setSolution(solution1, position1, { 0, 0 }, { 0, -1 });
+	p1.setState(fundament1, position1, { 0, 0 }, { 0, -1 }, 3);
 
 	// prepare p2
 	//     -
@@ -299,8 +334,9 @@ TEST(Dynamic, queue)
 	solution2.put({ -1, 0 }, graph.disks()[1]);
 	solution2.put({ 1, -1 }, graph.disks()[2]);
 	solution2.put({ 1, 0 }, graph.disks()[3]);
+	Fundament fundament2(solution2, { 1, 0 });
 	GraphTraversal position2(&graph.disks()[4], Configuration::EmbedOrder::DEPTH_FIRST);
-	p2.setSolution(solution2, position2, { 1, 0 }, { 1, 0 });
+	p2.setState(fundament2, position2, { 1, 0 }, { 1, 0 }, 4);
 
 	// prepare p3
 	//     -
@@ -316,7 +352,8 @@ TEST(Dynamic, queue)
 	solution3.put({ 0, 0 }, graph.disks()[0]);
 	solution3.put({ -1, 1 }, graph.disks()[1]);
 	solution3.put({ 0, 1 }, graph.disks()[2]);
-	p3.setSolution(solution3, position1, { 0, 0 }, { -1, 0 });
+	Fundament fundament3(solution3, { 0, 0 });
+	p3.setState(fundament3, position1, { 0, 0 }, { -1, 0 }, 3);
 
 	// p1 and p3 are equal because of mirroring and reachability
 	EXPECT_FALSE(ProblemQueue::equivalent(p1, p2));
@@ -371,8 +408,9 @@ TEST(Dynamic, queue_dominant)
 	solution1.put({ 0, 1 }, graph.disks()[1]);
 	solution1.put({ 1, 0 }, graph.disks()[2]);
 	solution1.put({ 2, 0 }, graph.disks()[3]);
+	Fundament fundament1(solution1, { 2, 0 });
 	GraphTraversal position(&graph.disks()[4], Configuration::EmbedOrder::DEPTH_FIRST);
-	p1.setSolution(solution1, position, { 2, 0 }, { 2, 0 });
+	p1.setState(fundament1, position, { 2, 0 }, { 2, 0 }, 4);
 
 	// prepare p2 - "better" than p1
 	//     -
@@ -389,7 +427,8 @@ TEST(Dynamic, queue_dominant)
 	solution2.put({ 0, -1 }, graph.disks()[1]);
 	solution2.put({ 1, 0 }, graph.disks()[2]);
 	solution2.put({ 2, 0 }, graph.disks()[3]);
-	p2.setSolution(solution2, position, { 2, 0 }, { 2, 0 });
+	Fundament fundament2(solution2, { 2, 0 });
+	p2.setState(fundament2, position, { 2, 0 }, { 2, 0 }, 4);
 
 	ProblemQueue queue;
 	queue.push(p2);

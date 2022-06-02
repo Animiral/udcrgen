@@ -5,6 +5,7 @@
 #include <bitset>
 #include <queue>
 #include <set>
+#include <memory>
 #include "utility/grid.h"
 #include "utility/geometry.h"
 #include "utility/graph.h"
@@ -48,6 +49,20 @@ struct Fundament
 	 * @brief Given the relative coordinate @c c, determine whether it is occupied.
 	 */
 	bool blocked(Coord c) const noexcept;
+
+	/**
+	 * @brief Set the mask at the relative coordinate @c c to occupied.
+	 */
+	void block(Coord c) noexcept;
+
+	/**
+	 * @brief Change the center offset of the fundament.
+	 *
+	 * All blocked spaces in the fundament shift to represent the surroundings
+	 * of the new {0, 0} center, which is moved one step in the given @c dir
+	 * relative to the previous center.
+	 */
+	void shift(Dir dir) noexcept;
 
 	/**
 	 * Return a Fundament in which the non-blocked coordinates are exactly the
@@ -99,29 +114,74 @@ using InputDisks = std::vector<Disk>; // complete input
 /**
  * An instance of the dynamic programming problem.
  *
- * It consists of the solution so far and an iterator
- * into the ordered set of disks yet to solve.
+ * It consists of the immediate surroundings based on the solution this far
+ * and an iterator into the ordered set of disks yet to solve.
  */
 class DynamicProblem
 {
 
 public:
 
+	/**
+	 * @brief Create the root problem of the graph instance.
+	 */
 	explicit DynamicProblem(DiskGraph& graph);
 
 private:
 
-	DynamicProblem(GraphTraversal begin, GraphTraversal end, const Grid& solution, Coord spineHead, Coord branchHead);
+	/**
+	 * @brief Create the child problem of the given problem.
+	 *
+	 * The next disk is to be placed in the given direction from the
+	 * appropriate head (spine head or branch head).
+	 *
+	 * All children of the parent share the parent pointer because the
+	 * original parent usually does not outlive the children.
+	 */
+	DynamicProblem(std::shared_ptr<const DynamicProblem> parent, Dir dir);
 
 public:
 
+	/**
+	 * @brief Return the possible successor problems.
+	 *
+	 * Construct the successors by placing the next disk in order at one of
+	 * the applicable free spaces.
+	 */
 	std::vector<DynamicProblem> subproblems() const;
 
-	void setSolution(const Grid& solution, GraphTraversal position, Coord spineHead, Coord branchHead);
+	/**
+	 * @brief Freely configure the object for testing.
+	 */
+	void setState(Fundament fundament, GraphTraversal position, Coord spineHead, Coord branchHead, int depth);
 
-	const Grid& solution() const noexcept;
+	/**
+	 * @brief Return the current surroundings relevant to placement options.
+	 */
+	const Fundament& fundament() const noexcept;
+
+	/**
+	 * @brief Construct the full graph embedding from this and all parent embedded nodes.
+	 */
+	Grid solution() const;
+
+	/**
+	 * @brief Return the coordinate of the last placed spine.
+	 *
+	 * This is where we attach branches and the next spine disk.
+	 */
 	Coord spineHead() const noexcept;
+
+	/**
+	 * @brief Return the coordinate of the last placed branch.
+	 *
+	 * This is where we attach leaf disks.
+	 */
 	Coord branchHead() const noexcept;
+
+	/**
+	 * @brief Return the number of disks placed so far (0 at the root problem).
+	 */
 	int depth() const noexcept;
 
 	/**
@@ -135,12 +195,14 @@ public:
 
 private:
 
-	Grid solution_; // disks embedded so far
+	Fundament fundament_; // spaces blocked by disks embedded so far
 	Coord spineHead_;
 	Coord branchHead_;
 	GraphTraversal position_;
-	GraphTraversal end_;
+	GraphTraversal end_; // TODO: eliminate
 	int depth_;
+	std::shared_ptr<const DynamicProblem> parent_; // problem that this problem was derived from (by placing another disk). TODO: store only embedding info
+	Coord placement_; // coord of last disk placed
 
 };
 

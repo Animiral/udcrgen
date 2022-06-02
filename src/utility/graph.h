@@ -182,7 +182,7 @@ public:
 private:
 
 	Disk* disk_;
-	Configuration::EmbedOrder order_;
+	Configuration::EmbedOrder order_; // TODO: templatize
 
 };
 

@@ -56,6 +56,7 @@ struct Parser
         GAP,
 
         SPINE_MIN, SPINE_MAX, BATCH_SIZE,
+        BENCHMARK_BFS, BENCHMARK_DFS, BENCHMARK_DYNAMIC,
 
         LOG_LEVEL, LOG_MODE, LOG_FILE,
 
@@ -85,6 +86,9 @@ struct Parser
         if ("--spine-min"s == opt)                     return Token::SPINE_MIN;
         if ("--spine-max"s == opt)                     return Token::SPINE_MAX;
         if ("--batch-size"s == opt)                    return Token::BATCH_SIZE;
+        if ("--benchmark-bfs"s == opt)                 return Token::BENCHMARK_BFS;
+        if ("--benchmark-dfs"s == opt)                 return Token::BENCHMARK_DFS;
+        if ("--benchmark-dynamic"s == opt)             return Token::BENCHMARK_DYNAMIC;
 
         if ("-v"s == opt || "--log-level"s == opt)     return Token::LOG_LEVEL;
         if ("--log-mode"s == opt)                      return Token::LOG_MODE;
@@ -200,6 +204,24 @@ struct Parser
     }
 
     /**
+     * Interpret the next argument value as a boolean value.
+     *
+     * @return: the argument parsed into a boolean
+     * @throw ConfigException: if the argument is cannot be interpreted
+     */
+    bool boolArg()
+    {
+        const char* boolStr = next();
+
+        if ("true"s == boolStr)
+            return true;
+        else if ("false"s == boolStr)
+            return false;
+        else
+            throw ConfigException("Failed to parse boolean: {}"s, boolStr);
+    }
+
+    /**
      * Interpret the next argument value as an integer value.
      *
      * @param minValue: minimum value of the argument
@@ -299,6 +321,9 @@ void Configuration::readArgv(int argc, const char* argv[])
         case Parser::Token::SPINE_MIN:       spineMin = parser.intArg(); break;
         case Parser::Token::SPINE_MAX:       spineMax = parser.intArg(); break;
         case Parser::Token::BATCH_SIZE:      batchSize = parser.intArg(); break;
+        case Parser::Token::BENCHMARK_BFS:     benchmarkBfs = parser.boolArg(); break;
+        case Parser::Token::BENCHMARK_DFS:     benchmarkDfs = parser.boolArg(); break;
+        case Parser::Token::BENCHMARK_DYNAMIC: benchmarkDynamic = parser.boolArg(); break;
 
         case Parser::Token::LOG_LEVEL:       logLevel = parser.logLevel(); break;
         case Parser::Token::LOG_MODE:        logMode = parser.logMode(); break;
@@ -401,7 +426,11 @@ void Configuration::dump() const
     if (Algorithm::BENCHMARK == algorithm) {
         theLog->writeRaw(LogLevel::INFO, "\tMinimum spine length: {}\n", spineMin);
         theLog->writeRaw(LogLevel::INFO, "\tMaximum spine length: {}\n", spineMax);
-        theLog->writeRaw(LogLevel::INFO, "\tBatch size: {}\n", batchSize);
+        if (batchSize > 0)
+            theLog->writeRaw(LogLevel::INFO, "\tBatch size: {}\n", batchSize);
+        theLog->writeRaw(LogLevel::INFO, "\tBenchmark heuristic with BFS order: {}\n", benchmarkBfs);
+        theLog->writeRaw(LogLevel::INFO, "\tBenchmark heuristic with DFS order: {}\n", benchmarkBfs);
+        theLog->writeRaw(LogLevel::INFO, "\tBenchmark dynamic program: {}\n", benchmarkDynamic);
     }
     if (Algorithm::KLEMZ_NOELLENBURG_PRUTKIN == algorithm) {
         theLog->writeRaw(LogLevel::INFO, "\tGap: {}{}\n\n", std::setprecision(3), gap);

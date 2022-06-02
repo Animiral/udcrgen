@@ -34,6 +34,9 @@ The following options are available:
 * `--spine-min` `<LENGTH>`
 * `--spine-max` `<LENGTH>`
 * `--batch-size` `<SIZE>`
+* `--benchmark-bfs` `[true|false]`
+* `--benchmark-dfs` `[true|false]`
+* `--benchmark-dynamic` `[true|false]`
 * `-v`, `--log-level` `[silent|error|info|trace]`
 * `--log-mode` `[stderr|file|both]`
 * `--log-file` `<FILE>`
@@ -116,24 +119,44 @@ These exceptions apply:
 
 These options affect the heuristic used for embedding the graphs.
 
-Use `-e lbs` to make the embedder place *l*eaf disks as soon as possible, *b*ranch disks as soon as possible and *s*pine disks as the last priority.
-All other permutations are also valid. For example, with `-e sbl`, the complete spine will be placed before all the branches and finally all leaves.
-Regardless of preference, no disk can ever be embedded before its parent disk.
+Use `-e depth-first` to make the embedder place all leaf disks on a branch immediately after the branch disk itself.
+Use `-e breadth-first` to make the embedder place all branch disks on a spine first and only then place all leaves on the branches at that spine.
+
+Regardless of preference, the heuristic advances one spine at a time with no backtracking to previous spines and no disk can ever be embedded before its parent disk.
 
 ## Benchmark Options
 
-In *benchmark mode*, the file given in the `--output-file` parameter is the destination for not just one, but all solved problem instances.
+In *benchmark mode*, the program generates a large number of instances by itself and applies the other algorithms to them.
+The generated instances exhaustively cover all configurations for lobsters of a certain size.
+
+Even so, not all possible lobsters are actually processed.
+The generator systematically enumerates them by adding branches and leaves one by one.
+When the current instance cannot be solved by any of the enabled algorithms from the reportoire, we know that strictly larger instances will also fail.
+The generator thus proceeds with a smaller instance of a different shape.
+
+Limit the scope of the instances generated for the benchmark with the `--spine-min` and `--spine-max` options.
+The benchmark applies to all lobsters with a number of spine nodes greater than or equal to the minimum and smaller than the (exclusive!) maximum.
+If the spine size limits are unspecified, the defaults are `2` (min) and `3` (max), a very small benchmark.
+
+Choose the benchmarked algorithms with the following boolean options.
+All algorithms implement *weak* unit disk contact and all default to `true`.
+
+* `--benchmark-bfs`: run the heuristic algortihm with the breadth-first embed order.
+* `--benchmark-dfs`: run the heuristic algortihm with the depth-first embed order.
+* `--benchmark-dynamic` `[true|false]`: run the dynamic programming algortihm.
+
+The benchmark may produce three kinds of output, all optional.
+
+If the `--stats-file` option is specified, it will generate one statistical record per instance processed. See **Statistics** below.
+
+If the `--output-file` option is specified, the file serves as the destination for not just one, but all solved problem instances.
 Because the benchmark generates an enormous amount of instances, the output file can be limited in size. Use `--batch-size` to specify the maximum number of solutions for one SVG container file. If the batch size is unspecified or explicitly set to `0`, the program writes all SVGs to one single file.
 Once the output file has reached maximum size, further solutions will be written to `file_N.html`, where `file.html` is the configured output file name and `N` is the increasing batch number.
 
 The only supported output format (`-f` parameter) in this mode is `svg`.
 
-If the optional `--archive-yes` or `--archive-no` configuration options are set to directory path(s), lobster instances which the program enumerates during the benchmark are written, one file each, into (subdirectories of) these directories.
+If the `--archive-yes` or `--archive-no` options are set to directory path(s), lobster instances which the program enumerates during the benchmark are written, one file each, into (subdirectories of) these directories.
 The file format is in degree representation, one line per spine.
-
-Limit the scope of the instances generated for the benchmark with the `--spine-min` and `--spine-max` options.
-The benchmark applies to all lobsters with a number of spine nodes greater than or equal to the minimum and smaller than the (exclusive!) maximum.
-If the spine size limits are unspecified, the defaults are `2` (min) and `3` (max), a very small benchmark.
 
 ## Formats
 

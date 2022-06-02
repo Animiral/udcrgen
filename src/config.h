@@ -72,6 +72,9 @@ public:
     int spineMin = 2;
     int spineMax = 3;
     int batchSize = 0;
+    bool benchmarkBfs = true;
+    bool benchmarkDfs = true;
+    bool benchmarkDynamic = true;
 
     LogLevel logLevel = LogLevel::INFO;
     LogMode logMode = LogMode::DEFAULT;

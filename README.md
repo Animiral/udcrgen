@@ -157,6 +157,7 @@ The only supported output format (`-f` parameter) in this mode is `svg`.
 
 If the `--archive-yes` or `--archive-no` options are set to directory path(s), lobster instances which the program enumerates during the benchmark are written, one file each, into (subdirectories of) these directories.
 The file format is in degree representation, one line per spine.
+The archive contains the results of the dynamic programming algorithm, so it cannot be used together with `--benchmark-dynamic false`.
 
 ## Formats
 

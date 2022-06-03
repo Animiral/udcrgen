@@ -16,31 +16,31 @@ TEST(Enumerate, enumerate)
 
 	const auto NB = Lobster::NO_BRANCH;
 	enumerate.setCurrent({ {{4, 3, 3, NB, NB}, {3, 2, NB, NB, NB}} });
-	EXPECT_TRUE(enumerate.test().refSuccess); // embed possible
+	EXPECT_TRUE(enumerate.test().refStat.success); // embed possible
 
 	enumerate.next(); // success advancement strategy: increase branches
 	EXPECT_EQ(enumerate.current(), Lobster({ {4, 3, 3, NB, NB}, {3, 2, 0, NB, NB} }));
-	EXPECT_FALSE(enumerate.test().refSuccess); // embed not possible
+	EXPECT_FALSE(enumerate.test().refStat.success); // embed not possible
 
 	enumerate.next(); // failure advancement strategy: increase leaves on prev branch
 	EXPECT_EQ(enumerate.current(), Lobster({ {4, 3, 3, NB, NB}, {3, 3, NB, NB, NB} }));
-	EXPECT_FALSE(enumerate.test().refSuccess); // embed not possible
+	EXPECT_FALSE(enumerate.test().refStat.success); // embed not possible
 
 	enumerate.next(); // failure advancement strategy: increase leaves on prev branch
 	EXPECT_EQ(enumerate.current(), Lobster({ {4, 3, 3, NB, NB}, {4, NB, NB, NB, NB} }));
-	EXPECT_TRUE(enumerate.test().refSuccess); // embed possible
+	EXPECT_TRUE(enumerate.test().refStat.success); // embed possible
 
 	enumerate.next(); // success advancement strategy: increase branches
 	EXPECT_EQ(enumerate.current(), Lobster({ {4, 3, 3, NB, NB}, {4, 0, NB, NB, NB} }));
-	EXPECT_FALSE(enumerate.test().refSuccess); // embed not possible
+	EXPECT_FALSE(enumerate.test().refStat.success); // embed not possible
 
 	enumerate.next(); // skip past all remaining configs on spine #2, increase branches on prev spine
 	EXPECT_EQ(enumerate.current(), Lobster({ {4, 3, 3, 0, NB}, {NB, NB, NB, NB, NB} }));
-	EXPECT_TRUE(enumerate.test().refSuccess); // embed possible
+	EXPECT_TRUE(enumerate.test().refStat.success); // embed possible
 
 	// final lobster of size 2
 	enumerate.setCurrent({ {{5, 5, NB, NB, NB}, {NB, NB, NB, NB, NB}} });
-	EXPECT_FALSE(enumerate.test().refSuccess); // embed not possible
+	EXPECT_FALSE(enumerate.test().refStat.success); // embed not possible
 
 	enumerate.next(); // failure advancement strategy: increase lobster size
 	EXPECT_EQ(enumerate.current(), Lobster({ {NB, NB, NB, NB, NB}, {NB, NB, NB, NB, NB}, {NB, NB, NB, NB, NB} }));

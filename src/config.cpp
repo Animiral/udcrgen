@@ -349,6 +349,9 @@ void Configuration::validate() const
     if (Algorithm::BENCHMARK == algorithm && OutputFormat::SVG != outputFormat)
         throw ConfigException("Benchmark supports only SVG as output format.");
 
+    if (Algorithm::BENCHMARK == algorithm && !benchmarkDynamic && (!archiveYes.empty() || !archiveNo.empty()))
+        throw ConfigException("Benchmark archive requires dynamic algorithm.");
+
     if (Algorithm::BENCHMARK != algorithm && inputFile.empty())
         throw ConfigException("Please specify an input file.");
 
@@ -428,9 +431,9 @@ void Configuration::dump() const
         theLog->writeRaw(LogLevel::INFO, "\tMaximum spine length: {}\n", spineMax);
         if (batchSize > 0)
             theLog->writeRaw(LogLevel::INFO, "\tBatch size: {}\n", batchSize);
-        theLog->writeRaw(LogLevel::INFO, "\tBenchmark heuristic with BFS order: {}\n", benchmarkBfs);
-        theLog->writeRaw(LogLevel::INFO, "\tBenchmark heuristic with DFS order: {}\n", benchmarkBfs);
-        theLog->writeRaw(LogLevel::INFO, "\tBenchmark dynamic program: {}\n", benchmarkDynamic);
+        theLog->writeRaw(LogLevel::INFO, "\tBenchmark heuristic with BFS order: {}{}\n", std::boolalpha, benchmarkBfs);
+        theLog->writeRaw(LogLevel::INFO, "\tBenchmark heuristic with DFS order: {}{}\n", std::boolalpha, benchmarkDfs);
+        theLog->writeRaw(LogLevel::INFO, "\tBenchmark dynamic program: {}{}\n", std::boolalpha, benchmarkDynamic);
     }
     if (Algorithm::KLEMZ_NOELLENBURG_PRUTKIN == algorithm) {
         theLog->writeRaw(LogLevel::INFO, "\tGap: {}{}\n\n", std::setprecision(3), gap);

@@ -4,8 +4,9 @@
 #include <cassert>
 
 Enumerate::Enumerate(Embedder& fast, WholesaleEmbedder& reference, int minSize, int maxSize) noexcept
-	: fast_(&fast), embedOrder_(Configuration::EmbedOrder::DEPTH_FIRST),
-	reference_(&reference), minSize_(minSize), maxSize_(maxSize),
+	: fast_(&fast), reference_(&reference),
+	heuristicBfsEnabled_(true), heuristicDfsEnabled_(true), dynamicProgramEnabled_(true),
+	minSize_(minSize), maxSize_(maxSize),
 	current_(), evaluation_(), output_(nullptr), csv_(nullptr), archive_(nullptr), stats_()
 {
 	assert(minSize >= 0);
@@ -25,7 +26,7 @@ void Enumerate::next()
 	int j = 4; // branch index
 
 	// reference-based skip: we do not evaluate the bigger lobsters after a fail
-	if (!evaluation_.refSuccess) {
+	if (!evaluation_.solved) {
 		// remove the last branch from the back
 		while (i >= 0) {
 			for (j = 4; j >= 0; j--) {
@@ -91,34 +92,63 @@ const Evaluation& Enumerate::test()
 
 Evaluation Enumerate::test(const Lobster& lobster)
 {
-	// *** run fast heuristic test ***
+	Stat dfsStat, bfsStat, refStat;
+	DiskGraph dfsGraph, bfsGraph, refGraph;
+	bool solved = false;
+
+	// *** run fast heuristic test (dfs/bfs) ***
 
 	// hardcoded because this is the only lobster heuristic option
 	auto algorithm = Configuration::Algorithm::CLEVE;
 
-	DiskGraph fastGraph = DiskGraph::fromLobster(lobster);
-	Stat fastStat = embed(fastGraph, *fast_, algorithm, embedOrder_);
+	if (heuristicBfsEnabled_) {
+		bfsGraph = DiskGraph::fromLobster(lobster);
+		bfsStat = embed(bfsGraph, *fast_, algorithm, Configuration::EmbedOrder::BREADTH_FIRST);
+		solved |= bfsStat.success;
+	}
+
+	if (heuristicDfsEnabled_) {
+		dfsGraph = DiskGraph::fromLobster(lobster);
+		dfsStat = embed(dfsGraph, *fast_, algorithm, Configuration::EmbedOrder::DEPTH_FIRST);
+		solved |= dfsStat.success;
+	}
 
 	// *** run reference test ***
 
-	DiskGraph refGraph = DiskGraph::fromLobster(lobster);
-	Stat refStat = embedDynamic(refGraph, *reference_);
+	if (dynamicProgramEnabled_) {
+		refGraph = DiskGraph::fromLobster(lobster);
+		refStat = embedDynamic(refGraph, *reference_);
+		solved |= refStat.success;
 
-	// debug sanity check: the reference implementation is strictly more accurate
-	assert(refStat.success || !fastStat.success);
+		// debug sanity checks: the reference implementation is strictly more accurate
+		if (heuristicBfsEnabled_)
+			assert(refStat.success || !bfsStat.success);
+
+		if (heuristicDfsEnabled_)
+			assert(refStat.success || !dfsStat.success);
+	}
+
 
 	// *** record statistics ***
 
 	if (csv_) {
-		csv_->write(fastStat);
-		csv_->write(refStat);
+		if (heuristicBfsEnabled_)
+			csv_->write(bfsStat);
+		if (heuristicDfsEnabled_)
+			csv_->write(dfsStat);
+		if (dynamicProgramEnabled_)
+			csv_->write(refStat);
 	}
 	else {
-		stats_.push_back(fastStat);
-		stats_.push_back(refStat);
+		if (heuristicBfsEnabled_)
+			stats_.push_back(bfsStat);
+		if (heuristicDfsEnabled_)
+			stats_.push_back(dfsStat);
+		if (dynamicProgramEnabled_)
+			stats_.push_back(refStat);
 	}
 
-	if (archive_) {
+	if (archive_ && dynamicProgramEnabled_) {
 		archive_->write(lobster, refStat.success);
 	}
 
@@ -127,14 +157,22 @@ Evaluation Enumerate::test(const Lobster& lobster)
 		output_->ensureBatch();
 
 		// TODO: an interesting instance leaves no space next to spines/branches
-		if (evaluation_.fastSuccess && !fastStat.success)
-			output_->write(evaluation_.fastResult, format("fast {} spines {} total", fastStat.spines, fastStat.size));
+		if (evaluation_.bfsStat.success && !bfsStat.success)
+			output_->write(evaluation_.bfsResult, format("heuristic/bfs {} spines {} total", evaluation_.bfsStat.spines, evaluation_.bfsStat.size));
 
-		if (evaluation_.refSuccess && !refStat.success)
-			output_->write(evaluation_.refResult, format("reference {} spines {} total", refStat.spines, refStat.size));
+		if (evaluation_.dfsStat.success && !dfsStat.success)
+			output_->write(evaluation_.dfsResult, format("heuristic/dfs {} spines {} total", evaluation_.dfsStat.spines, evaluation_.dfsStat.size));
+
+		if (evaluation_.refStat.success && !refStat.success)
+			output_->write(evaluation_.refResult, format("reference {} spines {} total", evaluation_.refStat.spines, evaluation_.refStat.size));
 	}
 
-	return { fastStat.success, std::move(fastGraph), refStat.success, std::move(refGraph) };
+	return {
+		solved,
+		bfsStat, std::move(bfsGraph),
+		dfsStat, std::move(dfsGraph),
+		refStat, std::move(refGraph)
+	};
 }
 
 const Lobster& Enumerate::current() const noexcept
@@ -145,13 +183,24 @@ const Lobster& Enumerate::current() const noexcept
 void Enumerate::setCurrent(Lobster lobster) noexcept
 {
 	current_ = std::move(lobster);
-	evaluation_.fastSuccess = true;
-	evaluation_.refSuccess = true;
+	evaluation_.bfsStat.success = true;
+	evaluation_.dfsStat.success = true;
+	evaluation_.refStat.success = true;
 }
 
-void Enumerate::setEmbedOrder(Configuration::EmbedOrder embedOrder) noexcept
+void Enumerate::setHeuristicBfsEnabled(bool enabled) noexcept
 {
-	embedOrder_ = embedOrder;
+	heuristicBfsEnabled_ = enabled;
+}
+
+void Enumerate::setHeuristicDfsEnabled(bool enabled) noexcept
+{
+	heuristicDfsEnabled_ = enabled;
+}
+
+void Enumerate::setDynamicProgramEnabled(bool enabled) noexcept
+{
+	dynamicProgramEnabled_ = enabled;
 }
 
 void Enumerate::setOutput(Svg* output) noexcept

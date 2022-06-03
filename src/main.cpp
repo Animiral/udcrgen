@@ -202,7 +202,9 @@ void run_benchmark()
 	WeakEmbedder fastEmbedder;
 	DynamicProblemEmbedder referenceEmbedder;
 	Enumerate enumerate(fastEmbedder, referenceEmbedder, configuration.spineMin, configuration.spineMax);
-	enumerate.setEmbedOrder(configuration.embedOrder);
+	enumerate.setHeuristicBfsEnabled(configuration.benchmarkBfs);
+	enumerate.setHeuristicDfsEnabled(configuration.benchmarkDfs);
+	enumerate.setDynamicProgramEnabled(configuration.benchmarkDynamic);
 
 	Svg svg;
 	bool doInstances = !configuration.outputFile.empty();

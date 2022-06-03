@@ -16,9 +16,12 @@
  */
 struct Evaluation
 {
-	bool fastSuccess; // true if fast algorithm did find embedding
-	DiskGraph fastResult; // embedding from fast algorithm
-	bool refSuccess; // true if reference algorithm did find embedding
+	bool solved; // true if the instance was solved by any algorithm
+	Stat bfsStat; // true if heuristic algorithm with BFS order did find embedding
+	DiskGraph bfsResult; // embedding from heuristic/bfs algorithm
+	Stat dfsStat; // true if heuristic algorithm with DFS order did find embedding
+	DiskGraph dfsResult; // embedding from heuristic/dfs algorithm
+	Stat refStat; // true if reference algorithm did find embedding
 	DiskGraph refResult; // embedding from reference algorithm
 };
 
@@ -90,9 +93,19 @@ public:
 	void setCurrent(Lobster lobster) noexcept;
 
 	/**
-	 * Set the @c EmbedOrder for the fast embedder.
+	 * Set whether the heuristic with @c BREADTH_FIRST @c EmbedOrder is included in the benchmark.
 	 */
-	void setEmbedOrder(Configuration::EmbedOrder embedOrder) noexcept;
+	void setHeuristicBfsEnabled(bool enabled) noexcept;
+
+	/**
+	 * Set whether the heuristic with @c DEPTH_FIRST @c EmbedOrder is included in the benchmark.
+	 */
+	void setHeuristicDfsEnabled(bool enabled) noexcept;
+
+	/**
+	 * Set whether the dynamic programming approach is included in the benchmark.
+	 */
+	void setDynamicProgramEnabled(bool enabled) noexcept;
 
 	/**
 	 * @brief Configure the output handler.
@@ -151,8 +164,11 @@ public:
 private:
 
 	Embedder* fast_;
-	Configuration::EmbedOrder embedOrder_;
 	WholesaleEmbedder* reference_;
+	bool heuristicBfsEnabled_;
+	bool heuristicDfsEnabled_;
+	bool dynamicProgramEnabled_;
+
 	int minSize_;
 	int maxSize_;
 	Lobster current_;

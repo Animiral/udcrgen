@@ -153,6 +153,8 @@ If the `--output-file` option is specified, the file serves as the destination f
 Because the benchmark generates an enormous amount of instances, the output file can be limited in size. Use `--batch-size` to specify the maximum number of solutions for one SVG container file. If the batch size is unspecified or explicitly set to `0`, the program writes all SVGs to one single file.
 Once the output file has reached maximum size, further solutions will be written to `file_N.html`, where `file.html` is the configured output file name and `N` is the increasing batch number.
 
+If no output file is specified, the embedding problem changes from a construction problem to a decision problem. The dynamic program will take this into account and omit additional bookkeeping to reconstruct the solution, potentially increasing performance.
+
 The only supported output format (`-f` parameter) in this mode is `svg`.
 
 If the `--archive-yes` or `--archive-no` options are set to directory path(s), lobster instances which the program enumerates during the benchmark are written, one file each, into (subdirectories of) these directories.

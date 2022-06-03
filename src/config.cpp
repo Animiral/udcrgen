@@ -418,8 +418,9 @@ void Configuration::dump() const
     }
     else {
         theLog->writeRaw(LogLevel::INFO, "\tInput File: {} ({})\n", inputFile, inputFormatString(inputFormat));
-        theLog->writeRaw(LogLevel::INFO, "\tOutput File: {} ({})\n", outputFile, outputFormatString(outputFormat));
     }
+    if (!outputFile.empty())
+        theLog->writeRaw(LogLevel::INFO, "\tOutput File: {} ({})\n", outputFile, outputFormatString(outputFormat));
     theLog->writeRaw(LogLevel::INFO, "\tStats File: {}\n\n", statsFile);
 
     if (Algorithm::DYNAMIC_PROGRAM != algorithm) {

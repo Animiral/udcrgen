@@ -199,15 +199,19 @@ void run_algorithm(DiskGraph& graph)
 
 void run_benchmark()
 {
+	Svg svg;
+	Csv csv;
+	Archive archive;
+	bool doInstances = !configuration.outputFile.empty();
+	bool doStats = !configuration.statsFile.empty();
+	bool doArchive = !configuration.archiveYes.empty() || !configuration.archiveNo.empty();
+
 	WeakEmbedder fastEmbedder;
-	DynamicProblemEmbedder referenceEmbedder;
+	DynamicProblemEmbedder referenceEmbedder(doInstances);
 	Enumerate enumerate(fastEmbedder, referenceEmbedder, configuration.spineMin, configuration.spineMax);
 	enumerate.setHeuristicBfsEnabled(configuration.benchmarkBfs);
 	enumerate.setHeuristicDfsEnabled(configuration.benchmarkDfs);
 	enumerate.setDynamicProgramEnabled(configuration.benchmarkDynamic);
-
-	Svg svg;
-	bool doInstances = !configuration.outputFile.empty();
 
 	if (doInstances) {
 		svg.open(configuration.outputFile);
@@ -216,16 +220,10 @@ void run_benchmark()
 		enumerate.setOutput(&svg);
 	}
 
-	Csv csv;
-	bool doStats = !configuration.statsFile.empty();
-
 	if (doStats) {
 		csv.open(configuration.statsFile, std::ios::out | std::ios::trunc);
 		enumerate.setCsv(&csv);
 	}
-
-	Archive archive;
-	bool doArchive = !configuration.archiveYes.empty() || !configuration.archiveNo.empty();
 
 	if (doArchive) {
 		archive.setPaths(configuration.archiveYes, configuration.archiveNo);

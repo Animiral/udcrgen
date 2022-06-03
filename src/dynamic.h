@@ -124,13 +124,17 @@ public:
 
 	/**
 	 * @brief Create the root problem of the graph instance.
+	 *
+	 * If the @c constructive flag is set to @c true, the embedding solution
+	 * will be available from the final subproblem. Otherwise, the problem
+	 * can only be used to decide whether an embedding is possible or not.
 	 */
-	explicit DynamicProblem(DiskGraph& graph);
+	explicit DynamicProblem(DiskGraph& graph, bool constructive = true);
 
 private:
 
 	/**
-	 * @brief Create the child problem of the given problem.
+	 * @brief Create the child problem of the given constructive problem.
 	 *
 	 * The next disk is to be placed in the given direction from the
 	 * appropriate head (spine head or branch head).
@@ -139,6 +143,19 @@ private:
 	 * original parent usually does not outlive the children.
 	 */
 	DynamicProblem(std::shared_ptr<const DynamicProblem> parent, Dir dir);
+
+	/**
+	 * @brief Create the child problem of the given decision problem.
+	 *
+	 * The next disk is to be placed in the given direction from the
+	 * appropriate head (spine head or branch head).
+	 */
+	DynamicProblem(const DynamicProblem* parent, Dir dir);
+
+	/**
+	 * Shared helper to complete construction of this problem regarding placement.
+	 */
+	void initPlacement(Dir dir);
 
 public:
 
@@ -201,6 +218,7 @@ private:
 	GraphTraversal position_;
 	GraphTraversal end_; // TODO: eliminate
 	int depth_;
+	bool constructive_; // true if solution should be constructed, false to decide only
 	std::shared_ptr<const DynamicProblem> parent_; // problem that this problem was derived from (by placing another disk). TODO: store only embedding info
 	Coord placement_; // coord of last disk placed
 
@@ -287,6 +305,22 @@ class DynamicProblemEmbedder : public WholesaleEmbedder
 
 public:
 
+	/**
+	 * Construct the embedder.
+	 *
+	 * If @c constructive is true, the sub-problems will keep additional
+	 * information to construct an embedding which solves the problem at the
+	 * end. This adds some runtime overhead to the algorithm.
+	 *
+	 * If @c constructive is false, the embedder will only decide whether or
+	 * not an embedding is possible. It does not create an embedding.
+	 */
+	explicit DynamicProblemEmbedder(bool constructive = true) noexcept;
+
 	virtual bool embed(DiskGraph& graph) override;
+
+private:
+
+	bool constructive_;
 
 };

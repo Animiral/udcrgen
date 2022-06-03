@@ -161,11 +161,12 @@ bool Signature::dominates(const Signature& rhs) const noexcept
 	return (fundament.mask & rhs.fundament.mask) == fundament.mask;
 }
 
-DynamicProblem::DynamicProblem(DiskGraph& graph)
+DynamicProblem::DynamicProblem(DiskGraph& graph, bool constructive)
 	: spineHead_({ -1, 0 }), // this causes first disk at {0, 0}
 	position_(graph.traversal(Configuration::EmbedOrder::DEPTH_FIRST)),
 	end_(graph.end()),
-	depth_(0)
+	depth_(0),
+	constructive_(constructive)
 {
 }
 
@@ -176,7 +177,31 @@ DynamicProblem::DynamicProblem(std::shared_ptr<const DynamicProblem> parent, Dir
 	position_(parent->position_),
 	end_(parent->end_),
 	depth_(parent->depth_ + 1),
+	constructive_(true),
 	parent_(move(parent)) // init last, do not invalidate ptr early
+{
+	assert(parent_->constructive_); // otherwise we would use the other c'tor
+
+	initPlacement(dir);
+	++position_;
+}
+
+DynamicProblem::DynamicProblem(const DynamicProblem* parent, Dir dir)
+	: fundament_(parent->fundament_),
+	spineHead_(parent->spineHead_),
+	branchHead_(parent->branchHead_),
+	position_(parent->position_),
+	end_(parent->end_),
+	depth_(parent->depth_ + 1),
+	constructive_(false)
+{
+	assert(!parent->constructive_); // otherwise we would use the other c'tor
+
+	initPlacement(dir);
+	++position_;
+}
+
+void DynamicProblem::initPlacement(Dir dir)
 {
 	switch (position_->depth) {
 	case 0: // spine
@@ -207,18 +232,24 @@ DynamicProblem::DynamicProblem(std::shared_ptr<const DynamicProblem> parent, Dir
 		throw EmbedException("Dynamic program can not embed graphs deeper than lobsters");
 
 	}
-
-	++position_;
 }
 
 std::vector<DynamicProblem> DynamicProblem::subproblems() const
 {
 	int diskDepth = position_->depth;
 
-	if (0 == depth_) {
+	if (0 == depth_) { // special case
 		// arbitrarily choose dir to place the first disk at (0,0)
-		auto sharedThis = std::make_shared<const DynamicProblem>(*this);
-		return { DynamicProblem(move(sharedThis), Dir::RIGHT) };
+
+		if (constructive_) {
+			// build and include information to reconstruct the solution
+			auto sharedThis = std::make_shared<const DynamicProblem>(*this);
+			return { DynamicProblem(move(sharedThis), Dir::RIGHT) };
+		}
+		else {
+			// do not maintain solution information for decision procedure
+			return { DynamicProblem(this, Dir::RIGHT) };
+		}
 	}
 
 	// place disk next to the appropriate head
@@ -235,7 +266,6 @@ std::vector<DynamicProblem> DynamicProblem::subproblems() const
 
 	// we have up to 6 choices to place the upcoming disk
 	// order is significant later!
-
 	Dir dirs[6] = { Dir::LEFT, Dir::LEFT_UP, Dir::LEFT_DOWN, Dir::RIGHT, Dir::RIGHT_UP, Dir::RIGHT_DOWN };
 	Dir* begin = dirs;
 	Dir* end = dirs + 6;
@@ -254,11 +284,21 @@ std::vector<DynamicProblem> DynamicProblem::subproblems() const
 	if (begin == end)
 		return {}; // skip constructing shared this
 
-	auto sharedThis = std::make_shared<const DynamicProblem>(*this);
 	std::vector<DynamicProblem> subproblems;
 
-	for (auto it = begin; it != end; ++it) {
-		subproblems.push_back({ sharedThis, *it });
+	if (constructive_) {
+		// build and include information to reconstruct the solution
+		auto sharedThis = std::make_shared<const DynamicProblem>(*this);
+
+		for (auto it = begin; it != end; ++it) {
+			subproblems.push_back({ sharedThis, *it });
+		}
+	}
+	else {
+		// do not maintain solution information for decision procedure
+		for (auto it = begin; it != end; ++it) {
+			subproblems.push_back({ this, *it });
+		}
 	}
 
 	return subproblems;
@@ -481,6 +521,11 @@ bool ProblemQueue::equivalent(const DynamicProblem& lhs, const DynamicProblem& r
 	return lhs.signature() == rhs.signature();
 }
 
+DynamicProblemEmbedder::DynamicProblemEmbedder(bool constructive) noexcept
+	: WholesaleEmbedder(), constructive_(constructive)
+{
+}
+
 bool DynamicProblemEmbedder::embed(DiskGraph& graph)
 {
 	// performance counters
@@ -488,7 +533,7 @@ bool DynamicProblemEmbedder::embed(DiskGraph& graph)
 	int popCounter = 0;
 
 	ProblemQueue queue;
-	queue.push(DynamicProblem(graph));
+	queue.push(DynamicProblem(graph, constructive_));
 	pushCounter++;
 
 	while (!queue.empty()) {
@@ -496,7 +541,8 @@ bool DynamicProblemEmbedder::embed(DiskGraph& graph)
 
 		if (next.depth() == graph.size()) {
 			// accept solution - this solves all parent problems
-			next.solution().apply();
+			if (constructive_)
+				next.solution().apply();
 			break;
 		}
 

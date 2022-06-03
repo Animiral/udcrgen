@@ -40,7 +40,9 @@ void Csv::close()
 void Csv::write(const Stat& stat)
 {
 	stream_
+		<< stat.identifier << separator_
 		<< Configuration::algorithmString(stat.algorithm) << separator_
+		<< Configuration::embedOrderString(stat.embedOrder) << separator_
 		<< stat.size << separator_
 		<< stat.spines << separator_
 		<< stat.success << separator_
@@ -53,7 +55,9 @@ void Csv::write(const Stat& stat)
 void Csv::header()
 {
 	stream_
+		<< "LobsterID" << separator_
 		<< "Algorithm" << separator_
+		<< "Order" << separator_
 		<< "Size" << separator_
 		<< "Spines" << separator_
 		<< "Success" << separator_

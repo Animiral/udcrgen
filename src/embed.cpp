@@ -130,9 +130,10 @@ Stat embed(DiskGraph& graph, Embedder& embedder, Configuration::Algorithm algori
 	Clock::time_point start;
 
 	Stat stat;
+	stat.algorithm = algorithm;
+	stat.embedOrder = embedOrder;
 	stat.size = graph.size();
 	stat.spines = graph.length();
-	stat.algorithm = algorithm;
 	start = clock.now();
 
 	// timed instructions
@@ -159,9 +160,10 @@ Stat embedDynamic(DiskGraph& graph, WholesaleEmbedder& embedder)
 	Clock::time_point start;
 
 	Stat stat;
+	stat.algorithm = Configuration::Algorithm::DYNAMIC_PROGRAM;
+	stat.embedOrder = Configuration::EmbedOrder::DEPTH_FIRST;
 	stat.size = graph.size();
 	stat.spines = graph.length();
-	stat.algorithm = Configuration::Algorithm::DYNAMIC_PROGRAM;
 	start = clock.now();
 
 	// timed instructions

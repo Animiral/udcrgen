@@ -4,6 +4,7 @@
 #pragma once
 
 #include "config.h"
+#include <string>
 #include <chrono>
 
  /**
@@ -11,7 +12,10 @@
   */
 struct Stat
 {
+	std::string identifier; // lobster identifier of the instance (BENCHMARK only)
+
 	Configuration::Algorithm algorithm;
+	Configuration::EmbedOrder embedOrder;
 	int size; //!< total number of input vertices
 	int spines; //!< number of spine input vertices
 

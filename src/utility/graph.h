@@ -96,6 +96,16 @@ public:
 	 */
 	std::vector<Spine>& spine() noexcept;
 
+	/**
+	 * Return a filename-compatible string which completely encodes this
+	 * lobster in degree notation.
+	 *
+	 * This name is used in the statistics and the archive for identification.
+	 *
+	 * The empty lobster has the special identifier "empty".
+	 */
+	std::string identifier() const;
+
 private:
 
 	std::vector<Spine> spine_;

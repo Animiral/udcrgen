@@ -92,6 +92,8 @@ const Evaluation& Enumerate::test()
 
 Evaluation Enumerate::test(const Lobster& lobster)
 {
+	const std::string identifier = lobster.identifier();
+
 	Stat dfsStat, bfsStat, refStat;
 	DiskGraph dfsGraph, bfsGraph, refGraph;
 	bool solved = false;
@@ -104,12 +106,14 @@ Evaluation Enumerate::test(const Lobster& lobster)
 	if (heuristicBfsEnabled_) {
 		bfsGraph = DiskGraph::fromLobster(lobster);
 		bfsStat = embed(bfsGraph, *fast_, algorithm, Configuration::EmbedOrder::BREADTH_FIRST);
+		bfsStat.identifier = identifier;
 		solved |= bfsStat.success;
 	}
 
 	if (heuristicDfsEnabled_) {
 		dfsGraph = DiskGraph::fromLobster(lobster);
 		dfsStat = embed(dfsGraph, *fast_, algorithm, Configuration::EmbedOrder::DEPTH_FIRST);
+		dfsStat.identifier = identifier;
 		solved |= dfsStat.success;
 	}
 
@@ -118,6 +122,7 @@ Evaluation Enumerate::test(const Lobster& lobster)
 	if (dynamicProgramEnabled_) {
 		refGraph = DiskGraph::fromLobster(lobster);
 		refStat = embedDynamic(refGraph, *reference_);
+		refStat.identifier = identifier;
 		solved |= refStat.success;
 
 		// debug sanity checks: the reference implementation is strictly more accurate

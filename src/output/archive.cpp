@@ -30,25 +30,5 @@ void Archive::write(const Lobster& lobster, bool success) const
 
 std::filesystem::path Archive::fileName(const Lobster& lobster)
 {
-	assert(lobster.countSpine() > 0);
-
-	std::string name;
-	name.reserve(lobster.spine().size() * 6 - 1 + 4);
-
-	const auto& spine = lobster.spine();
-	for (int i = 0; i < spine.size(); i++) {
-		if (i > 0)
-			name += '_';
-
-		for (int j = 0; j < 5; j++) {
-			char c = 'x';
-			if (Lobster::NO_BRANCH != spine[i][j]) {
-				c = '0' + spine[i][j];
-			}
-			name += c;
-		}
-	}
-
-	name += ".txt";
-	return name;
+	return lobster.identifier() + ".txt";
 }

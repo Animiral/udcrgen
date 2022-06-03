@@ -102,6 +102,30 @@ std::vector<Lobster::Spine>& Lobster::spine() noexcept
 	return spine_;
 }
 
+std::string Lobster::identifier() const
+{
+	if (spine_.empty())
+		return "empty";
+
+	std::string name;
+	name.reserve(spine_.size() * 6 - 1 + 4);
+
+	for (int i = 0; i < spine_.size(); i++) {
+		if (i > 0)
+			name += '_';
+
+		for (int j = 0; j < 5; j++) {
+			char c = 'x';
+			if (Lobster::NO_BRANCH != spine_[i][j]) {
+				c = '0' + spine_[i][j];
+			}
+			name += c;
+		}
+	}
+
+	return name;
+}
+
 EdgeList edges_from_text(std::istream& stream)
 {
 	std::vector<Edge> edges;

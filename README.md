@@ -185,7 +185,9 @@ Using `-f dump`, the program will output a text file generated from the internal
 Every time the program applies one of its algorithms to an input graph, it builds a statistical record of the result.
 This record includes:
 
+* the lobster encoded in degree notation (only in benchmark mode),
 * the algorithm name (same as the `-a` command-line option),
+* the embedding order (same as the `-e` command-line option),
 * the total number of graph nodes in the instance,
 * the number of spine nodes in the instance,
 * success: `true` if the algorithm found an embedding, `false` otherwise,

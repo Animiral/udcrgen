@@ -518,7 +518,7 @@ const char* Configuration::logModeString(LogMode logMode) noexcept
     }
 }
 
-int operator<=>(Configuration::LogLevel a, Configuration::LogLevel b) noexcept
+bool operator<=(Configuration::LogLevel a, Configuration::LogLevel b) noexcept
 {
-    return static_cast<int>(b) - static_cast<int>(a);
+    return static_cast<int>(b) <= static_cast<int>(a);
 }

@@ -120,6 +120,7 @@ Evaluation Enumerate::test(const Lobster& lobster)
 	// *** run reference test ***
 
 	if (dynamicProgramEnabled_) {
+		// TODO: do not run reference if already solved
 		refGraph = DiskGraph::fromLobster(lobster);
 		refStat = embedDynamic(refGraph, *reference_);
 		refStat.identifier = identifier;

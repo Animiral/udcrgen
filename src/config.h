@@ -47,7 +47,7 @@ public:
     /**
      * Ordered set of log message levels which can be restricted.
      */
-    enum class LogLevel { SILENT, ERROR, INFO, TRACE };
+    enum class LogLevel { SILENT = 0, ERROR = 1, INFO = 2, TRACE = 3 };
 
     /**
      * The log mode describes where log messages should go.
@@ -140,4 +140,4 @@ public:
 
 };
 
-int operator<=>(Configuration::LogLevel a, Configuration::LogLevel b) noexcept;
+bool operator<=(Configuration::LogLevel a, Configuration::LogLevel b) noexcept;

@@ -1,0 +1,31 @@
+
+\documentclass{standalone}
+
+\usepackage[usenames,dvipsnames,table]{xcolor}
+\usepackage{tikz,pgfplots}
+%\usetikzlibrary{...}
+\usepackage{inconsolata}
+\begin{document}
+
+\begin{tikzpicture}
+\begin{axis}[
+%title={Dynamic Program Runtime (yes-instances)},
+small,
+width=.5\textwidth,
+scatter/classes={
+    yes2={mark=triangle*,mark size=3.0pt,draw=white,fill=blue!0 !green},
+    yes3={mark=triangle*,mark size=3.0pt,draw=white,fill=blue!30!green},
+    yes4={mark=triangle*,mark size=3.0pt,draw=white,fill=blue!70!green},
+    yes5={mark=triangle*,mark size=3.0pt,draw=white,fill=cyan!0  !blue},
+    yes6={mark=triangle*,mark size=3.0pt,draw=white,fill=cyan!50 !blue},
+    yes7={mark=triangle*,mark size=3.0pt,draw=white,fill=cyan!100!blue}},
+xlabel={Vertex Count},
+% ylabel={Runtime [$\mu s$]},
+% legend pos=north west,
+height=8.5cm]
+\addplot[scatter,only marks,scatter src=explicit symbolic]
+table[meta=clsspines] {data/runtime_dpyes.dat};
+\end{axis}
+\end{tikzpicture}
+
+\end{document}

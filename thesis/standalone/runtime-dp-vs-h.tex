@@ -1,0 +1,38 @@
+
+\documentclass{standalone}
+
+\usepackage[usenames,dvipsnames,table]{xcolor}
+\usepackage{tikz}
+\usepackage{pgfplots}
+%\usetikzlibrary{...}
+\usepackage{inconsolata}
+%\pgfplotsset{compat=1.17}
+% \pgfplotsset{disabledatascaling=true}
+
+\begin{document}
+
+\begin{tikzpicture}
+\begin{semilogyaxis}[
+title={Dynamic Program vs Heuristic},
+scatter/classes={
+    dp_no={mark=square*,mark size=2.0pt,draw=white,fill=cyan!100!blue},
+    dp_yes={mark=triangle*,mark size=3.0pt,draw=white,fill=blue!0!green},
+    h_no={mark=square*,mark size=2.0pt,draw=white,fill=red!100!yellow},
+    h_yes={mark=triangle*,mark size=3.0pt,draw=white,fill=red!30!yellow}},
+xlabel={Vertex Count},
+ylabel={Runtime $[\mu s]$},
+legend pos=north west,
+legend entries={dynamic prog./no,dynamic prog./yes,heuristic/no,heuristic/yes,},
+%xmin=0, xmax=100,
+%ymin=0, ymax=120,
+% xtick={0,5,10,15,20,25,30,35,40,45,50},
+% ytick={0,2000,4000,6000,8000,10000,12000,14000,16000,18000,20000},
+scaled ticks=false,
+%height=8.5cm
+]
+\addplot[scatter,only marks,scatter src=explicit symbolic]
+table[meta=cls] {data/runtime_dp-vs-h.dat};
+\end{semilogyaxis}
+\end{tikzpicture}
+
+\end{document}

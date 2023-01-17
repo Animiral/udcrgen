@@ -42,7 +42,46 @@ The following options are available:
 * `--log-file` `<FILE>`
 * `--`: end of options
 
-For details on every command line item and synonymous options, please refer to the relevant following section.
+For details on every command line item and synonymous options, please refer to “Options Details” further down.
+
+## Build Instructions
+
+This project uses the CMake build system.
+
+It only depends on the [GoogleTest library](https://github.com/google/googletest) for unit testing.
+
+Run the following commands from the root of the repository directory to build with optimizations for release.
+
+```
+$ mkdir build
+$ cd build
+$ CMAKE_BUILD_TYPE=RELEASE cmake ..
+$ cmake --build .
+```
+
+# Thesis Experiment
+
+This program accompanies the Bachelor's thesis paper “Practical Examination of Unit Disk Contact Representations”. Follow these steps to reproduce the experiment that produced the data in the thesis paper.
+
+Produce the raw data file `stats.csv` using benchmark mode.
+
+```
+$ udcrgen --algorithm benchmark --stats-file stats.csv --spine-min 2 --spine-max 8 --log-file benchmark.log --log-level error
+```
+
+Use the included Python script `countstats.py` to generate the aggregate data file `aggregate.csv`. It also outputs some of the final `.dat` files that provide the source data for figures in the Evaluation chapter of the thesis. The name `stats.csv` of the input file is hardcoded, so ensure that it is available.
+
+```
+$ python3 countstats.py
+```
+
+The directly produced `.dat` files can drop-in replace their name equivalents in the `thesis/data` subdirectory. The other figures and data tables in the thesis have to be filled by some manual work in picking and formatting the correct data from `aggregrate.csv`. The LibreOffice spreadsheet file available in `thesis/data/aggregate.ods` helps, as the data from `aggregrate.csv` can be pasted into the first sheet, and the other sheets contain pivot table definitions which further aggregate the data points to produce the values for the thesis.
+
+Figure data are visualized using the `pgfplots` package for LaTeX, with source code available in the `thesis/standalone` subdirectory.
+
+# Options Details
+
+This reference describes the program options to `udcrgen` in detail.
 
 ## Algorithms
 
@@ -240,18 +279,3 @@ It populates the current directory with a predefined number of input files of th
 * `onesided_straightXX.txt`: lobsters in with every other branch is very heavy, but still allow for a straight spine
 
 These cases form a benchmark of sorts, but are unused because the newer *benchmark* functionality in the main program is more thorough.
-
-## Build Instructions
-
-This project uses the CMake build system.
-
-It only depends on the [GoogleTest library](https://github.com/google/googletest) for unit testing.
-
-Run the following commands from the root of the repository directory to build with optimizations for release.
-
-```
-$ mkdir build
-$ cd build
-$ CMAKE_BUILD_TYPE=RELEASE cmake ..
-$ cmake --build .
-```

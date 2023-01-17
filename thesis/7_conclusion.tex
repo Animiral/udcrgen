@@ -1,0 +1,35 @@
+
+\chapter{Conclusion}
+
+In this thesis, we reviewed the unit disk contact graph recognition problem and its complexity on different graph classes. We rigorously defined two main approaches to decide the tri-grid x-monotone weak UDC recognition problem on lobster graphs: the dynamic program as theorized by Bhore et al.~\cite{Bhore2021}, and a fast and less accurate heuristic approach as an original contribution.
+
+The treatise on the dynamic program includes discussion on several strategies which improve performance. The heuristic is presented as two variants, which we compare in empirical evaluation. This evaluation shows that the depth-first variant is superior to the breadth-first variant.
+
+We present \texttt{udcrgen}, a program that offers a software implementation of several different algorithms for UDC graph recognition: the recognition algorithm for caterpillars described by Klemz et al.~\cite{Klemz2015}, the dynamic program to recognize UDC lobsters as described in Chapter~\ref{ch:dynprog} and based on a proof by Bhore et al.~\cite{Bhore2021} and the original heuristic to recognize UDC lobsters as described in Chapter~\ref{ch:heuristic}. \texttt{udcrgen} supports a ``benchmark mode'' to exhaustively explore the space of small lobster instances with these algorithms and various input and output formats.
+
+Our data from running the benchmark implementation demonstrates the real-world runtime that we can expect. It shows that the heuristic may yield a double-digit speedup with accuracy declining from $90\%$ with increasing instance size in the answers.
+
+\section{Open Questions}
+
+Our results are specific to x-monotone representations on the triangular grid. Based on our lack of counter-examples, it might be reasonable to assume that these specific lobsters are the same that admit a weak UDC reprensention in general. Still, this assumption is so far unproven.
+\soeren[inline]{Here again, it should be rephrased. The dynamic program solves the more restricted problem of trigrid monotone UDC realization. It is an open question if every UDG lobster can be realized in a monotone fashion (and if not, what the counter example looks like) and it is open question if every UDG lobster can be realized on a trigrid (and again if not, what the properties of the counterexample are). The conjecture is that both of these are true. Finally it is an open question if both of these hold simultaneously (It could be that every lobster can be realized in a monotone fashion, but not on a grid or on a grid, but not monotone). Again the conjecture is that this is the case. And this leads to the overall conjecture that the recognition of UDG is solvable in $\mathcal{O}(n)$ time for lobsters.}\peter[inline]{better now? reformulated above and below; no more piecemeal assumptions.}
+
+Imagine a counter-example which is not x-monotone. There is no intuitive way to define a UDC lobster in a way that will force the spine to ``bend back on itself''. The specimen would have to force this kind of constellation by tricky specification of branches and leaves, but will soon step on its own toes for lack of space around the spine. The embedded disks on both ends may only get in the way of each other.
+
+Imagine another counter-example which is not restricted to the triangular grid. As discussed in Chapter~\ref{chp:related-work}, even tighter circle packings exist. Considering the small subtree depth of the lobster, the question is whether this difference can be relevant or even ruin the linear-time result.
+
+The x-monotonicity concept can be described as a relaxation of an even tighter restriction, the \emph{straight spine}, in which no bends in the spine are allowed. Clearly, UDC lobsters do not all have a straight spine---a well-placed 4-leafed branch enforces a bend on a lobster that still admits an embedding perfectly fine. However, this leads us to consider whether x-monotonicity might be too relaxed. Perhaps it is sufficient to restrict UDC lobsters' spines to just two of the six cardinal directions of the triangular grid. We offer this conjecture as the final contribution of this thesis.
+
+\begin{conjecture}[$60^\circ$-Monotone UDC Recognition for Lobsters]
+Any lobster $G$ which admits a weak UDC representation also admits a weak UDC representation on the triangular grid wherein, for any two consecutive spine vertices $v$ and $u$, the angle between $\overrightarrow{vu}$ and the x-axis is either $0^\circ$ or $60^\circ$.
+\end{conjecture}
+
+We hope to have hereby contributed a small step towards further research on the much more significant open question:
+
+\begin{displayquote}
+What is a property $p(G)$, of any graph $G$, that holds if, and only if, the UDC problem for $G$ can be decided in linear time?
+\end{displayquote}
+
+\soeren[inline]{In the literature, the references should be uniform, i.e., all Journal references should have the same info, in the same style, same for conference publications, and I prefer references to use the DOI field in bibtex, which provides a clickable link}
+
+\soeren[inline]{Very nice ending here. Overall I am very happy with everything that's already in your thesis. The feedback might look like a lot, but you have created a very solid first version and I think after discussing everything in detail you can rework it nicely.}

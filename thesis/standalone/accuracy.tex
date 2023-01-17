@@ -1,0 +1,26 @@
+\documentclass{standalone}
+
+\usepackage[usenames,dvipsnames,table]{xcolor}
+\usepackage{tikz,pgfplots}
+\usepackage{inconsolata}
+\begin{document}
+
+% \tikzset{every picture/.style={line width=0.75pt}} %set default line width to 0.75pt    
+%\pgfplotsset{every picture/.style={line width=0.75pt}}
+
+\begin{tikzpicture}
+\begin{axis}[
+title={Heuristic Accuracy},
+scatter/classes={
+    dfs={mark=o,draw=red},
+    bfs={mark=o,draw=blue}},
+xlabel={Spine Count},
+ylabel={\% Solved},
+legend pos=north east,
+legend entries={DFS,BFS}]
+\addplot[scatter,only marks,scatter src=explicit symbolic,mark=x,mark size=3.5pt]
+table[meta=order] {data/accuracy.dat};
+\end{axis}
+\end{tikzpicture}
+
+\end{document}

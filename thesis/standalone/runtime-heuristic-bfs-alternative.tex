@@ -1,0 +1,41 @@
+
+\documentclass{standalone}
+
+\usepackage[usenames,dvipsnames,table]{xcolor}
+\usepackage{tikz,pgfplots}
+%\usetikzlibrary{...}
+\usepackage{inconsolata}
+\begin{document}
+
+% \tikzset{every picture/.style={line width=0.75pt}} %set default line width to 0.75pt    
+%\pgfplotsset{every picture/.style={line width=0.75pt}}
+
+\begin{tikzpicture}
+\begin{axis}[
+title={Heuristic Runtime (Breadth-First)},
+small,
+width=.5\textwidth,
+%height=7.5cm,
+scatter/classes={
+    no2={mark=square*,mark size=2.0pt,draw=white,fill=red!20!yellow},
+    no3={mark=square*,mark size=2.0pt,draw=white,fill=red!60!yellow},
+    no4={mark=square*,mark size=2.0pt,draw=white,fill=red!100!yellow},
+    yes2={mark=triangle*,mark size=3.0pt,draw=white,green},
+    yes3={mark=triangle*,mark size=3.0pt,draw=white,blue!70!green},
+    yes4={mark=triangle*,mark size=3.0pt,draw=white,cyan}},
+xlabel={Vertex Count},
+%ylabel={Runtime [$\mu s$]},
+%legend pos=south east,
+%xmin=0, xmax=68,
+ymin=0, ymax=55,
+ytick={0,10,20,30,40,50},
+legend columns=-1,
+legend entries={no/2,no/3,no/4,yes/2,yes/3,yes/4,},
+legend to name=legend:runtime-heuristic-alternative,
+]
+\addplot[scatter,only marks,scatter src=explicit symbolic]
+table[meta=clsspines] {data/runtime_bfs_alternative.dat};
+\end{axis}
+\end{tikzpicture}
+
+\end{document}

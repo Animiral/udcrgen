@@ -1,0 +1,27 @@
+
+\chapter{Related Work}
+\label{chp:related-work}
+
+The aforementioned circle packing theorem~\cite{Koebe1936} should be considered as a fundamental result from which various research into contact graphs derives. We can categorize the topic by different aspects. Consider as an exemplary overview:
+
+\begin{itemize}
+    \item by graph class: planar, outerplanar, tree, lobster, caterpillar, ...
+    \item by embeddedness: free (only the graph itself is given), embedded (an embedding is prescribed)
+    \item by shape: disk, (rectilinear) polygon and many more
+    \item by notion of contact: intersecting, strict, weak
+    \item by problem/question and associated complexity
+\end{itemize}
+
+% Felsner~\cite{Felsner2013} describes conditions and an algorithm for rectangular contact.
+
+Any 4-connected, internally triangulated graph admits a contact representation using rectangles~\cite{kozminski_rectangular_1985}. For some shapes, like rectilinear polygons, the problem is not so much in the representation of any planar graph under the shape constraints. Instead, we want to know the maximum complexity of the shape that is necessary to represent the graph. If the graph is planar triangulated, it admits a weighed contact representation using rectilinear polygons with at most 8 vertices: ``T-shapes''~\cite{alam_computing_2013}.
+
+Breu and Kirkpatrick~\cite{Breu1998} showed the first complexity result that specifically applies to unit disk graphs. They introduce the topic by showing that recognition of \emph{intersection} graphs, in which adjacent disks' interiors may overlap, is NP-hard. Since contact graphs are just restricted intersection graphs, it follows that unit disk contact is also NP-hard to recognize in general.
+
+On the other hand, it has been shown by Klemz et al.~\cite{Klemz2015} that the recognition problem for caterpillars under the strict contact notion can be decided in linear time. This result is based on an observation that if two inner spine vertices of degree 5 are not separated by a spine vertex with degree at most 3 between them, the leaves are simply ``too many'' and will not fit. This property is quite easy to check. Although the result is considered questionable due to some vagueness in the proof, it remains intuitive.
+
+With the findings of Cleve~\cite{Cleve2020}, we turn our attention to the weak contact notion and the triangular grid. Under this notion, caterpillars can now definitely be recognized in linear time, and trees are still NP-hard.
+
+We continue from these results with this thesis, going hand in hand with a new paper by Bhore et al.~\cite{Bhore2021}. They take the next step from the caterpillar to the slightly more complex lobster. Our particular attention concerns the proof that, assuming the x-monotonicity and triangular grid layout, these graphs can also be recognized in linear time. The method is more difficult than for caterpillars, as it requires a constructive algorithm with a dynamic programming approach---the same approach which we discuss in Chapter~\ref{ch:dynprog} and implement.
+
+Interestingly, the recognition problem becomes harder if an embedding is prescribed in addition to the graph itself. It is even NP-hard to recognize embedded unit disk contact caterpillars under weak contact~\cite{Chiu2019}. While the complexity of strict UDC for trees is yet unknown (but clearly no harder than NP), if the tree is embedded, it remains NP-hard~\cite{Bowen2015}.

@@ -42,7 +42,7 @@ Every branch $b \in \Branches$ is connected to its parent spine vertex $p(b) \in
 
 \section{Representations}
 
-A \emph{combinatorial embedding} (or just \emph{embedding}) of a graph in the plane encodes the topological properties of the graph. For each vertex, the embedding defines the clockwise-ordered arrangement of its neighbors. The embedding is independent of any specific planar coordinates for vertices and edges, but every drawing of a planar graph induces an embedding.
+A \emph{combinatorial embedding} (or just \emph{embedding}) of a graph in the plane encodes the topological properties of the graph. For each vertex, the embedding defines the clockwise-ordered permutation of its neighbors. The embedding is independent of any specific planar coordinates for vertices and edges, but every drawing of a planar graph induces an embedding.
 
 In this thesis, we define the \emph{embedding function} $d$ over $G$ as a bijection $d: V \mapsto \R^2$, which maps vertices to coordinates in the plane. In the common node-link diagram representation, we would draw straight lines to represent the edges. The notation $d$ is short for ``disk'' due to the graph representations below for which we use it.
 
@@ -77,7 +77,7 @@ Then $D = (d, w)$ constitutes a \emph{weak disk contact representation} of $G$.
 
 When we want to explicitly refer to the contact notion from Definition~\ref{def:ch2_DCR}, in contrast to the ``weak'' contact from Definition~\ref{def:ch2_WDCR}, we call it ``strict'' or ``proper'' contact. In the rest of this thesis, we mainly concern ourselves with weak contact. Thus, the weak contact notion is assumed as the default in every context from now on unless explicitly specified otherwise. Regardless, the further definitions involving disk contact can be used both with weak and strict notions of contact.
 
-$G$ is a \emph{disk contact graph} if it admits a disk contact representation. A disk contact graph can be drawn by drawing for each vertex $v$ a disk centered at $d(v)$ with diameter $w(v)$. Such graphs are also called ``coin graphs'' in literature. The disk of $v$ precisely touches the disks of neighbouring vertices. Under strict contact, it does not touch any other disks. Under the weak contact notion, disks may touch even if there is no edge between them. In a drawing using disks, there are no curves to represent the edges beyond the disks being in contact or not. Note that every strict disk contact graph is also a weak disk contact graph.
+$G$ is a \emph{disk contact graph} if it admits a disk contact representation. A disk contact graph can be drawn by drawing for each vertex $v$ a disk centered at $d(v)$ with diameter $w(v)$. The disk of $v$ precisely touches the disks of neighbouring vertices. Under strict contact, it does not touch any other disks. Under the weak contact notion, disks may touch even if there is no edge between them. In a drawing using disks, there are no curves to represent the edges beyond the disks being in contact or not. Note that every strict disk contact graph is also a weak disk contact graph.
 
 \soeren{I would state this before the definition of the weak unit disk graphs and remove unnecessary words. 'The famous circle packing theorem establishes an equivalence between disk contact representations and planar graphs.' Citation should be in the statement. I added it here as an example. Old citation should be removed.}
 \peter{Moved before unit disks. Good enough?}
@@ -118,7 +118,7 @@ These problems are successors to the original disk contact problem, answered by 
 As promised in the introduction, we now tie into current research by focusing our attention on the subclass of lobsters. Under the current state of knowledge, we have no algorithm to answer these problems in polynomial time. We can however make some concessions in the form of assumptions to pull the problem into our analytic reach~\cite{Bhore2021}.
 
 \begin{problem}[Tri-Grid X-Monotone UDC Recognition for Lobsters]
-Given a lobster $G$, does $G$ admit an x-monotone UDC representation on the triangular grid?
+Given a lobster $G$, does $G$ admit a weak x-monotone UDC representation on the triangular grid?
 \label{prob:weak-udc-lobster}
 \end{problem}
 \soeren[inline]{I would call this the Weak UDCG Recognition Problem for Lobsters. Second I think you can define a problem environment as a normal theorem environmant. This looks slightly out of place. I also think this should be the last thing in the preliminaries, where you first introduce what a recognition problem is, then specify the recognition problem for weak trigrid UDCG (which should be defined as graphs taht admit a weak UDCR on a trigrid) and in particular for lobsters. Only the most specific variant of that should be in the problem environment.}
@@ -127,6 +127,8 @@ Given a lobster $G$, does $G$ admit an x-monotone UDC representation on the tria
 Unit disks on the triangular grid are packed decently dense. Tighter packing configurations exist, but because this grid is nice and regular and our relevant spine graphs---lobsters---only extend up to two neighbors from the spine, we can assume that the slightly sub-optimal density of our chosen packing configuration does not impact our results compared to the arbitrary configuration. In other words, we assume that a given lobster $G$ admits a tri-grid UDC representation if it admits any UDC representation. This assumption also motivates our use of the weak contact notion, which ``unlocks'' the tri-grid configuration for easier analysis.
 
 Likewise, we allow ourselves the restriction to x-monotone solutions based on the unproven assumption that a given lobster $G$ admits an x-monotone UDC representation if it admits any UDC representation. As there is no combinatorial embedding prescribed for $G$, no branch necessarily has to be above or below the spine. Yet, to refute our x-monotonicity assumption, a counter-example lobster would have to have some configuration of branches and leaves such that all its possible UDC representations enforce either an acute ($60^\circ$) ``bend'' in the spine, or two consecutive obtuse ($120^\circ$) bends in the same direction. By superficial experimentation, it appears that such configurations do not occur.
+
+If our assumptions should hold, then solving Problem~\ref{prob:weak-udc-lobster} is equivalent to solving Problem~\ref{prob:weak-udc}. Hence we focus our aims on Problem~\ref{prob:partial-udc-lobster}.
 
 With the subject problem properly outlined, we explore the current state of research on the following questions:
 

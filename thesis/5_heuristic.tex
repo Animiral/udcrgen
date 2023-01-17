@@ -1,7 +1,7 @@
 \chapter{Heuristic}
 \label{ch:heuristic}
 
-We present a fast approach to decide problem~\ref{prob:weak-udc-lobster} on a lobster instance of size $n$. Like the dynamic program from the previous chapter, it runs in time $O(n)$. The basic idea, to impose an order on the graph nodes and pick embedding coordinates step by step, remains the same. However it eliminates the large constant factor in the number of sub-problems considered.
+We present a fast approach to decide problem~\ref{prob:weak-udc-lobster} on a lobster instance of size $n$. Like the dynamic program from the previous chapter, it runs in time linear in $n$. The basic idea, to impose an order on the graph nodes and pick embedding coordinates step by step, remains the same. However it eliminates the large constant factor in the number of sub-problems considered.
 
 This is a greedy algorithm: instead of branching into different sub-problems, we immediately commit to a final placement decision at every step. This decision is based only on information that is obtainable in a short constant amount of time. Through this shortcut, we process only one sub-problem at each depth $0 \leq d \leq n$.
 

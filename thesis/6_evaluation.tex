@@ -1,6 +1,6 @@
 \chapter{Evaluation}
 
-The two algorithms from Chapter~\ref{ch:dynprog} and Chapter~\ref{ch:heuristic} both decide Problem~\ref{prob:weak-udc-lobster} for lobsters in time $O(n)$. In this chapter, we extend our understanding of their performance and correctness in practical application.
+The two algorithms from Chapter~\ref{ch:dynprog} and Chapter~\ref{ch:heuristic} both decide Problem~\ref{prob:weak-udc-lobster} for size $n$ lobsters in time linear in $n$. In this chapter, we extend our understanding of their performance and correctness in practical application.
 
 We provide a software implementation of the approaches. Then we measure the run time and answers on the exhaustively enumerated set of all lobster instances with spine length ranging from 2 to 7.
 
@@ -18,15 +18,15 @@ These algorithms are implemented in the program:
 
 \begin{itemize}
     \item The ``strict contact'' algorithm described by Klemz et al.~\cite{Klemz2015}, with a configurable gap size for minimum distance of disks not in contact. It applies only to caterpillar graphs.
-    \item The ``dynamic program'' described in chapter 3.
-    \item The ``heuristic algorithm'' described in chapter 4. It features an ``embed order'' parameter, which selects either the depth-first or breadth-first order of vertices.
+    \item The ``dynamic program'' described in Chapter~\ref{ch:dynprog}.
+    \item The ``heuristic algorithm'' described in Chapter~\ref{ch:heuristic}. It features an ``embed order'' parameter, which selects either the depth-first or breadth-first order of vertices.
 \end{itemize}
 
 Input graphs may be given (if not generated) either
 
 \begin{itemize}
     \item in a \emph{degree notation}---see Section~\ref{section:ch6-enumeration}---, which specifies the vertex degree of each spine vertex in a caterpillar, or
-    \item as an \emph{edge list}, which may describe any graph. The program recognizes a caterpillar or lobster, if possible, and converts it to an internal representation as described in the section ``Data Structures'' below. If provided with an unrecognized type of graph, the program terminates with an error.
+    \item as an \emph{edge list}, which may describe any graph. The program recognizes a caterpillar or lobster, if possible, and converts it to an internal representation as described in Section~\ref{section:ch6-graph-representation}. If provided with an unrecognized type of graph, the program terminates with an error.
 \end{itemize}
 
 The decision result and runtime measurement are recorded in a CSV file. The drawing(s) of yes-instances may be written to an \texttt{.ipe} file, the format of the IPE drawing editor~\cite{cheong_ipe_2022} (only in a single-instance mode), or in SVG format to an HTML file (also in benchmark mode).
@@ -99,6 +99,7 @@ The test on any given lobster may, depending on the user's choice, involve runni
 Our experiment, described below in Section~\ref{section:ch6-experiment}, does in fact compare algorithm performance. Thus we do not apply this particular optimization.
 
 \section{Graph Representation}
+\label{section:ch6-graph-representation}
 
 The internal graph representation is the data structure which our algorithms operate on when they answer the disk contact problem. It must fulfill the following design criteria.
 

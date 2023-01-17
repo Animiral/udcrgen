@@ -4,10 +4,10 @@
 A disk contact graph is a graph for which there exists a mapping of all vertices to disks on the plane such that, if two vertices are connected, their respective disks are in contact with each other.
 Since the formulation of the circle packing theorem~\cite{Koebe1936}, we know that every planar graph is a disk contact graph.
 
-Various practical applications, such as wireless communication towers~\cite{Hale1980}, require us to consider the restricted case of \emph{unit disk graphs} (also known as \emph{coin graphs}), in which all disks in the graph's planar embedding are of one unit size.
+Various practical applications, such as wireless communication towers~\cite{Hale1980}, require us to consider the restricted case of \emph{unit disk graphs} (also known as \emph{penny graphs}), in which all disks in the graph's planar embedding are of one unit size.
 
 Not every planar graph is a unit disk contact graph. Naturally, we have to consider the associated recognition problem: given a planar graph $G$, does it admit an embedding in the plane using unit disks? 
-This problem is NP-hard~\cite{Breu1998}. The same complexity persists even restricting the problem only to trees, as shown by Bowen et al.~\cite{Bowen2015}.
+This problem is NP-hard~\cite{Breu1998}. The same complexity persists even restricting the problem only to trees~\cite{Bowen2015}.
 
 \begin{figure}
     \centering
@@ -34,7 +34,7 @@ It is conjectured that lobsters are x-monotone, i.e. that any unit disk contact 
 
 If lobsters are indeed x-monotone, and another assumption on the alignment of the embedding on a triangular grid also holds, it follows that the dynamic program implemented by \texttt{udcrgen} decides the problem in linear time~\cite{Bhore2021}. Beyond the asymptotic time constraints given by theory, our implementation should use prudent shortcuts and methods to achieve good performance in practice.
 
-Furthermore, we present a heuristic to embed lobsters. Both approaches run in linear time, but the dynamic program requires us to consider an impractically large set of partial solutions. We examine both approaches with regards to correctness and run time.
+Furthermore, we present a heuristic to embed x-monotone lobsters. Both approaches run in linear time, but the dynamic program requires us to consider an impractically large set of partial solutions. We examine both approaches with regards to correctness and run time.
 
 The results thus presented narrow a gap in our understanding of the complexities of the unit disk contact problem. They offer tools for solving lobsters in particular, and a step towards further research.
 

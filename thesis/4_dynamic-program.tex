@@ -1,7 +1,7 @@
 \chapter{Dynamic Program}
 \label{ch:dynprog}
 
-We describe two algorithms that aim to decide Problem~\ref{prob:weak-udc-lobster} on a lobster instance of size $n$ in time linear in $n$. The \emph{dynamic program} is an implementation of the algorithm conceptualized in the literature~\cite{Bhore2021}, with a few refinements for practical performance. It solves Problem~\ref{prob:weak-udc-lobster} exactly, i.e. if the lobster admits a tri-grid x-monotone embedding, the dynamic program produces the correct decision as its output.
+We describe two algorithms that aim to decide Problem~\ref{prob:weak-udc-lobster} on a lobster instance of size $n$ in time linear in $n$. The \emph{dynamic program} is an implementation of the algorithm conceptualized in the literature~\cite{Bhore2021}, with a few refinements for practical performance. It solves Problem~\ref{prob:weak-udc-lobster} exactly, i.e. if the lobster admits a tri-grid x-monotone embedding, the dynamic program will definitely decide on ``yes'' as its output.
 
 Dynamic programming is a technique whereby a problem is solved by dividing it into smaller sub-problems and combining their solutions.
 A key feature of this approach is the reuse of solutions to sub-problems which emerge in different problem divisions.
@@ -67,8 +67,6 @@ Let $\coord$ be the tri-grid embedding coordinate of a spine vertex. The \emph{f
 
 The \emph{fundament} $F \subseteq \Phi(\coord_s)$ is a subset of local grid locations which are unavailable due to being reserved for vertices in $V_d$.
 
-Refer to Figure~\ref{fig:ch4_partialproblem} for an illustration of all the above concepts.
-
 The \emph{signature} $\signature$ of a partial problem is the tuple $(\depth, \coord_s, \coord_b, F)$, specifying the depth, heads and fundament of the problem.
 
 \begin{problem}[Partial UDC Recognition for Lobsters]
@@ -88,7 +86,7 @@ Given a Lobster $G$, an embedding order $\order$ and a signature $\signature$, d
     \label{fig:ch4_partialproblem}
 \end{figure}
 
-Figure~\ref{fig:ch4_partialproblem} visualizes a partial problem instance.
+Refer to Figure~\ref{fig:ch4_partialproblem}, which visualizes a partial problem instance, for an illustration of all the above concepts.
 
 We are now prepared to define the dynamic programming algorithm on the extended problem definition.
 
@@ -223,7 +221,7 @@ Let $G = (V, E)$ be a lobster with $|V| = n$. Algorithm~\ref{alg:simple-dynprog}
 \begin{proof}
 The determination of $\order$ and the ordered vertex set \DataSty{V} is possible in time $O(|V|)$ simply by traversing $G$ from a suitable starting spine $v_0$ of our choice (front or back).
 
-The algorithm constructs an initial partial UDC problem signature, from which all sub-problem signatures are derived. Each problem is either \texttt{divide}d further or outright \texttt{solve}d in constant time simply by having maximum depth. Also, due to the memory of problems already encountered, no problem is processed more than once. It therefore suffices to show that the number of signatures under consideration is bound by $O(n)$.
+The algorithm constructs an initial partial UDC problem signature, from which all sub-problem signatures are derived. Each problem is either \texttt{divide}d further or outright solved in constant time simply by having maximum depth. Also, due to the memory of problems already encountered, no problem is processed more than once. It therefore suffices to show that the number of signatures under consideration is bound by $O(n)$.
 
 In fact, the size of the set of signatures $\DataSty{S}_\depth$ that can be represented at any particular depth $0 \leq \depth \leq n$ is bound by a constant. Consider the constituent components of the signatures at depth $\depth$.
 
@@ -250,7 +248,7 @@ In this first estimate, we consider 5 locations for the branch head relative to 
 
 Consider the high constant bound $C$ of sub-problem signatures at some arbitrary depth. Upon further consideration of the algorithm definition, not every value from the domain of $\coord_b$ and $F$ can occur in real problems. Our estimate for the value of $C$ should drop accordingly. We also discuss several improvements to the algorithm which reduce the run time in practice. Some of them are based on recognizing \emph{equivalence} of signatures.
 
-Let $\probinst_1$ with signature $\signature_1 = (\depth, \order, \coord_s^1, \coord_b^1, F^1)$ and $\probinst_2$ with signature $\signature_2 = (\depth, \order, \coord_s^2, \coord_b^2, F^2)$ be two partial recognition problem instances on the lobster $G = (V, E), |V| = n$. Let $V_r \subseteq V$ be the largest $n-\depth$ vertices under the order $\order$.
+Let $\probinst_1$ with signature $\signature_1 = (\depth, \coord_s^1, \coord_b^1, F^1)$ and $\probinst_2$ with signature $\signature_2 = (\depth, \coord_s^2, \coord_b^2, F^2)$ be two partial recognition problem instances on the lobster $G = (V, E), |V| = n$. Let $V_r \subseteq V$ be the largest $n-\depth$ vertices under the order $\order$.
 
 $\probinst_1$ and $\probinst_2$ are \emph{equivalent} if and only if for any witness embedding function $d_1: V_r \mapsto \R^2$ that certifies a yes-answer to $\probinst_1$, we can transform it into a yes-witness $d_2$ for $\probinst_2$ and vice-versa by translation and mirroring of the coordinates.
 

@@ -12,13 +12,13 @@
 \begin{axis}[
 title={Heuristic Accuracy},
 scatter/classes={
-    dfs={mark=o,draw=red},
-    bfs={mark=o,draw=blue}},
+    dfs={mark=*,draw=black,fill=red},
+    bfs={mark=*,draw=black,fill=blue}},
 xlabel={Spine Count},
 ylabel={\% Solved},
 legend pos=north east,
 legend entries={DFS,BFS}]
-\addplot[scatter,only marks,scatter src=explicit symbolic,mark=x,mark size=3.5pt]
+\addplot[scatter,only marks,scatter src=explicit symbolic]
 table[meta=order] {data/accuracy.dat};
 \end{axis}
 \end{tikzpicture}

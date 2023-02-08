@@ -456,8 +456,8 @@ namespace
 	}
 }
 
-ProblemQueue::ProblemQueue()
-	: open_(&priority), closed_(&less)
+ProblemQueue::ProblemQueue(std::size_t n)
+	: open_(&priority), closed_(n+1, SigSet(&less))
 {
 }
 
@@ -469,6 +469,7 @@ const DynamicProblem& ProblemQueue::top() const noexcept
 void ProblemQueue::push(const DynamicProblem& problem)
 {
 	auto signature = problem.signature();
+	SigSet& closed = closed_[problem.depth()];
 
 	// We want to compare the new signature to the known ones.
 	// Since both open_ and closed_ are locally ordered by fundament bit count,
@@ -479,14 +480,14 @@ void ProblemQueue::push(const DynamicProblem& problem)
 	upperSig.fundament.mask.set(); // all blocked
 
 	// If we previously encountered a dominating signature, we have no need for the new one.
-	for (auto it = closed_.lower_bound(lowerSig),
-	         end = closed_.upper_bound(upperSig); it != end; ++it) {
+	for (auto it = closed.lower_bound(lowerSig),
+	         end = closed.upper_bound(upperSig); it != end; ++it) {
 		if (it->dominates(signature))
 			return;
 	}
 
 	open_.push(problem);
-	closed_.insert(signature);
+	closed.insert(signature);
 }
 
 void ProblemQueue::pop()
@@ -532,7 +533,7 @@ bool DynamicProblemEmbedder::embed(DiskGraph& graph)
 	int pushCounter = 0;
 	int popCounter = 0;
 
-	ProblemQueue queue;
+	ProblemQueue queue(graph.size());
 	queue.push(DynamicProblem(graph, constructive_));
 	pushCounter++;
 

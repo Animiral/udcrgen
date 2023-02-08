@@ -256,7 +256,10 @@ class ProblemQueue
 
 public:
 
-	ProblemQueue();
+	/**
+	 * Construct a ProblemQueue for solving a lobster with @c n vertices.
+	 */
+	explicit ProblemQueue(std::size_t n);
 
 	const DynamicProblem& top() const noexcept;
 	void push(const DynamicProblem& problem);
@@ -292,7 +295,8 @@ private:
 	std::priority_queue<DynamicProblem, std::deque<DynamicProblem>, OrderFunction> open_;
 
 	// set of hashes of already seen problems
-	std::set<Signature, decltype(&less)> closed_;
+	using SigSet = std::set<Signature, decltype(&less)>;
+	std::vector<SigSet> closed_; // one sigset for each problem depth
 
 };
 

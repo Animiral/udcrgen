@@ -359,7 +359,7 @@ TEST(Dynamic, queue)
 	EXPECT_FALSE(ProblemQueue::equivalent(p1, p2));
 	EXPECT_TRUE(ProblemQueue::equivalent(p1, p3));
 
-	ProblemQueue queue;
+	ProblemQueue queue(5);
 	EXPECT_TRUE(queue.empty());
 
 	queue.push(p1);
@@ -430,7 +430,7 @@ TEST(Dynamic, queue_dominant)
 	Fundament fundament2(solution2, { 2, 0 });
 	p2.setState(fundament2, position, { 2, 0 }, { 2, 0 }, 4);
 
-	ProblemQueue queue;
+	ProblemQueue queue(6);
 	queue.push(p2);
 	queue.push(p1); // better p2 prevents insertion of p1
 

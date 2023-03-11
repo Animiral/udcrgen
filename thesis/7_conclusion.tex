@@ -12,11 +12,11 @@ Our data from running the benchmark implementation demonstrates the real-world r
 \section{Open Questions}
 
 Our results are specific to x-monotone representations on the triangular grid. Based on our lack of counter-examples, it might be reasonable to assume that these specific lobsters are the same that admit a weak UDC reprensention in general. Still, this assumption is so far unproven.
-\soeren[inline]{Here again, it should be rephrased. The dynamic program solves the more restricted problem of trigrid monotone UDC realization. It is an open question if every UDG lobster can be realized in a monotone fashion (and if not, what the counter example looks like) and it is open question if every UDG lobster can be realized on a trigrid (and again if not, what the properties of the counterexample are). The conjecture is that both of these are true. Finally it is an open question if both of these hold simultaneously (It could be that every lobster can be realized in a monotone fashion, but not on a grid or on a grid, but not monotone). Again the conjecture is that this is the case. And this leads to the overall conjecture that the recognition of UDG is solvable in $\mathcal{O}(n)$ time for lobsters.}\peter[inline]{better now? reformulated above and below; no more piecemeal assumptions.}
 
 Imagine a counter-example which is not x-monotone. There is no intuitive way to define a UDC lobster in a way that will force the spine to ``bend back on itself''. The specimen would have to force this kind of constellation by tricky specification of branches and leaves, but will soon step on its own toes for lack of space around the spine. The embedded disks on both ends may only get in the way of each other.
 
-Imagine another counter-example which is not restricted to the triangular grid. As discussed in Chapter~\ref{chp:related-work}, even tighter circle packings exist. Considering the small subtree depth of the lobster, the question is whether this difference can be relevant or even ruin the linear-time result.
+Imagine another counter-example which is not restricted to the triangular grid. As discussed in Chapter~\ref{section:ch2-problems}, whether every lobster which admits a weak UDC also
+admits a weak UDC on the triangular grid is an open question. Considering the small subtree depth of the lobster, the question is whether the difference between the tri-grid and some tighter packing can be relevant or even ruin the linear-time result.
 
 The x-monotonicity concept can be described as a relaxation of an even tighter restriction, the \emph{straight spine}, in which no bends in the spine are allowed. Clearly, UDC lobsters do not all have a straight spine---a well-placed 4-leafed branch enforces a bend on a lobster that still admits an embedding perfectly fine. However, this leads us to consider whether x-monotonicity might be too relaxed. Perhaps it is sufficient to restrict UDC lobsters' spines to just two of the six cardinal directions of the triangular grid. We offer this conjecture as the final contribution of this thesis.
 
@@ -29,7 +29,3 @@ We hope to have hereby contributed a small step towards further research on the 
 \begin{displayquote}
 What is a property $p(G)$, of any graph $G$, that holds if, and only if, the UDC problem for $G$ can be decided in linear time?
 \end{displayquote}
-
-\soeren[inline]{In the literature, the references should be uniform, i.e., all Journal references should have the same info, in the same style, same for conference publications, and I prefer references to use the DOI field in bibtex, which provides a clickable link}
-
-\soeren[inline]{Very nice ending here. Overall I am very happy with everything that's already in your thesis. The feedback might look like a lot, but you have created a very solid first version and I think after discussing everything in detail you can rework it nicely.}

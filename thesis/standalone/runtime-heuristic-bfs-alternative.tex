@@ -12,7 +12,7 @@
 
 \begin{tikzpicture}
 \begin{axis}[
-title={Heuristic Runtime (Breadth-First)},
+title={Breadth-First Runtime},
 small,
 width=.5\textwidth,
 %height=7.5cm,
@@ -30,7 +30,14 @@ xlabel={Vertex Count},
 ymin=0, ymax=55,
 ytick={0,10,20,30,40,50},
 legend columns=-1,
-legend entries={no/2,no/3,no/4,yes/2,yes/3,yes/4,},
+legend style={
+    cells={anchor=west},
+    % draw=none, fill=none, 
+    % font=\scriptsize,
+    % legend pos= north west,
+    % legend style={row sep=5pt}
+},
+legend entries={no/2\rule{8pt}{0pt},no/3\rule{8pt}{0pt},no/4\rule{8pt}{0pt},yes/2\rule{8pt}{0pt},yes/3\rule{8pt}{0pt},yes/4,},
 legend to name=legend:runtime-heuristic-alternative,
 ]
 \addplot[scatter,only marks,scatter src=explicit symbolic]

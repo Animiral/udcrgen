@@ -10,6 +10,7 @@
 \usepackage{amssymb}    % Provides a multitude of mathematical symbols.
 \usepackage{amsthm}     % theorems
 \usepackage{mathtools}  % Further extensions of mathematical typesetting.
+\usepackage{complexity} % NP, SAT etc
 \usepackage{microtype}  % Small-scale typographic enhancements.
 \usepackage[inline]{enumitem} % User control over the layout of lists (itemize, enumerate, description).
 \usepackage{csquotes}   % Display quotations.
@@ -30,10 +31,11 @@
 \addbibresource{bsc_thesis.bib}
 \AtEveryBibitem{\clearfield{language}} % don't print language of citation
 
+\SetAlCapSty{} % do not bold algorithm captions
+\SetAlCapSkip{1em} % algorithm captions with sensible spacing
+
 % recommendation by https://www.overleaf.com/learn/latex/pgfplots_package
 \pgfplotsset{width=12cm,compat=1.9}
-
-
 \pgfplotsset{every picture/.style={line width=0.75pt}} %set default line width to 0.75pt    
 % \pgfplotsset{every picture/.style={line width=0.95pt}}
 
@@ -47,7 +49,7 @@
 \newtheorem{problem}{Problem}
 
 % macros for commonly used symbols/definitions
-\newcommand{\R}{\mathbb R} % real numbers
+\newcommand{\reals}{\mathbb R} % real numbers
 \newcommand{\Spines}{S} % spine nodes of lobster
 \newcommand{\Branches}{B} % branch nodes of lobster
 \newcommand{\Leaves}{L} % leaf nodes of lobster
@@ -57,10 +59,13 @@
 \newcommand{\probinst}{\pi} % problem instances
 \newcommand{\signature}{\varsigma} % dp: partial problem signatures
 \newcommand{\depth}{\delta} % depth of partial problem instance
+\newcommand{\dotcup}{\,\dot{\cup}\,} % disjoint union
+% \def\cpp{C\raise.22ex\hbox{{\footnotesize +}}\raise.22ex\hbox{\footnotesize +} }
+\newcommand\cpp{{C\nolinebreak[3]\hspace{-.05em}\raisebox{.4ex}{\tiny\textbf{++}}}}
 
 % Define convenience functions to use the author name and the thesis title in the PDF document properties.
 \newcommand{\authorname}{Peter Neubauer} % The author name without titles.
-\newcommand{\thesistitle}{Practical Examination of Unit Disk Contact Representations} % The title of the thesis. The English version should be used, if it exists.
+\newcommand{\thesistitle}{Exact and Heuristic Recognition of Monotone Lobster Graphs on a Grid} % The title of the thesis. The English version should be used, if it exists.
 
 % Set PDF document properties
 \hypersetup{
@@ -68,8 +73,8 @@
     linkbordercolor = {Melon},                % The color of the borders of boxes around crosslinks (optional).
     pdfauthor       = {\authorname},          % The author's name in the document properties (optional).
     pdftitle        = {\thesistitle},         % The document's title in the document properties (optional).
-    pdfsubject      = {Subject},              % The document's subject in the document properties (optional).
-    pdfkeywords     = {a, list, of, keywords} % The document's keywords in the document properties (optional).
+    pdfsubject      = {\thesistitle},              % The document's subject in the document properties (optional).
+    pdfkeywords     = {Disk contact graphs, Unit disk graphs, Coin graphs, Penny Graphs} % The document's keywords in the document properties (optional).
 }
 
 \setpnumwidth{2.5em}        % Avoid overfull hboxes in the table of contents (see memoir manual).
@@ -86,15 +91,15 @@
 %  {title before name}{name}{title after name}{gender}
 %  where both titles are optional (i.e. can be given as empty brackets {}).
 \setauthor{}{\authorname}{}{male}
-\setadvisor{Univ.Prof. Dipl.-Inform. Dr.rer.nat.}{Martin Nöllenburg}{}{male}
+\setadvisor{Univ.-Prof.\ Dipl.-Inform.\ Dr.\ rer.\ nat.}{Martin Nöllenburg}{}{male}
 
 % For bachelor and master theses:
-\setfirstassistant{Dipl.-Ing. B.A.}{Soeren Terziadis}{}{male}
+\setfirstassistant{Dipl.-Ing.}{Soeren Terziadis}{B.A.}{male}
 %\setsecondassistant{Pretitle}{Forename Surname}{Posttitle}{male}
 
 % Required data.
 \setregnumber{00725263}
-\setdate{01}{10}{2022} % Set date with 3 arguments: {day}{month}{year}.
+\setdate{08}{03}{2023} % Set date with 3 arguments: {day}{month}{year}.
 \settitle{\thesistitle}{\thesistitle} % Sets English and German version of the title (both can be English or German). If your title contains commas, enclose it with additional curvy brackets (i.e., {{your title}}) or define it as a macro as done with \thesistitle.
 %\setsubtitle{Optional Subtitle of the Thesis}{Optionaler Untertitel der Arbeit} % Sets English and German version of the subtitle (both can be English or German).
 
@@ -125,28 +130,28 @@
 %\todo{Ihr Text hier.}
 %\end{danksagung*}
 
-%\begin{acknowledgements*}
-%\todo{Enter your text here.}
-%\end{acknowledgements*}
+\begin{acknowledgements*}
+I finished this thesis only thanks to the endless patience and support of my girlfriend Simone Marxer, my family and friends. I am grateful that you are here for me.
 
-%\begin{kurzfassung}
-%\todo{Ihr Text hier.}
-%\end{kurzfassung}
+I extend my sincere thanks to Dr.\ rer.\ nat.\ Simon Naarmann for being interested in my thesis and proofreading it, and for always remaining an enduring friend even over long distance and low contact.
 
-\peter[inline]{inline comment}
-\soeren[inline]{inline comment}
-\martin[inline]{inline comment}
-\peter{side comment}
-\soeren{side comment}
-\martin{side comment}
+I also extend my gratitude to my supervisor Professor Dr.\ rer.\ nat.\ Martin Nöllenburg and project assistant Dipl.-Ing.\ Soeren Terziadis, whose frequent and knowledgeable feedback made my thesis into a true learning experience.
+\end{acknowledgements*}
+
+\begin{kurzfassung}
+Unit Disk Graphen sind Graphen, die man in der Ebene derart zeichnen kann, dass jede Scheibe (disk) einen Knoten und der Kontakt zwischen den Scheiben die Kanten repräsentiert. Unit Disk Graphen und ihre vielfältigen Varianten erfreuen sich eines lebhaften Forschungsinteresses auf dem Gebiet der Algorithmischen Geometrie. In dieser Arbeit beschäftigen wir uns mit Erkennungsproblemen hinsichtlich Scheibenkontakt in eingeschränkten Klassen von Unit Disk Graphen, spezifisch Caterpillar und Lobster Graphen. Diese beschränkten Klassen sind, gewisse offene Fragen vorbehalten, einfacher zu erkennen als allgemeine planare Graphen und sogar Bäume.
+
+Wir formalisieren und diskutieren den aktuellen Wissensstand über die betreffenden Problemstellungen und ihre algorithmische Komplexität. Wir stellen Annahmen vor, die unser Kernproblem erleichtern. Außerdem formulieren wir zwei Algorithmen zur Entscheidung des Erkennungsproblems, ob ein gegebener Lobster Graph eine x-monotone schwache Unit Disk Repräsentation auf einem Dreiecksraster zulässt. Zum einen handelt es sich um einen exakt entscheidenden Algorithmus mittels Dynamischer Programmierung aus der Literatur, zuzüglich ein paar Anpassungen für verbesserte Laufzeit. Zum anderen stellen wir eine schnelle, greedy Heuristik zum Vergleich vor.
+
+Beide Algorithmen sind in dem beiliegenden Softwareprojekt umgesetzt. Wir führen mit diesem Programm eine experimentelle Analyse der vorgestellten Ansätze durch. Die Untersuchung umfasst die vollständige Aufzählung aller relevanten Lobster bis zu einer Gratlänge von $7$ Knoten. Sie vergleicht die Laufzeit beider Implementierungen und die Treffsicherheit der Heuristik, wobei sich zeigt, dass die Heuristik bis zu $250\times$ schneller läuft und, trotz abnehmender Zuverlässigkeit bei größeren Instanzen, etwa $70\%$ der Ja-Instanzen mit Gratlänge $7$ korrekt entscheidet.
+\end{kurzfassung}
+
 \begin{abstract}
 Disk contact graphs are graphs which can be drawn in the plane such that every disk represents a vertex, and disk contact represents graph edges. These graphs and their variants form are a lively research topic in the field of Algorithmic Geometry. This work focuses on recognition problems of unit disk contact on restricted graph classes, specifically caterpillars and lobsters. These restricted classes are easier to recognize than general planar graphs or even trees, with some caveats.
 
-We formally review the related problems, their complexity, limitations and hypotheses. Then we formulate two algorithms to decide, in particular, whether a given lobster admits an x-monotone weak unit disk contact representation on a triangular coordinate grid. One is a dynamic programming algorithm from the literature with some performance modifications, which decides the problem exactly. The other is a fast, inexact, greedy heuristic approach.
+We formally review the related problems and their complexity, as far as we currently know. We present assumptions which make our core problem easier. Then we formulate two algorithms to decide, in particular, whether a given lobster admits an x-monotone weak unit disk contact representation on a triangular coordinate grid. One is a dynamic programming algorithm from the literature with some performance modifications, which decides the problem exactly. The other is a fast, greedy heuristic approach.
 
 Both algorithms are implemented in an accompanying software project. We employ this program for experimental analysis of the presented approaches. The examination covers a complete enumeration of all relevant lobsters up to a spine length of $7$ nodes. It regards the run time of both implementations and accuracy of the heuristic, showing that the heuristic algorithm is up to $250\times$ faster and, though generally less reliable on larger instances, correctly decides about $70\%$ of yes-instances with spine length $7$.
-\soeren[inline]{I don't completely recall, but I think this was still Work in Progress right? Can (and should) definitely be expanded}
-\peter[inline]{Expanded and ready for next review.}
 \end{abstract}
 
 % Select the language of the thesis, e.g., english or naustrian.
@@ -157,6 +162,12 @@ Both algorithms are implemented in an accompanying software project. We employ t
 
 % Switch to arabic numbering and start the enumeration of chapters in the table of content.
 \mainmatter
+% \peter[inline]{inline comment}
+% \soeren[inline]{inline comment}
+% \martin[inline]{inline comment}
+% \peter{side comment}
+% \soeren{side comment}
+% \martin{side comment}
 
 \include{1_introduction}
 
@@ -175,15 +186,15 @@ Both algorithms are implemented in an accompanying software project. We employ t
 \backmatter
 
 % Use an optional list of figures.
-% \listoffigures % Starred version, i.e., \listoffigures*, removes the toc entry.
+\listoffigures % Starred version, i.e., \listoffigures*, removes the toc entry.
 
 % Use an optional list of tables.
 % \cleardoublepage % Start list of tables on the next empty right hand page.
-% \listoftables % Starred version, i.e., \listoftables*, removes the toc entry.
+\listoftables % Starred version, i.e., \listoftables*, removes the toc entry.
 
 % Use an optional list of alogrithms.
-% \listofalgorithms
-% \addcontentsline{toc}{chapter}{List of Algorithms}
+\listofalgorithms
+\addcontentsline{toc}{chapter}{List of Algorithms}
 
 % Add an index.
 % \printindex

@@ -13,9 +13,11 @@
 
 \begin{tikzpicture}
 \begin{axis}[
-%title={Dynamic Program Runtime},
 small,
+% width=6.2cm,
+% height=7cm,
 width=.5\textwidth,
+height=7.5cm,
 scatter/classes={
     no2={mark=square*,mark size=2.0pt,draw=white,fill=red!0!yellow},
     no3={mark=square*,mark size=2.0pt,draw=white,fill=red!20!yellow},
@@ -34,28 +36,27 @@ ylabel={Runtime $[\mu s]$},
 %xmin=0, xmax=100,
 %ymin=0, ymax=120,
 % xtick={0,5,10,15,20,25,30,35,40,45,50},
-% ytick={0,2000,4000,6000,8000,10000,12000,14000,16000,18000,20000},
+ytick={0,2000,4000,6000,8000,10000,12000,14000,16000,18000},
 scaled ticks=false,
-height=8.5cm,
 %legend pos=north west,
-legend columns=-1,
-legend entries={no/2,no/3,no/4,no/5,no/6,no/7,yes/2,yes/3,yes/4,yes/5,yes/6,yes/7,},
+legend columns=6,
+legend entries={no/2\rule{8pt}{0pt},no/3\rule{8pt}{0pt},no/4\rule{8pt}{0pt},no/5\rule{8pt}{0pt},no/6\rule{8pt}{0pt},no/7,yes/2\rule{8pt}{0pt},yes/3\rule{8pt}{0pt},yes/4\rule{8pt}{0pt},yes/5\rule{8pt}{0pt},yes/6\rule{8pt}{0pt},yes/7,},
 legend to name=legend:runtime-dp,
 ]
 \addplot[scatter,only marks,scatter src=explicit symbolic]
 table[meta=clsspines] {data/runtime_dp.dat};
-\addlegendentry{no/2}
-\addlegendentry{no/3}
-\addlegendentry{no/4}
-\addlegendentry{no/5}
-\addlegendentry{no/6}
-\addlegendentry{no/7}
-\addlegendentry{yes/2}
-\addlegendentry{yes/3}
-\addlegendentry{yes/4}
-\addlegendentry{yes/5}
-\addlegendentry{yes/6}
-\addlegendentry{yes/7}
+% \addlegendentry{no/2}
+% \addlegendentry{no/3}
+% \addlegendentry{no/4}
+% \addlegendentry{no/5}
+% \addlegendentry{no/6}
+% \addlegendentry{no/7}
+% \addlegendentry{yes/2}
+% \addlegendentry{yes/3}
+% \addlegendentry{yes/4}
+% \addlegendentry{yes/5}
+% \addlegendentry{yes/6}
+% \addlegendentry{yes/7}
 \end{axis}
 \end{tikzpicture}
 

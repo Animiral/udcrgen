@@ -12,10 +12,12 @@
 
 \begin{tikzpicture}
 \begin{axis}[
-title={Heuristic Runtime (Breadth-First)},
+title={Breadth-First Runtime},
 small,
+% width=6.5cm,
+% height=7cm,
 width=.5\textwidth,
-%height=7.5cm,
+height=7.5cm,
 scatter/classes={
     no2={mark=square*,mark size=2.0pt,draw=white,fill=red!0!yellow},
     no3={mark=square*,mark size=2.0pt,draw=white,fill=red!20!yellow},
@@ -31,12 +33,12 @@ scatter/classes={
     yes7={mark=triangle*,mark size=3.0pt,draw=white,cyan!100!blue}},
 xlabel={Vertex Count},
 %ylabel={Runtime [$\mu s$]},
-%legend pos=south east,
 %xmin=0, xmax=68,
 ymin=0, ymax=70,
 ytick={0,10,20,30,40,50,60,70},
-legend columns=-1,
-legend entries={no/2,no/3,no/4,no/5,no/6,no/7,yes/2,yes/3,yes/4,yes/5,yes/6,yes/7,},
+% legend columns=1,
+legend columns=6,
+legend entries={no/2\rule{8pt}{0pt},no/3\rule{8pt}{0pt},no/4\rule{8pt}{0pt},no/5\rule{8pt}{0pt},no/6\rule{8pt}{0pt},no/7,yes/2\rule{8pt}{0pt},yes/3\rule{8pt}{0pt},yes/4\rule{8pt}{0pt},yes/5\rule{8pt}{0pt},yes/6\rule{8pt}{0pt},yes/7,},
 legend to name=legend:runtime-heuristic,
 ]
 \addplot[scatter,only marks,scatter src=explicit symbolic]

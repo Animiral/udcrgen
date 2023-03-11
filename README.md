@@ -61,7 +61,7 @@ $ cmake --build .
 
 # Thesis Experiment
 
-This program accompanies the Bachelor's thesis paper “Practical Examination of Unit Disk Contact Representations”. Follow these steps to reproduce the experiment that produced the data in the thesis paper.
+This program accompanies the Bachelor's thesis paper “Exact and Heuristic Recognition of Monotone Lobster Graphs on a Grid”. Follow these steps to reproduce the experiment that produced the data in the thesis paper.
 
 Produce the raw data file `stats.csv` using benchmark mode.
 
